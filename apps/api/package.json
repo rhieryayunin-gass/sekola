@@ -1,10 +1,32 @@
 {
   "name": "@sekola/api",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "echo \"API app not initialized yet\"",
-    "build": "echo \"API app not initialized yet\"",
-    "lint": "echo \"API lint not initialized yet\"",
-    "typecheck": "echo \"API typecheck not initialized yet\""
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "start": "node dist/main",
+    "lint": "echo \"API lint not configured yet\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nestjs/common": "latest",
+    "@nestjs/core": "latest",
+    "@nestjs/platform-express": "latest",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "express": "^5.2.1",
+    "reflect-metadata": "latest",
+    "rxjs": "latest"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "latest",
+    "@nestjs/schematics": "latest",
+    "@nestjs/testing": "latest",
+    "@types/express": "^5.0.6",
+    "@types/node": "latest",
+    "ts-loader": "latest",
+    "ts-node": "latest",
+    "typescript": "^6.0.3"
   }
 }
