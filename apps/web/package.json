@@ -1,0 +1,10 @@
+{
+  "name": "@sekola/web",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"Web app not initialized yet\"",
+    "build": "echo \"Web app not initialized yet\"",
+    "lint": "echo \"Web lint not initialized yet\"",
+    "typecheck": "echo \"Web typecheck not initialized yet\""
+  }
+}

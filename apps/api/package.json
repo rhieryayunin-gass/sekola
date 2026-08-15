@@ -1,0 +1,10 @@
+{
+  "name": "@sekola/api",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"API app not initialized yet\"",
+    "build": "echo \"API app not initialized yet\"",
+    "lint": "echo \"API lint not initialized yet\"",
+    "typecheck": "echo \"API typecheck not initialized yet\""
+  }
+}
