@@ -5,6 +5,7 @@ import { SupabaseModule } from "./common/supabase/supabase.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { AuthorizationModule } from "./common/authorization/authorization.module";
 import { CalendarModule } from "./modules/calendar/calendar.module";
+import { CalendarEventsModule } from "./modules/calendar-events/calendar-events.module";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { CalendarModule } from "./modules/calendar/calendar.module";
     AuthModule,
     AuthorizationModule,
     CalendarModule,
+    CalendarEventsModule,
   ],
   controllers: [AppController],
 })
