@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -16,10 +17,56 @@ export class CalendarEventsService {
     return this.supabaseService.getClient();
   }
 
+  private async ensureCalendarOwner(
+    userId: string,
+    calendarId: string,
+  ) {
+    const { data, error } = await this.client
+      .from("calendars")
+      .select("id")
+      .eq("id", calendarId)
+      .eq("owner_user_id", userId)
+      .single();
+
+    if (error || !data) {
+      throw new NotFoundException("Calendar not found");
+    }
+  }
+
+  private validateEventTimes(
+    startsAt: string,
+    endsAt?: string | null,
+  ) {
+    if (!endsAt) {
+      return;
+    }
+
+    const starts = new Date(startsAt);
+    const ends = new Date(endsAt);
+
+    if (
+      Number.isNaN(starts.getTime()) ||
+      Number.isNaN(ends.getTime())
+    ) {
+      return;
+    }
+
+    if (ends.getTime() < starts.getTime()) {
+      throw new BadRequestException(
+        "ends_at must be greater than or equal to starts_at",
+      );
+    }
+  }
+
   async findAll(
     userId: string,
     calendarId: string,
   ) {
+    await this.ensureCalendarOwner(
+      userId,
+      calendarId,
+    );
+
     const { data, error } = await this.client
       .from("calendar_events")
       .select(`
@@ -44,7 +91,7 @@ export class CalendarEventsService {
       );
     }
 
-    return data;
+    return data ?? [];
   }
 
   async findOne(
@@ -52,6 +99,11 @@ export class CalendarEventsService {
     calendarId: string,
     eventId: string,
   ) {
+    await this.ensureCalendarOwner(
+      userId,
+      calendarId,
+    );
+
     const { data, error } = await this.client
       .from("calendar_events")
       .select(`
@@ -83,14 +135,24 @@ export class CalendarEventsService {
     calendarId: string,
     dto: CreateCalendarEventDto,
   ) {
+    await this.ensureCalendarOwner(
+      userId,
+      calendarId,
+    );
+
+    this.validateEventTimes(
+      dto.starts_at,
+      dto.ends_at,
+    );
+
     const { data, error } = await this.client
       .from("calendar_events")
       .insert({
         calendar_id: calendarId,
         title: dto.title,
-        description: dto.description,
+        description: dto.description ?? null,
         starts_at: dto.starts_at,
-        ends_at: dto.ends_at,
+        ends_at: dto.ends_at ?? null,
         is_all_day: dto.is_all_day ?? false,
       })
       .select(`
@@ -107,8 +169,8 @@ export class CalendarEventsService {
       .single();
 
     if (error || !data) {
-      throw new NotFoundException(
-        "Calendar not found",
+      throw new BadRequestException(
+        "Failed to create calendar event",
       );
     }
 
@@ -121,6 +183,42 @@ export class CalendarEventsService {
     eventId: string,
     dto: UpdateCalendarEventDto,
   ) {
+    await this.ensureCalendarOwner(
+      userId,
+      calendarId,
+    );
+
+    const { data: existingEvent, error: existingError } =
+      await this.client
+        .from("calendar_events")
+        .select(`
+          id,
+          starts_at,
+          ends_at
+        `)
+        .eq("id", eventId)
+        .eq("calendar_id", calendarId)
+        .single();
+
+    if (existingError || !existingEvent) {
+      throw new NotFoundException(
+        "Calendar event not found",
+      );
+    }
+
+    const startsAt =
+      dto.starts_at ?? existingEvent.starts_at;
+
+    const endsAt =
+      dto.ends_at !== undefined
+        ? dto.ends_at
+        : existingEvent.ends_at;
+
+    this.validateEventTimes(
+      startsAt,
+      endsAt,
+    );
+
     const { data, error } = await this.client
       .from("calendar_events")
       .update({
@@ -157,8 +255,8 @@ export class CalendarEventsService {
       .single();
 
     if (error || !data) {
-      throw new NotFoundException(
-        "Calendar event not found",
+      throw new BadRequestException(
+        "Failed to update calendar event",
       );
     }
 
@@ -170,6 +268,11 @@ export class CalendarEventsService {
     calendarId: string,
     eventId: string,
   ) {
+    await this.ensureCalendarOwner(
+      userId,
+      calendarId,
+    );
+
     const { data, error } = await this.client
       .from("calendar_events")
       .delete()
