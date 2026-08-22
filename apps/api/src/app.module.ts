@@ -6,6 +6,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { AuthorizationModule } from "./common/authorization/authorization.module";
 import { CalendarModule } from "./modules/calendar/calendar.module";
 import { CalendarEventsModule } from "./modules/calendar-events/calendar-events.module";
+import { UsersModule } from "./modules/users/users.module";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CalendarEventsModule } from "./modules/calendar-events/calendar-events.
     AuthorizationModule,
     CalendarModule,
     CalendarEventsModule,
+    UsersModule,
   ],
   controllers: [AppController],
 })
