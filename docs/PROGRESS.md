@@ -57,6 +57,7 @@ Branch: `phase/03-authentication`
 - [x] Inactive-account enforcement
 - [x] Auth user → Core user synchronization migration
 - [x] Unit tests
+- [x] Safe staging inspect/apply verification workflow
 - [ ] Apply migrations to Supabase test/staging
 - [ ] Live login, refresh, protected-route, and logout verification
 - [ ] GitHub CI checkpoint

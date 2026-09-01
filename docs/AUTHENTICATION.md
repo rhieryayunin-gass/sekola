@@ -48,3 +48,30 @@ test or staging Supabase project before performing the live verification.
 - Refresh an expired access token through the proxy
 - Reject an inactive Core user at the API
 - Sign out and reject the previous session
+
+## Staging workflow
+
+The manually triggered `Staging Authentication Verification` GitHub Actions
+workflow has two modes:
+
+- `inspect` links the staging project, lists migration status, and performs a
+  migration dry run. It does not apply SQL.
+- `apply` repeats the inspection, applies pending migrations, runs the complete
+  project quality gate, starts the production API and web builds, and executes
+  live authentication checks with a temporary user. The temporary user is
+  deleted even when a verification assertion fails.
+
+Configure a protected GitHub Environment named `staging` with these variables:
+
+- `SUPABASE_PROJECT_REF`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+
+Configure these environment secrets:
+
+- `SUPABASE_ACCESS_TOKEN`
+- `SUPABASE_DB_PASSWORD`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+Never place the service-role key, database password, or access token in a
+repository variable, workflow input, commit, issue, pull request, or chat.
