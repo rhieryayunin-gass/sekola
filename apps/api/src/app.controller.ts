@@ -6,6 +6,9 @@ export class AppController {
   health() {
     return {
       status: "ok",
+      service: "sekola-api",
+      version: "0.1.0",
+      uptimeSeconds: Math.floor(process.uptime()),
     };
   }
 }
