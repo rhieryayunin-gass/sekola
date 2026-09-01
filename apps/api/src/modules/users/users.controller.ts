@@ -40,18 +40,34 @@ export class UsersController {
   @Get()
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermission("users.read")
-  async findAll() {
-    return this.usersService.findAll();
+  async findAll(@Req() request: Request) {
+  const user = request.user;
+
+  if (!user) {
+    throw new Error("Authenticated user is missing");
   }
+
+  return this.usersService.findAll(user.id);
+}
 
   @Get(":id")
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermission("users.read")
   async findOne(
-    @Param("id") id: string,
-  ) {
-    return this.usersService.findOne(id);
+  @Param("id") id: string,
+  @Req() request: Request,
+) {
+  const user = request.user;
+
+  if (!user) {
+    throw new Error("Authenticated user is missing");
   }
+
+  return this.usersService.findOne(
+    id,
+    user.id,
+  );
+}
 
   @Post()
   @UseGuards(AuthGuard, PermissionGuard)

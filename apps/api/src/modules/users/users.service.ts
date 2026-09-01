@@ -19,11 +19,28 @@ export class UsersService {
     return this.supabaseService.getClient();
   }
 
+  private async getTenantIdByUserId(userId: string) {
+  const { data, error } = await this.client
+    .from("users")
+    .select("tenant_id")
+    .eq("id", userId)
+    .single();
+
+  if (error || !data?.tenant_id) {
+    throw new NotFoundException(
+      "Tenant context not found",
+    );
+  }
+
+  return data.tenant_id;
+}
+
   private readonly userSelect = `
     id,
     full_name,
     email,
     is_active,
+    tenant_id,
     user_level_id,
     created_at,
     updated_at,
@@ -34,38 +51,49 @@ export class UsersService {
     )
   `;
 
-  async findAll() {
-    const { data, error } = await this.client
-      .from("users")
-      .select(this.userSelect)
-      .order("created_at", {
-        ascending: false,
-      });
+  async findAll(currentUserId: string) {
+  const tenantId =
+    await this.getTenantIdByUserId(currentUserId);
 
-    if (error) {
-      throw new InternalServerErrorException(
-        "Failed to fetch users",
-      );
-    }
+  const { data, error } = await this.client
+    .from("users")
+    .select(this.userSelect)
+    .eq("tenant_id", tenantId)
+    .order("created_at", {
+      ascending: false,
+    });
 
-    return data ?? [];
+  if (error) {
+    throw new InternalServerErrorException(
+      "Failed to fetch users",
+    );
   }
 
-  async findOne(userId: string) {
-    const { data, error } = await this.client
-      .from("users")
-      .select(this.userSelect)
-      .eq("id", userId)
-      .single();
+  return data ?? [];
+}
 
-    if (error || !data) {
-      throw new NotFoundException(
-        "User not found",
-      );
-    }
+  async findOne(
+  userId: string,
+  currentUserId: string,
+) {
+  const tenantId =
+    await this.getTenantIdByUserId(currentUserId);
 
-    return data;
+  const { data, error } = await this.client
+    .from("users")
+    .select(this.userSelect)
+    .eq("id", userId)
+    .eq("tenant_id", tenantId)
+    .single();
+
+  if (error || !data) {
+    throw new NotFoundException(
+      "User not found",
+    );
   }
+
+  return data;
+}
 
   async create(dto: CreateUserDto) {
   /*
@@ -301,6 +329,6 @@ export class UsersService {
   }
 
   async findMe(userId: string) {
-    return this.findOne(userId);
-  }
+  return this.findOne(userId, userId);
+}
 }
