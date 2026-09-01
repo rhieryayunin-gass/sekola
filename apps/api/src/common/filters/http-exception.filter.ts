@@ -24,7 +24,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getResponse()
         : null;
 
-    const message =
+    const rawMessage =
       typeof exceptionResponse === "object" &&
       exceptionResponse !== null &&
       "message" in exceptionResponse
@@ -32,6 +32,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
         : exception instanceof Error
           ? exception.message
           : "Internal server error";
+
+    const message =
+      status >= HttpStatus.INTERNAL_SERVER_ERROR
+        ? "Internal server error"
+        : rawMessage;
 
     response.status(status).json({
       success: false,
