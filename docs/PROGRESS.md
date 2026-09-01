@@ -7,9 +7,9 @@ after its implementation and quality gates pass on the current branch.
 
 ## Current phase
 
-**Level 0 — 00 Project Foundation**
+**Level 1 — 03 Authentication**
 
-Branch: `phase/00-project-foundation`
+Branch: `phase/03-authentication`
 
 ### 00 Project Foundation
 
@@ -43,10 +43,28 @@ Branch: `phase/00-project-foundation`
 - [x] Versioned health endpoint
 - [x] Final lint, typecheck, test, and production build
 
+### 03 Authentication
+
+- [x] Supabase Auth browser client
+- [x] Supabase SSR server client
+- [x] Login
+- [x] Logout
+- [x] Session initialization
+- [x] Explicit and automatic session refresh
+- [x] Auth state and Zustand Auth Store
+- [x] Protected routes and safe post-login redirects
+- [x] Backend Bearer token validation
+- [x] Inactive-account enforcement
+- [x] Auth user → Core user synchronization migration
+- [x] Unit tests
+- [ ] Apply migrations to Supabase test/staging
+- [ ] Live login, refresh, protected-route, and logout verification
+- [ ] GitHub CI checkpoint
+
 ## Next phase
 
-Level 1 — 03 Authentication. Existing authentication code will be audited and
-completed after Level 0 receives its checkpoint.
+Level 1 — 04 Tenant. This phase must not start until the remaining live
+Authentication checks pass.
 
 ## Remaining roadmap levels
 

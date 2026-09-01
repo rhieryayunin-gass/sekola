@@ -58,6 +58,9 @@ The web application runs at `http://localhost:3000`. The API runs at
 `http://localhost:3001/api/v1`, with its health endpoint available at
 `GET /api/v1/health`.
 
+Authentication setup and verification are documented in
+[docs/AUTHENTICATION.md](docs/AUTHENTICATION.md).
+
 ## Commands
 
 | Command | Purpose |
