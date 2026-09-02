@@ -13,7 +13,7 @@ on:
           - baseline
           - apply
       confirmation:
-        description: Use BASELINE_0001_0005 or APPLY_0006_0007 when required
+        description: Use BASELINE_0001_0005 or APPLY_0008 when required
         required: false
         type: string
 
@@ -31,7 +31,7 @@ jobs:
     timeout-minutes: 30
     environment: staging
     env:
-      PHASE_03_COMMIT: 602aefe31f693c788f5acee66f19db083064d33a
+      PHASE_03_COMMIT: 3ff7653d010e51642628c8f0e68fe5408a90af2c
       SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
       SUPABASE_URL: ${{ vars.SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
@@ -52,8 +52,8 @@ jobs:
             echo "::error::Baseline requires confirmation BASELINE_0001_0005"
             exit 1
           fi
-          if [ "$OPERATION" = "apply" ] && [ "$CONFIRMATION" != "APPLY_0006_0007" ]; then
-            echo "::error::Apply requires confirmation APPLY_0006_0007"
+          if [ "$OPERATION" = "apply" ] && [ "$CONFIRMATION" != "APPLY_0008" ]; then
+            echo "::error::Apply requires confirmation APPLY_0008"
             exit 1
           fi
 
@@ -170,7 +170,7 @@ jobs:
             exit 1
           fi
 
-      - name: Apply migrations 0006 and 0007
+      - name: Apply pending Phase 03 migrations
         if: ${{ inputs.operation == 'apply' }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
