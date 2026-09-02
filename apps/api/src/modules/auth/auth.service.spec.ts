@@ -9,7 +9,11 @@ function createService({
   profile,
 }: {
   authUser: User | null;
-  profile: { id: string; is_active: boolean } | null;
+  profile: {
+    id: string;
+    is_active: boolean;
+    tenants: { is_active: boolean } | null;
+  } | null;
 }) {
   const single = vi.fn().mockResolvedValue({ data: profile, error: null });
   const query = {
@@ -44,7 +48,11 @@ describe("AuthService.getUserFromToken", () => {
   it("returns a verified user with an active profile", async () => {
     const { client, service } = createService({
       authUser: authenticatedUser,
-      profile: { id: authenticatedUser.id, is_active: true },
+      profile: {
+        id: authenticatedUser.id,
+        is_active: true,
+        tenants: { is_active: true },
+      },
     });
 
     await expect(service.getUserFromToken("valid-token")).resolves.toBe(
@@ -64,7 +72,11 @@ describe("AuthService.getUserFromToken", () => {
   it("rejects an inactive profile", async () => {
     const { service } = createService({
       authUser: authenticatedUser,
-      profile: { id: authenticatedUser.id, is_active: false },
+      profile: {
+        id: authenticatedUser.id,
+        is_active: false,
+        tenants: { is_active: true },
+      },
     });
 
     await expect(service.getUserFromToken("valid-token")).rejects.toBeInstanceOf(
@@ -72,6 +84,21 @@ describe("AuthService.getUserFromToken", () => {
     );
     await expect(service.getUserFromToken("valid-token")).rejects.toThrow(
       "Account is inactive",
+    );
+  });
+
+  it("rejects a user whose tenant is inactive", async () => {
+    const { service } = createService({
+      authUser: authenticatedUser,
+      profile: {
+        id: authenticatedUser.id,
+        is_active: true,
+        tenants: { is_active: false },
+      },
+    });
+
+    await expect(service.getUserFromToken("valid-token")).rejects.toThrow(
+      "Tenant is inactive",
     );
   });
 });
