@@ -29,7 +29,7 @@ async function waitForProfile(admin, userId) {
   for (let attempt = 1; attempt <= 20; attempt += 1) {
     const { data, error } = await admin
       .from("users")
-      .select("id, email, is_active")
+      .select("id, email, is_active, tenant_id")
       .eq("id", userId)
       .maybeSingle();
 
@@ -60,8 +60,20 @@ const password = `Sekola-${randomBytes(18).toString("base64url")}!9a`;
 let userId;
 
 try {
+  const { data: tenant, error: tenantError } = await admin
+    .from("tenants")
+    .select("id")
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+
+  if (tenantError || !tenant) {
+    throw tenantError ?? new Error("An active staging tenant is required");
+  }
+
   const { data: created, error: createError } =
     await admin.auth.admin.createUser({
+      app_metadata: { tenant_id: tenant.id },
       email,
       email_confirm: true,
       password,
@@ -76,6 +88,7 @@ try {
   const profile = await waitForProfile(admin, userId);
   assert(profile.email === email, "Synchronized profile email does not match");
   assert(profile.is_active === true, "New profile should be active");
+  assert(profile.tenant_id === tenant.id, "Profile tenant does not match");
   console.log("✓ Auth user synchronized to an active Core profile");
 
   const { data: invalidData, error: invalidError } =

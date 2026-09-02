@@ -1,6 +1,6 @@
 # SEKOLA AI Development Progress
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02
 
 This file records repository-verified progress. A roadmap item is complete only
 after its implementation and quality gates pass on the current branch.
@@ -56,8 +56,13 @@ Branch: `phase/03-authentication`
 - [x] Backend Bearer token validation
 - [x] Inactive-account enforcement
 - [x] Auth user → Core user synchronization migration
+- [x] Tenant-aware Auth provisioning and user query isolation
+- [x] Legacy schema audit and idempotent reconciliation migration
 - [x] Unit tests
 - [x] Safe staging inspect/apply verification workflow
+- [x] Validate staging credentials and database connectivity
+- [x] Inspect staging schema and migration history without mutation
+- [ ] Reconcile migration history for existing migrations `0001`–`0005`
 - [ ] Apply migrations to Supabase test/staging
 - [ ] Live login, refresh, protected-route, and logout verification
 - [ ] GitHub CI checkpoint

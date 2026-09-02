@@ -35,8 +35,11 @@ verified claims on Next.js or a verified Bearer token on NestJS.
 
 ## Database migration
 
-Migration `0006_auth_user_sync.sql` creates and backfills the relationship
-between `auth.users` and `public.users`. Apply migrations in numeric order to a
+Migration `0006_legacy_schema_reconciliation.sql` records and safely completes
+the legacy tenant, authorization, and calendar schema without deleting data.
+Migration `0007_auth_user_sync.sql` then creates the tenant-aware relationship
+between `auth.users` and `public.users`. New Auth users must carry a valid active
+`tenant_id` in protected app metadata. Apply migrations in numeric order to a
 test or staging Supabase project before performing the live verification.
 
 ## Required live verification
@@ -80,3 +83,6 @@ The workflow only supports an explicit manual trigger. Select `inspect` until
 the dry-run output has been reviewed, then select `apply` for the approved
 Phase 03 verification run. It never receives staging credentials from an
 automatic pull-request event.
+
+See `DATABASE_RECONCILIATION.md` for the audited staging state and the required
+migration-history baseline before applying migrations.
