@@ -82,7 +82,8 @@ Branch: `phase/04-tenant`
 - [x] Tenant settings page
 - [x] Unit and regression tests
 - [x] Local lint, typecheck, test, and production build
-- [ ] Apply migration `0009` to Supabase staging
+- [x] Apply migration `0009` to Supabase staging
+- [ ] Apply legacy administrator mapping migration `0010` to staging
 - [ ] Run live tenant-isolation verification
 - [ ] GitHub CI checkpoint
 

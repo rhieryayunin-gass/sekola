@@ -6,6 +6,13 @@ const migration = readFileSync(
   resolve(process.cwd(), "database/migrations/0009_tenant_management.sql"),
   "utf8",
 );
+const roleMappingMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "database/migrations/0010_tenant_permission_role_mapping.sql",
+  ),
+  "utf8",
+);
 
 describe("Tenant management migration", () => {
   it("isolates direct tenant reads and updates to the current tenant", () => {
@@ -29,5 +36,16 @@ describe("Tenant management migration", () => {
     expect(migration).toContain("tenants.update_all");
     expect(migration).toContain("tenants.deactivate");
     expect(migration).toContain("tenants.update_own");
+  });
+
+  it("maps legacy administrator roles without creating a new role", () => {
+    expect(roleMappingMigration).toContain(
+      "position('ADMIN' in normalized_role.identity) > 0",
+    );
+    expect(roleMappingMigration).toContain(
+      "position('SUPER' in normalized_role.identity) > 0",
+    );
+    expect(roleMappingMigration).toContain("tenants.update_own");
+    expect(roleMappingMigration).not.toContain("insert into public.roles");
   });
 });

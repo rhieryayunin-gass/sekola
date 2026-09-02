@@ -28,6 +28,12 @@ clients to select their active tenant and update only its `name` column. Anonymo
 access, tenant creation, code changes, activation changes, and deletion remain
 blocked at the database grant layer.
 
+Migration `0010_tenant_permission_role_mapping.sql` reconciles legacy
+administrator role codes such as `SCHOOL_ADMIN` without adding or renaming any
+role. Own-tenant update is granted to existing active administrator roles;
+platform-wide tenant permissions remain restricted to roles whose identity is
+both Super and Admin.
+
 ## API endpoints
 
 | Method | Endpoint | Permission |
@@ -52,7 +58,8 @@ Bearer token.
 
 ## Required staging verification
 
-- Apply migration `0009` and confirm the new permissions are mapped correctly.
+- Apply migrations `0009`–`0010` and confirm the new permissions are mapped
+  correctly.
 - Confirm a Tenant Admin can read and rename its own tenant.
 - Confirm the same user cannot list or read another tenant.
 - Confirm an anonymous client cannot read tenants directly.

@@ -76,16 +76,46 @@ try {
     throw existingTenantError ?? new Error("An existing active tenant is required");
   }
 
+  const { data: ownPermission, error: permissionError } = await admin
+    .from("permissions")
+    .select("id")
+    .eq("code", "tenants.update_own")
+    .single();
+  if (permissionError || !ownPermission) {
+    throw permissionError ?? new Error("tenants.update_own is unavailable");
+  }
+
+  const { data: permissionRoles, error: roleMappingError } = await admin
+    .from("role_permissions")
+    .select("role_id")
+    .eq("permission_id", ownPermission.id);
+  if (roleMappingError) throw roleMappingError;
+
+  const roleIds = [...new Set(permissionRoles?.map((item) => item.role_id))];
+  assert(roleIds.length > 0, "No role has tenants.update_own");
+
+  const { data: levelMappings, error: levelMappingError } = await admin
+    .from("user_level_roles")
+    .select("user_level_id")
+    .in("role_id", roleIds);
+  if (levelMappingError) throw levelMappingError;
+
+  const levelIds = [
+    ...new Set(levelMappings?.map((item) => item.user_level_id)),
+  ];
+  assert(levelIds.length > 0, "No user level inherits tenants.update_own");
+
   const { data: levels, error: levelError } = await admin
     .from("user_levels")
     .select("id, code")
+    .in("id", levelIds)
     .eq("is_active", true);
-
   if (levelError) throw levelError;
+
   const adminLevel = levels?.find(
-    (level) => level.code.replaceAll("-", "_").toUpperCase() === "ADMIN",
-  );
-  assert(adminLevel, "An active ADMIN user level is required");
+    (level) => !level.code.toUpperCase().includes("SUPER"),
+  ) ?? levels?.[0];
+  assert(adminLevel, "No active user level inherits tenants.update_own");
 
   const { data: tenant, error: tenantError } = await admin
     .from("tenants")
