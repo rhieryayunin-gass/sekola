@@ -64,9 +64,9 @@ Branch: `phase/03-authentication`
 - [x] Inspect staging schema and migration history without mutation
 - [x] Reconcile migration history for existing migrations `0001`–`0005`
 - [x] Apply reconciliation migrations `0006`–`0007` to staging
-- [ ] Apply Auth metadata sequencing migration `0008` to staging
-- [ ] Live login, refresh, protected-route, and logout verification
-- [ ] GitHub CI checkpoint
+- [x] Apply Auth metadata sequencing migration `0008` to staging
+- [x] Live login, refresh, protected-route, and logout verification
+- [x] GitHub CI checkpoint
 
 ## Next phase
 

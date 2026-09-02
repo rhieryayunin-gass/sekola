@@ -52,3 +52,12 @@ cannot choose a tenant identifier in the request body.
 5. Merge Phase 03 only after the staging run and GitHub CI both pass.
 
 No legacy data or schema object is deleted by this sequence.
+
+## Staging verification result
+
+The trusted staging run completed successfully on 2026-09-02. Migration
+versions `0001` through `0008` are recorded remotely, the post-apply dry run is
+clean, and the live checks verified tenant-aware Auth provisioning, invalid
+credential rejection, login, API authorization, session refresh,
+inactive-profile rejection, logout invalidation, anonymous dashboard redirect,
+and temporary-user cleanup.

@@ -1,0 +1,263 @@
+name: Trusted Phase 03 Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Inspect, baseline existing history, or apply new migrations
+        required: true
+        default: inspect
+        type: choice
+        options:
+          - inspect
+          - baseline
+          - apply
+      confirmation:
+        description: Use BASELINE_0001_0005 or APPLY_0008 when required
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trusted-phase03-staging
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: ${{ inputs.operation }} pinned Phase 03 commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    env:
+      PHASE_03_COMMIT: 3ff7653d010e51642628c8f0e68fe5408a90af2c
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      CORS_ORIGINS: http://127.0.0.1:3000
+      API_BASE_URL: http://127.0.0.1:3001/api/v1
+      WEB_BASE_URL: http://127.0.0.1:3000
+
+    steps:
+      - name: Validate explicit confirmation
+        shell: bash
+        env:
+          OPERATION: ${{ inputs.operation }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$OPERATION" = "baseline" ] && [ "$CONFIRMATION" != "BASELINE_0001_0005" ]; then
+            echo "::error::Baseline requires confirmation BASELINE_0001_0005"
+            exit 1
+          fi
+          if [ "$OPERATION" = "apply" ] && [ "$CONFIRMATION" != "APPLY_0008" ]; then
+            echo "::error::Apply requires confirmation APPLY_0008"
+            exit 1
+          fi
+
+      - name: Check out pinned Phase 03 commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PHASE_03_COMMIT }}
+
+      - name: Validate public staging configuration
+        shell: bash
+        run: |
+          missing=0
+          for name in SUPABASE_PROJECT_REF SUPABASE_URL SUPABASE_PUBLISHABLE_KEY
+          do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not configured in the staging environment"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Prepare migration workspace
+        shell: bash
+        run: |
+          mkdir -p .staging-db/supabase/migrations
+          cp apps/api/database/migrations/*.sql .staging-db/supabase/migrations/
+          supabase init --workdir .staging-db
+
+      - name: Validate private staging configuration
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          missing=0
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_SERVICE_ROLE_KEY
+          do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not configured in the staging environment"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Verify Supabase API credentials
+        shell: bash
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          curl --fail --silent --show-error --output /dev/null \
+            --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$SUPABASE_URL/auth/v1/settings"
+          curl --fail --silent --show-error --output /dev/null \
+            --header "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            --header "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            "$SUPABASE_URL/auth/v1/admin/users?page=1&per_page=1"
+
+      - name: Link staging project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --workdir .staging-db --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Inspect migration status
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase migration list --workdir .staging-db --linked
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+
+      - name: Baseline existing migrations 0001 through 0005
+        if: ${{ inputs.operation == 'baseline' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase migration repair 0001 0002 0003 0004 0005 \
+            --workdir .staging-db --linked --status applied
+          supabase migration list --workdir .staging-db --linked
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+
+      - name: Require a completed baseline before apply
+        if: ${{ inputs.operation == 'apply' }}
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          dry_run_output="$(supabase db push --workdir .staging-db --linked --dry-run --include-all 2>&1)"
+          echo "$dry_run_output"
+          if echo "$dry_run_output" | grep -Eq '000[1-5]_'; then
+            echo "::error::Migrations 0001 through 0005 are not baselined"
+            exit 1
+          fi
+
+      - name: Apply pending Phase 03 migrations
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase db push --workdir .staging-db --linked --include-all --yes
+          supabase migration list --workdir .staging-db --linked
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+
+      - name: Run project quality gate
+        if: ${{ inputs.operation == 'apply' }}
+        run: pnpm check
+
+      - name: Start API
+        if: ${{ inputs.operation == 'apply' }}
+        shell: bash
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          PORT=3001 pnpm --filter @sekola/api start > "$RUNNER_TEMP/sekola-api.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/sekola-api.pid"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent "$API_BASE_URL/health" > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/sekola-api.log"
+          exit 1
+
+      - name: Verify live authentication and API authorization
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node apps/api/scripts/verify-auth-staging.mjs
+
+      - name: Start web application
+        if: ${{ inputs.operation == 'apply' }}
+        shell: bash
+        run: |
+          pnpm --filter @sekola/web start --hostname 127.0.0.1 --port 3000 > "$RUNNER_TEMP/sekola-web.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/sekola-web.pid"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent "$WEB_BASE_URL/login" > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/sekola-web.log"
+          exit 1
+
+      - name: Verify anonymous protected-route redirect
+        if: ${{ inputs.operation == 'apply' }}
+        run: node apps/web/scripts/verify-auth-staging.mjs
+
+      - name: Publish verification summary
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          {
+            echo "## Trusted Phase 03 staging"
+            echo
+            echo "- Operation: \`$OPERATION\`"
+            echo "- Pinned commit: \`$PHASE_03_COMMIT\`"
+            echo "- Result: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload service logs on failure
+        if: ${{ failure() && inputs.operation == 'apply' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: trusted-phase03-staging-logs
+          path: |
+            ${{ runner.temp }}/sekola-api.log
+            ${{ runner.temp }}/sekola-web.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop services
+        if: ${{ always() && inputs.operation == 'apply' }}
+        shell: bash
+        run: |
+          for service in api web; do
+            pid_file="$RUNNER_TEMP/sekola-$service.pid"
+            if [ -f "$pid_file" ]; then
+              kill "$(cat "$pid_file")" 2>/dev/null || true
+            fi
+          done
