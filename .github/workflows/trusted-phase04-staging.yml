@@ -1,0 +1,229 @@
+name: Trusted Phase 04 Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Inspect migration status or apply Phase 04
+        required: true
+        default: inspect
+        type: choice
+        options:
+          - inspect
+          - apply
+      confirmation:
+        description: Use APPLY_0009 when applying Phase 04
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trusted-phase04-staging
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: ${{ inputs.operation }} pinned Phase 04 commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    env:
+      PHASE_04_COMMIT: 302152d0bcdd1cf8b41d12ab636781d368bbebcb
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      CORS_ORIGINS: http://127.0.0.1:3000
+      API_BASE_URL: http://127.0.0.1:3001/api/v1
+
+    steps:
+      - name: Validate explicit confirmation
+        if: ${{ inputs.operation == 'apply' }}
+        shell: bash
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$CONFIRMATION" != "APPLY_0009" ]; then
+            echo "::error::Apply requires confirmation APPLY_0009"
+            exit 1
+          fi
+
+      - name: Check out pinned Phase 04 commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PHASE_04_COMMIT }}
+
+      - name: Validate public staging configuration
+        shell: bash
+        run: |
+          missing=0
+          for name in SUPABASE_PROJECT_REF SUPABASE_URL SUPABASE_PUBLISHABLE_KEY
+          do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not configured in the staging environment"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Prepare migration workspace
+        shell: bash
+        run: |
+          mkdir -p .staging-db/supabase/migrations
+          cp apps/api/database/migrations/*.sql .staging-db/supabase/migrations/
+          supabase init --workdir .staging-db
+
+      - name: Validate private staging configuration
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          missing=0
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_SERVICE_ROLE_KEY
+          do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not configured in the staging environment"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Verify Supabase API credentials
+        shell: bash
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          curl --fail --silent --show-error --output /dev/null \
+            --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$SUPABASE_URL/auth/v1/settings"
+          curl --fail --silent --show-error --output /dev/null \
+            --header "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            --header "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            "$SUPABASE_URL/auth/v1/admin/users?page=1&per_page=1"
+
+      - name: Link staging project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --workdir .staging-db --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Inspect migration status
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase migration list --workdir .staging-db --linked
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+
+      - name: Require completed Phase 03 history before apply
+        if: ${{ inputs.operation == 'apply' }}
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          dry_run_output="$(supabase db push --workdir .staging-db --linked --dry-run --include-all 2>&1)"
+          echo "$dry_run_output"
+          if echo "$dry_run_output" | grep -Eq '000[1-8]_'; then
+            echo "::error::Phase 03 migration history is incomplete"
+            exit 1
+          fi
+
+      - name: Apply pending Phase 04 migration
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase db push --workdir .staging-db --linked --include-all --yes
+          supabase migration list --workdir .staging-db --linked
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+
+      - name: Run project quality gate
+        if: ${{ inputs.operation == 'apply' }}
+        run: pnpm check
+
+      - name: Start API
+        if: ${{ inputs.operation == 'apply' }}
+        shell: bash
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          PORT=3001 pnpm --filter @sekola/api start > "$RUNNER_TEMP/sekola-api.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/sekola-api.pid"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent "$API_BASE_URL/health" > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/sekola-api.log"
+          exit 1
+
+      - name: Verify Phase 03 authentication regression
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node apps/api/scripts/verify-auth-staging.mjs
+
+      - name: Verify live tenant isolation
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node apps/api/scripts/verify-tenant-staging.mjs
+
+      - name: Publish verification summary
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          {
+            echo "## Trusted Phase 04 staging"
+            echo
+            echo "- Operation: \`$OPERATION\`"
+            echo "- Pinned commit: \`$PHASE_04_COMMIT\`"
+            echo "- Result: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload API log on failure
+        if: ${{ failure() && inputs.operation == 'apply' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: trusted-phase04-staging-logs
+          path: ${{ runner.temp }}/sekola-api.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop API
+        if: ${{ always() && inputs.operation == 'apply' }}
+        shell: bash
+        run: |
+          pid_file="$RUNNER_TEMP/sekola-api.pid"
+          if [ -f "$pid_file" ]; then
+            kill "$(cat "$pid_file")" 2>/dev/null || true
+          fi
