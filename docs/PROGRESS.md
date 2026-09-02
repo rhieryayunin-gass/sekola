@@ -62,8 +62,9 @@ Branch: `phase/03-authentication`
 - [x] Safe staging inspect/apply verification workflow
 - [x] Validate staging credentials and database connectivity
 - [x] Inspect staging schema and migration history without mutation
-- [ ] Reconcile migration history for existing migrations `0001`–`0005`
-- [ ] Apply migrations to Supabase test/staging
+- [x] Reconcile migration history for existing migrations `0001`–`0005`
+- [x] Apply reconciliation migrations `0006`–`0007` to staging
+- [ ] Apply Auth metadata sequencing migration `0008` to staging
 - [ ] Live login, refresh, protected-route, and logout verification
 - [ ] GitHub CI checkpoint
 

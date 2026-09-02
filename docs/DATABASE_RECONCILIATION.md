@@ -30,6 +30,14 @@ metadata and must resolve to an active tenant. Existing matching profiles keep
 their tenant during backfill. The migration stops instead of guessing a tenant
 if an Auth user has no valid Core profile or tenant metadata.
 
+The first live verification showed that Supabase Admin `createUser` inserts the
+Auth row before applying custom app metadata inside the same transaction.
+Migration `0008_auth_user_metadata_sequence.sql` accounts for that sequence: it
+allows only the initial metadata-free insert, then validates the protected
+tenant metadata and creates the Core profile when `raw_app_meta_data` is
+updated. Invalid tenants and attempts to move an existing profile across
+tenants still abort the transaction.
+
 The API now derives tenant context from the authenticated operator. User read,
 create, update, and deactivate operations are scoped to that tenant; clients
 cannot choose a tenant identifier in the request body.
@@ -38,8 +46,8 @@ cannot choose a tenant identifier in the request body.
 
 1. Mark existing remote migrations `0001` through `0005` as applied without
    rerunning their non-idempotent table creation statements.
-2. Run a new migration dry run and verify only `0006` and `0007` are pending.
-3. Apply `0006` and `0007`.
+2. Apply `0006` and `0007`; confirm both versions are recorded remotely.
+3. Apply the sequencing correction in migration `0008`.
 4. Run the repository quality gate and live Auth verification.
 5. Merge Phase 03 only after the staging run and GitHub CI both pass.
 
