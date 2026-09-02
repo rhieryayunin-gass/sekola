@@ -65,3 +65,12 @@ Bearer token.
 - Confirm an anonymous client cannot read tenants directly.
 - Confirm an authenticated direct Supabase query returns only its own tenant.
 - Confirm a deactivated tenant is rejected by the API authentication boundary.
+
+## Staging verification result
+
+The trusted staging run completed successfully on 2026-09-02. Migration
+versions `0009` and `0010` are recorded remotely and the post-apply dry run is
+clean. The run passed the complete project quality gate, Phase 03 Authentication
+regression, own-tenant read and update, cross-tenant list/detail rejection,
+authenticated RLS isolation, anonymous denial, inactive-tenant rejection, and
+automatic cleanup of the temporary Auth user and tenant.
