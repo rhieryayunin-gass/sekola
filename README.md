@@ -62,6 +62,8 @@ Authentication setup and verification are documented in
 [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md).
 Tenant isolation and management are documented in
 [docs/TENANT_MANAGEMENT.md](docs/TENANT_MANAGEMENT.md).
+User master behavior and Auth synchronization are documented in
+[docs/USER_MANAGEMENT.md](docs/USER_MANAGEMENT.md).
 
 ## Commands
 
