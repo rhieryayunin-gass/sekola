@@ -1,20 +1,6 @@
 name: Staging Authentication Verification
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - .github/workflows/staging-auth.yml
-      - apps/api/database/migrations/0006_auth_user_sync.sql
-      - apps/api/scripts/verify-auth-staging.mjs
-      - apps/api/src/modules/auth/**
-      - apps/web/scripts/verify-auth-staging.mjs
-      - apps/web/src/components/auth/**
-      - apps/web/src/lib/auth/**
-      - apps/web/src/lib/supabase/**
-      - apps/web/src/stores/auth-store.ts
-      - apps/web/src/proxy.ts
   workflow_dispatch:
     inputs:
       migration_mode:
@@ -51,7 +37,7 @@ jobs:
       CORS_ORIGINS: http://127.0.0.1:3000
       API_BASE_URL: http://127.0.0.1:3001/api/v1
       WEB_BASE_URL: http://127.0.0.1:3000
-      MIGRATION_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.migration_mode || vars.PHASE_03_MIGRATION_MODE || 'inspect' }}
+      MIGRATION_MODE: ${{ inputs.migration_mode }}
 
     steps:
       - name: Check out repository
@@ -77,6 +63,17 @@ jobs:
           if [ "$missing" -ne 0 ]; then
             exit 1
           fi
+
+      - name: Verify Supabase API credentials
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --output /dev/null \
+            --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$SUPABASE_URL/auth/v1/settings"
+          curl --fail --silent --show-error --output /dev/null \
+            --header "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            --header "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            "$SUPABASE_URL/auth/v1/admin/users?page=1&per_page=1"
           if [ "$MIGRATION_MODE" != "inspect" ] && [ "$MIGRATION_MODE" != "apply" ]; then
             echo "::error::MIGRATION_MODE must be inspect or apply"
             exit 1

@@ -66,7 +66,6 @@ Configure a protected GitHub Environment named `staging` with these variables:
 - `SUPABASE_PROJECT_REF`
 - `SUPABASE_URL`
 - `SUPABASE_PUBLISHABLE_KEY`
-- `PHASE_03_MIGRATION_MODE` set to `inspect` initially
 
 Configure these environment secrets:
 
@@ -77,8 +76,7 @@ Configure these environment secrets:
 Never place the service-role key, database password, or access token in a
 repository variable, workflow input, commit, issue, pull request, or chat.
 
-While pull request #2 is open, relevant changes automatically run the staging
-workflow. Keep `PHASE_03_MIGRATION_MODE=inspect` until the dry-run output has
-been reviewed. Change it to `apply` only for the approved Phase 03 run, then
-restore it to `inspect`. Once this workflow is present on the default branch,
-future runs can use the explicit manual mode selector instead.
+The workflow only supports an explicit manual trigger. Select `inspect` until
+the dry-run output has been reviewed, then select `apply` for the approved
+Phase 03 verification run. It never receives staging credentials from an
+automatic pull-request event.
