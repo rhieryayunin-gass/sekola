@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { LogoutButton } from "../../components/auth/logout-button";
 import { Badge } from "../../components/ui/badge";
+import { ButtonLink } from "../../components/ui/button";
 import {
   Card,
   CardDescription,
@@ -66,11 +67,15 @@ export default async function DashboardPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Core+ ready</CardTitle>
+            <CardTitle>Tenant profile</CardTitle>
             <CardDescription>
-              Tenant, user, role, and permission context will build on this identity.
+              View the school identity attached to this account and manage the
+              permitted tenant profile fields.
             </CardDescription>
           </CardHeader>
+          <ButtonLink href="/dashboard/tenant" variant="secondary">
+            Open tenant settings
+          </ButtonLink>
         </Card>
       </section>
     </main>

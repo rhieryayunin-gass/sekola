@@ -7,9 +7,9 @@ after its implementation and quality gates pass on the current branch.
 
 ## Current phase
 
-**Level 1 — 03 Authentication**
+**Level 1 — 04 Tenant**
 
-Branch: `phase/03-authentication`
+Branch: `phase/04-tenant`
 
 ### 00 Project Foundation
 
@@ -68,10 +68,29 @@ Branch: `phase/03-authentication`
 - [x] Live login, refresh, protected-route, and logout verification
 - [x] GitHub CI checkpoint
 
+### 04 Tenant
+
+- [x] Audit existing Tenant schema and API
+- [x] Replace reused user permissions with dedicated Tenant permissions
+- [x] Prevent ordinary users from enumerating tenants
+- [x] Own-tenant read and profile update API
+- [x] Platform Tenant list, detail, create, update, and deactivate API
+- [x] Tenant code normalization and duplicate handling
+- [x] Reject API access for users of inactive tenants
+- [x] RLS policy for active own-tenant reads and updates
+- [x] Column-level database grant for own-tenant name updates
+- [x] Tenant settings page
+- [x] Unit and regression tests
+- [x] Local lint, typecheck, test, and production build
+- [x] Apply migration `0009` to Supabase staging
+- [x] Apply legacy administrator mapping migration `0010` to staging
+- [x] Run live tenant-isolation verification
+- [x] GitHub CI checkpoint
+
 ## Next phase
 
-Level 1 — 04 Tenant. This phase must not start until the remaining live
-Authentication checks pass.
+Level 1 — 05 Users. This phase starts only after Tenant isolation passes live
+verification on staging.
 
 ## Remaining roadmap levels
 

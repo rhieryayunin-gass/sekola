@@ -60,6 +60,8 @@ The web application runs at `http://localhost:3000`. The API runs at
 
 Authentication setup and verification are documented in
 [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md).
+Tenant isolation and management are documented in
+[docs/TENANT_MANAGEMENT.md](docs/TENANT_MANAGEMENT.md).
 
 ## Commands
 

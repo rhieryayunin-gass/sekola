@@ -17,7 +17,13 @@ export class AuthService {
   private async ensureActiveProfile(userId: string) {
     const { data, error } = await this.client
       .from("users")
-      .select("id, is_active")
+      .select(`
+        id,
+        is_active,
+        tenants (
+          is_active
+        )
+      `)
       .eq("id", userId)
       .single();
 
@@ -29,6 +35,14 @@ export class AuthService {
 
     if (!data.is_active) {
       throw new UnauthorizedException("Account is inactive");
+    }
+
+    const tenant = Array.isArray(data.tenants)
+      ? data.tenants[0]
+      : data.tenants;
+
+    if (!tenant?.is_active) {
+      throw new UnauthorizedException("Tenant is inactive");
     }
   }
 
