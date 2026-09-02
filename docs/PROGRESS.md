@@ -1,15 +1,15 @@
 # SEKOLA AI Development Progress
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02
 
 This file records repository-verified progress. A roadmap item is complete only
 after its implementation and quality gates pass on the current branch.
 
 ## Current phase
 
-**Level 0 — 00 Project Foundation**
+**Level 1 — 03 Authentication**
 
-Branch: `phase/00-project-foundation`
+Branch: `phase/03-authentication`
 
 ### 00 Project Foundation
 
@@ -43,10 +43,35 @@ Branch: `phase/00-project-foundation`
 - [x] Versioned health endpoint
 - [x] Final lint, typecheck, test, and production build
 
+### 03 Authentication
+
+- [x] Supabase Auth browser client
+- [x] Supabase SSR server client
+- [x] Login
+- [x] Logout
+- [x] Session initialization
+- [x] Explicit and automatic session refresh
+- [x] Auth state and Zustand Auth Store
+- [x] Protected routes and safe post-login redirects
+- [x] Backend Bearer token validation
+- [x] Inactive-account enforcement
+- [x] Auth user → Core user synchronization migration
+- [x] Tenant-aware Auth provisioning and user query isolation
+- [x] Legacy schema audit and idempotent reconciliation migration
+- [x] Unit tests
+- [x] Safe staging inspect/apply verification workflow
+- [x] Validate staging credentials and database connectivity
+- [x] Inspect staging schema and migration history without mutation
+- [x] Reconcile migration history for existing migrations `0001`–`0005`
+- [x] Apply reconciliation migrations `0006`–`0007` to staging
+- [x] Apply Auth metadata sequencing migration `0008` to staging
+- [x] Live login, refresh, protected-route, and logout verification
+- [x] GitHub CI checkpoint
+
 ## Next phase
 
-Level 1 — 03 Authentication. Existing authentication code will be audited and
-completed after Level 0 receives its checkpoint.
+Level 1 — 04 Tenant. This phase must not start until the remaining live
+Authentication checks pass.
 
 ## Remaining roadmap levels
 

@@ -1,0 +1,198 @@
+name: Staging Authentication Verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_mode:
+        description: Inspect first; apply only after the migration plan is reviewed
+        required: true
+        default: inspect
+        type: choice
+        options:
+          - inspect
+          - apply
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-authentication
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Inspect or verify staging authentication
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: staging
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      CORS_ORIGINS: http://127.0.0.1:3000
+      API_BASE_URL: http://127.0.0.1:3001/api/v1
+      WEB_BASE_URL: http://127.0.0.1:3000
+      MIGRATION_MODE: ${{ inputs.migration_mode }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate staging configuration
+        shell: bash
+        run: |
+          missing=0
+          for name in \
+            SUPABASE_ACCESS_TOKEN \
+            SUPABASE_DB_PASSWORD \
+            SUPABASE_SERVICE_ROLE_KEY \
+            SUPABASE_PROJECT_REF \
+            SUPABASE_URL \
+            SUPABASE_PUBLISHABLE_KEY
+          do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not configured in the staging environment"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Verify Supabase API credentials
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --output /dev/null \
+            --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$SUPABASE_URL/auth/v1/settings"
+          curl --fail --silent --show-error --output /dev/null \
+            --header "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            --header "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            "$SUPABASE_URL/auth/v1/admin/users?page=1&per_page=1"
+          if [ "$MIGRATION_MODE" != "inspect" ] && [ "$MIGRATION_MODE" != "apply" ]; then
+            echo "::error::MIGRATION_MODE must be inspect or apply"
+            exit 1
+          fi
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Prepare migration workspace
+        shell: bash
+        run: |
+          mkdir -p .staging-db/supabase/migrations
+          cp apps/api/database/migrations/*.sql .staging-db/supabase/migrations/
+          supabase init --workdir .staging-db
+
+      - name: Link staging project
+        run: supabase link --workdir .staging-db --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Inspect migration status
+        run: |
+          supabase migration list --workdir .staging-db --linked
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+
+      - name: Apply migrations
+        if: ${{ env.MIGRATION_MODE == 'apply' }}
+        run: supabase db push --workdir .staging-db --linked --include-all --yes
+
+      - name: Run project quality gate
+        if: ${{ env.MIGRATION_MODE == 'apply' }}
+        run: pnpm check
+
+      - name: Start API
+        if: ${{ env.MIGRATION_MODE == 'apply' }}
+        shell: bash
+        run: |
+          PORT=3001 pnpm --filter @sekola/api start > "$RUNNER_TEMP/sekola-api.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/sekola-api.pid"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent "$API_BASE_URL/health" > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/sekola-api.log"
+          exit 1
+
+      - name: Verify live authentication and API authorization
+        if: ${{ env.MIGRATION_MODE == 'apply' }}
+        run: node apps/api/scripts/verify-auth-staging.mjs
+
+      - name: Start web application
+        if: ${{ env.MIGRATION_MODE == 'apply' }}
+        shell: bash
+        run: |
+          pnpm --filter @sekola/web start --hostname 127.0.0.1 --port 3000 > "$RUNNER_TEMP/sekola-web.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/sekola-web.pid"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent "$WEB_BASE_URL/login" > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/sekola-web.log"
+          exit 1
+
+      - name: Verify anonymous protected-route redirect
+        if: ${{ env.MIGRATION_MODE == 'apply' }}
+        run: node apps/web/scripts/verify-auth-staging.mjs
+
+      - name: Publish verification summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          {
+            echo "## Staging authentication"
+            echo
+            echo "- Migration mode: \`$MIGRATION_MODE\`"
+            echo "- Project ref: \`${SUPABASE_PROJECT_REF:-not configured}\`"
+            if [ "${{ job.status }}" = "success" ]; then
+              echo "- Result: passed"
+            else
+              echo "- Result: failed; inspect the first failing step"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload service logs on failure
+        if: ${{ failure() && env.MIGRATION_MODE == 'apply' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-auth-service-logs
+          path: |
+            ${{ runner.temp }}/sekola-api.log
+            ${{ runner.temp }}/sekola-web.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop services
+        if: ${{ always() && env.MIGRATION_MODE == 'apply' }}
+        shell: bash
+        run: |
+          for service in api web; do
+            pid_file="$RUNNER_TEMP/sekola-$service.pid"
+            if [ -f "$pid_file" ]; then
+              kill "$(cat "$pid_file")" 2>/dev/null || true
+            fi
+          done

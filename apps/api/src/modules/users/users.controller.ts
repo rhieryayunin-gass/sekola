@@ -41,41 +41,48 @@ export class UsersController {
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermission("users.read")
   async findAll(@Req() request: Request) {
-  const user = request.user;
+    const user = request.user;
 
-  if (!user) {
-    throw new Error("Authenticated user is missing");
+    if (!user) {
+      throw new Error("Authenticated user is missing");
+    }
+
+    return this.usersService.findAll(user.id);
   }
-
-  return this.usersService.findAll(user.id);
-}
 
   @Get(":id")
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermission("users.read")
   async findOne(
-  @Param("id") id: string,
-  @Req() request: Request,
-) {
-  const user = request.user;
+    @Param("id") id: string,
+    @Req() request: Request,
+  ) {
+    const user = request.user;
 
-  if (!user) {
-    throw new Error("Authenticated user is missing");
+    if (!user) {
+      throw new Error("Authenticated user is missing");
+    }
+
+    return this.usersService.findOne(
+      id,
+      user.id,
+    );
   }
-
-  return this.usersService.findOne(
-    id,
-    user.id,
-  );
-}
 
   @Post()
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermission("users.create")
   async create(
     @Body() dto: CreateUserDto,
+    @Req() request: Request,
   ) {
-    return this.usersService.create(dto);
+    const user = request.user;
+
+    if (!user) {
+      throw new Error("Authenticated user is missing");
+    }
+
+    return this.usersService.create(dto, user.id);
   }
 
   @Patch(":id")
@@ -84,10 +91,18 @@ export class UsersController {
   async update(
     @Param("id") id: string,
     @Body() dto: UpdateUserDto,
+    @Req() request: Request,
   ) {
+    const user = request.user;
+
+    if (!user) {
+      throw new Error("Authenticated user is missing");
+    }
+
     return this.usersService.update(
       id,
       dto,
+      user.id,
     );
   }
 
@@ -96,7 +111,17 @@ export class UsersController {
   @RequirePermission("users.deactivate")
   async deactivate(
     @Param("id") id: string,
+    @Req() request: Request,
   ) {
-    return this.usersService.deactivate(id);
+    const user = request.user;
+
+    if (!user) {
+      throw new Error("Authenticated user is missing");
+    }
+
+    return this.usersService.deactivate(
+      id,
+      user.id,
+    );
   }
 }

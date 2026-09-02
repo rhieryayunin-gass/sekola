@@ -2,13 +2,13 @@ import {
   Controller,
   Get,
   Req,
+  UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
 import { Request } from "express";
 import { AuthService } from "./auth.service";
 import { AuthGuard } from "./guards/auth.guard";
 import { AuthorizationService } from "../../common/authorization/authorization.service";
-
 
 @Controller("auth")
 export class AuthController {
@@ -23,7 +23,7 @@ export class AuthController {
     const user = request.user;
 
     if (!user) {
-      throw new Error("Authenticated user is missing");
+      throw new UnauthorizedException("Authenticated user is missing");
     }
 
     return this.authService.getCurrentUser(user.id);
@@ -35,11 +35,10 @@ export class AuthController {
     const user = request.user;
 
     if (!user) {
-      throw new Error("Authenticated user is missing");
+      throw new UnauthorizedException("Authenticated user is missing");
     }
 
     return this.authorizationService.getContext(user.id);
   }
 
- 
 }
