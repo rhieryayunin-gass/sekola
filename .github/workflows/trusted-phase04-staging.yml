@@ -12,7 +12,7 @@ on:
           - inspect
           - apply
       confirmation:
-        description: Use APPLY_0009 when applying Phase 04
+        description: Use APPLY_0010 when applying the Phase 04 correction
         required: false
         type: string
 
@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 30
     environment: staging
     env:
-      PHASE_04_COMMIT: 302152d0bcdd1cf8b41d12ab636781d368bbebcb
+      PHASE_04_COMMIT: 971ec9ecad2ffecffe47723ce0131e578f0c3631
       SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
       SUPABASE_URL: ${{ vars.SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
@@ -46,8 +46,8 @@ jobs:
         env:
           CONFIRMATION: ${{ inputs.confirmation }}
         run: |
-          if [ "$CONFIRMATION" != "APPLY_0009" ]; then
-            echo "::error::Apply requires confirmation APPLY_0009"
+          if [ "$CONFIRMATION" != "APPLY_0010" ]; then
+            echo "::error::Apply requires confirmation APPLY_0010"
             exit 1
           fi
 
@@ -139,7 +139,7 @@ jobs:
           supabase migration list --workdir .staging-db --linked
           supabase db push --workdir .staging-db --linked --dry-run --include-all
 
-      - name: Require completed Phase 03 history before apply
+      - name: Require migration 0009 before applying the correction
         if: ${{ inputs.operation == 'apply' }}
         shell: bash
         env:
@@ -148,12 +148,12 @@ jobs:
         run: |
           dry_run_output="$(supabase db push --workdir .staging-db --linked --dry-run --include-all 2>&1)"
           echo "$dry_run_output"
-          if echo "$dry_run_output" | grep -Eq '000[1-8]_'; then
-            echo "::error::Phase 03 migration history is incomplete"
+          if echo "$dry_run_output" | grep -Eq '000[1-9]_'; then
+            echo "::error::Migration history through 0009 is incomplete"
             exit 1
           fi
 
-      - name: Apply pending Phase 04 migration
+      - name: Apply pending Phase 04 correction migration
         if: ${{ inputs.operation == 'apply' }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
