@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -17,7 +18,9 @@ import { RequirePermission } from "../../common/authorization/decorators/require
 
 import { UsersService } from "./users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
+import { ListUsersDto } from "./dto/list-users.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
+import { UpdateUserStatusDto } from "./dto/update-user-status.dto";
 
 @Controller("users")
 export class UsersController {
@@ -40,14 +43,30 @@ export class UsersController {
   @Get()
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermission("users.read")
-  async findAll(@Req() request: Request) {
+  async findAll(
+    @Req() request: Request,
+    @Query() filters: ListUsersDto,
+  ) {
     const user = request.user;
 
     if (!user) {
       throw new Error("Authenticated user is missing");
     }
 
-    return this.usersService.findAll(user.id);
+    return this.usersService.findAll(user.id, filters);
+  }
+
+  @Get("meta/user-levels")
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermission("users.read")
+  async findUserLevels(@Req() request: Request) {
+    const user = request.user;
+
+    if (!user) {
+      throw new Error("Authenticated user is missing");
+    }
+
+    return this.usersService.findUserLevels(user.id);
   }
 
   @Get(":id")
@@ -106,9 +125,30 @@ export class UsersController {
     );
   }
 
+  @Patch(":id/status")
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermission("users.status")
+  async setStatus(
+    @Param("id") id: string,
+    @Body() dto: UpdateUserStatusDto,
+    @Req() request: Request,
+  ) {
+    const user = request.user;
+
+    if (!user) {
+      throw new Error("Authenticated user is missing");
+    }
+
+    return this.usersService.setStatus(
+      id,
+      dto.is_active,
+      user.id,
+    );
+  }
+
   @Delete(":id")
   @UseGuards(AuthGuard, PermissionGuard)
-  @RequirePermission("users.deactivate")
+  @RequirePermission("users.status")
   async deactivate(
     @Param("id") id: string,
     @Req() request: Request,

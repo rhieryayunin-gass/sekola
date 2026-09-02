@@ -48,7 +48,7 @@ export default async function DashboardPage() {
         </p>
       </section>
 
-      <section className="mt-6 grid gap-4 md:grid-cols-3">
+      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle>Secure session</CardTitle>
@@ -75,6 +75,18 @@ export default async function DashboardPage() {
           </CardHeader>
           <ButtonLink href="/dashboard/tenant" variant="secondary">
             Open tenant settings
+          </ButtonLink>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>User master</CardTitle>
+            <CardDescription>
+              Create, update, activate, and deactivate accounts inside the
+              current tenant.
+            </CardDescription>
+          </CardHeader>
+          <ButtonLink href="/dashboard/users" variant="secondary">
+            Manage users
           </ButtonLink>
         </Card>
       </section>

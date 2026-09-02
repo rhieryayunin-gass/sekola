@@ -7,9 +7,9 @@ after its implementation and quality gates pass on the current branch.
 
 ## Current phase
 
-**Level 1 — 04 Tenant**
+**Level 1 — 05 Users**
 
-Branch: `phase/04-tenant`
+Branch: `phase/05-users`
 
 ### 00 Project Foundation
 
@@ -87,9 +87,30 @@ Branch: `phase/04-tenant`
 - [x] Run live tenant-isolation verification
 - [x] GitHub CI checkpoint
 
+### 05 Users
+
+- [x] Audit existing User schema and API
+- [x] Tenant-scoped User master, detail, create, and update API
+- [x] Pagination, email filter, and active-status filter
+- [x] Active user-level options using the existing relationship
+- [x] Auth and Core profile creation with rollback
+- [x] Auth and Core email/full-name synchronization with rollback
+- [x] Reversible activate/deactivate behavior
+- [x] Prevent administrator self-deactivation
+- [x] Prevent self-level changes and platform-level privilege escalation
+- [x] Tenant-scoped detail, update, and status enforcement
+- [x] Case-insensitive unique email constraint
+- [x] Self-profile RLS and direct mutation restrictions
+- [x] User management page with CRUD and status controls
+- [x] Unit and migration tests
+- [x] Local lint, typecheck, test, and production build
+- [ ] Apply migration `0011` to Supabase staging
+- [ ] Run live CRUD, Auth-sync, status, RLS, and isolation verification
+- [ ] GitHub CI checkpoint
+
 ## Next phase
 
-Level 1 — 05 Users. This phase starts only after Tenant isolation passes live
+Level 1 — 06 Roles. This phase starts only after Phase 05 passes live
 verification on staging.
 
 ## Remaining roadmap levels
