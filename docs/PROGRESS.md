@@ -1,3 +1,4 @@
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 # SEKOLA AI Development Progress
 
 Last updated: 2026-09-06
@@ -158,9 +159,10 @@ verification on staging.
 - Tenant, notification, calendar, and localization settings remain in their scheduled phases.
 - Migration `0015`, regression coverage, CI, and trusted staging verification passed.
 
-# Phase 10 — Settings (in progress)
+# Phase 10 — Settings
 
 - Tenant-scoped school profile, academic-year preference, notification defaults,
   operational calendar preference, and locale/timezone preference are implemented.
 - Calendar events and multilingual message catalogs remain deferred to their
   scheduled roadmap phases.
+- Migration `0016`, regression coverage, CI, and trusted staging verification passed.
