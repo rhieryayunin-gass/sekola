@@ -6,8 +6,10 @@ import { sanitizeNextPath } from "../../lib/auth/navigation";
 import { useAuthStore } from "../../stores/auth-store";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { useTranslations } from "../i18n/i18n-provider";
 
 export function LoginForm() {
+  const { t } = useTranslations();
   const router = useRouter();
   const signIn = useAuthStore((state) => state.signIn);
   const storeError = useAuthStore((state) => state.error);
@@ -40,7 +42,7 @@ export function LoginForm() {
       <Input
         autoComplete="email"
         disabled={isPending}
-        label="Email address"
+        label={t("email")}
         name="email"
         placeholder="name@school.edu"
         required
@@ -49,7 +51,7 @@ export function LoginForm() {
       <Input
         autoComplete="current-password"
         disabled={isPending}
-        label="Password"
+        label={t("password")}
         minLength={8}
         name="password"
         required
@@ -61,7 +63,7 @@ export function LoginForm() {
         </p>
       )}
       <Button className="mt-1 w-full" disabled={isPending} size="lg" type="submit">
-        {isPending ? "Signing in…" : "Sign in"}
+        {isPending ? t("signingIn") : t("signIn")}
       </Button>
     </form>
   );

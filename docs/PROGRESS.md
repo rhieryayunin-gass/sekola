@@ -1,4 +1,3 @@
- 1 file changed, 2 insertions(+), 1 deletion(-)
 # SEKOLA AI Development Progress
 
 Last updated: 2026-09-06
@@ -166,3 +165,8 @@ verification on staging.
 - Calendar events and multilingual message catalogs remain deferred to their
   scheduled roadmap phases.
 - Migration `0016`, regression coverage, CI, and trusted staging verification passed.
+
+# Phase 11 — Internationalization (in progress)
+
+- English and Bahasa Indonesia message catalogs, locale cookie, typed provider,
+  and global language switcher are implemented.
