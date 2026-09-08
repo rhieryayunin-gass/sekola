@@ -1,6 +1,6 @@
 # SEKOLA AI Development Progress
 
-Last updated: 2026-09-02
+Last updated: 2026-09-06
 
 This file records repository-verified progress. A roadmap item is complete only
 after its implementation and quality gates pass on the current branch.
@@ -104,14 +104,14 @@ Branch: `phase/05-users`
 - [x] User management page with CRUD and status controls
 - [x] Unit and migration tests
 - [x] Local lint, typecheck, test, and production build
-- [ ] Apply migration `0011` to Supabase staging
-- [ ] Run live CRUD, Auth-sync, status, RLS, and isolation verification
-- [ ] GitHub CI checkpoint
+- [x] Apply migration `0011` to Supabase staging
+- [x] Run live CRUD, Auth-sync, status, RLS, and isolation verification
+- [x] GitHub CI checkpoint
 
 ## Next phase
 
-Level 1 — 06 Roles. This phase starts only after Phase 05 passes live
-verification on staging.
+Level 1 — 06 Roles. This phase starts only after Phase 05 is merged to
+`main`.
 
 ## Remaining roadmap levels
 
