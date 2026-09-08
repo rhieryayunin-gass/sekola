@@ -150,3 +150,9 @@ verification on staging.
 - Authorization context and backend guard evaluate scope grants; `GLOBAL:*` satisfies narrower checks.
 - The fixed six-role catalog remains unchanged; no academic or operational module is introduced.
 - Migration `0014` and trusted staging verification passed.
+
+# Phase 09 — Profile (in progress)
+
+- Self-service profile includes display name, avatar URL, contact phone, and emergency contact.
+- Profile updates are restricted to the authenticated account and synchronize display name to Auth.
+- Tenant, notification, calendar, and localization settings remain in their scheduled phases.

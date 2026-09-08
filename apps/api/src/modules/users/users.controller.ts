@@ -21,6 +21,7 @@ import { CreateUserDto } from "./dto/create-user.dto";
 import { ListUsersDto } from "./dto/list-users.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UpdateUserStatusDto } from "./dto/update-user-status.dto";
+import { UpdateMyProfileDto } from "./dto/update-my-profile.dto";
 
 @Controller("users")
 export class UsersController {
@@ -38,6 +39,14 @@ export class UsersController {
     }
 
     return this.usersService.findMe(user.id);
+  }
+
+  @Patch("me/profile")
+  @UseGuards(AuthGuard)
+  async updateMyProfile(@Body() dto: UpdateMyProfileDto, @Req() request: Request) {
+    const user = request.user;
+    if (!user) throw new Error("Authenticated user is missing");
+    return this.usersService.updateMyProfile(user.id, dto);
   }
 
   @Get()

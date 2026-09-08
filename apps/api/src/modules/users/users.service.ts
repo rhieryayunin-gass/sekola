@@ -11,6 +11,7 @@ import { SupabaseService } from "../../common/supabase/supabase.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { ListUsersDto } from "./dto/list-users.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
+import { UpdateMyProfileDto } from "./dto/update-my-profile.dto";
 
 @Injectable()
 export class UsersService {
@@ -25,6 +26,10 @@ export class UsersService {
   private readonly userSelect = `
     id,
     full_name,
+    avatar_url,
+    phone,
+    emergency_contact_name,
+    emergency_contact_phone,
     email,
     is_active,
     tenant_id,
@@ -479,5 +484,29 @@ export class UsersService {
 
   async findMe(userId: string) {
     return this.findOne(userId, userId);
+  }
+
+  async updateMyProfile(userId: string, dto: UpdateMyProfileDto) {
+    const current = await this.findMe(userId);
+    const updates = Object.fromEntries(
+      Object.entries(dto).filter(([, value]) => value !== undefined),
+    );
+    if (Object.keys(updates).length === 0) return current;
+
+    const { data, error } = await this.client
+      .from("users")
+      .update(updates)
+      .eq("id", userId)
+      .select(this.userSelect)
+      .single();
+    if (error || !data) throw new InternalServerErrorException("Unable to update user profile");
+
+    if (dto.full_name !== undefined && dto.full_name !== current.full_name) {
+      const { error: authError } = await this.client.auth.admin.updateUserById(userId, {
+        user_metadata: { full_name: dto.full_name },
+      });
+      if (authError) throw new InternalServerErrorException("Unable to synchronize profile name");
+    }
+    return data;
   }
 }
