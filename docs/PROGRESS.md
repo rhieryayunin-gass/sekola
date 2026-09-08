@@ -116,9 +116,9 @@ Branch: `phase/06-roles`
 - [x] Keep Permission and Access Control work in their scheduled phases
 - [x] Add migration and migration regression tests
 - [x] Run local lint, typecheck, test, and production build
-- [ ] Apply migration `0012` to Supabase staging
-- [ ] Verify the canonical role catalog on staging
-- [ ] GitHub CI checkpoint
+- [x] Apply migration `0012` to Supabase staging
+- [x] Verify the canonical role catalog on staging
+- [x] GitHub CI checkpoint
 
 ## Next phase
 
