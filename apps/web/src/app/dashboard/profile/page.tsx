@@ -1,0 +1,7 @@
+import { redirect } from "next/navigation";
+import { LogoutButton } from "../../../components/auth/logout-button";
+import { ProfileForm, type Profile } from "../../../components/profile/profile-form";
+import { ButtonLink } from "../../../components/ui/button";
+import { createClient } from "../../../lib/supabase/server";
+export const dynamic = "force-dynamic";
+export default async function ProfilePage() { const supabase = await createClient(); const { data, error } = await supabase.auth.getClaims(); if (error || !data?.claims) redirect("/login"); const userId = typeof data.claims.sub === "string" ? data.claims.sub : ""; const { data: profile } = await supabase.from("users").select("full_name, avatar_url, phone, emergency_contact_name, emergency_contact_phone").eq("id", userId).single(); const initial: Profile = profile ?? { full_name: null, avatar_url: null, phone: null, emergency_contact_name: null, emergency_contact_phone: null }; return <main className="mx-auto min-h-screen max-w-2xl px-6 py-8"><header className="glass-panel flex items-center justify-between rounded-[var(--radius-lg)] p-5"><ButtonLink href="/dashboard" variant="ghost">Dashboard</ButtonLink><LogoutButton /></header><section className="mt-6"><h1 className="text-4xl font-black">My profile</h1><p className="mt-2 text-muted">Manage your contact details and account profile.</p></section><section className="glass-panel mt-6 rounded-[var(--radius-lg)] p-6"><ProfileForm initial={initial} /></section></main>; }

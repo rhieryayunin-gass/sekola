@@ -105,6 +105,43 @@ describe("UsersService tenant isolation", () => {
 });
 
 describe("UsersService lifecycle", () => {
+  it("lets a user update only their own profile and synchronizes their display name", async () => {
+    const current = {
+      email: "teacher@example.com",
+      full_name: "Old Name",
+      id: currentUserId,
+      tenant_id: tenantId,
+    };
+    const profileQuery = query({
+      data: { ...current, full_name: "New Name", phone: "+628123456789" },
+    });
+    const updateUserById = vi.fn().mockResolvedValue({ error: null });
+    const service = serviceWith({
+      auth: { admin: { updateUserById } },
+      from: vi
+        .fn()
+        .mockReturnValueOnce(query({ data: { tenant_id: tenantId } }))
+        .mockReturnValueOnce(query({ data: current }))
+        .mockReturnValueOnce(profileQuery),
+    });
+
+    await expect(
+      service.updateMyProfile(currentUserId, {
+        full_name: "New Name",
+        phone: "+628123456789",
+      }),
+    ).resolves.toMatchObject({ full_name: "New Name" });
+
+    expect(profileQuery.eq).toHaveBeenCalledWith("id", currentUserId);
+    expect(profileQuery.update).toHaveBeenCalledWith({
+      full_name: "New Name",
+      phone: "+628123456789",
+    });
+    expect(updateUserById).toHaveBeenCalledWith(currentUserId, {
+      user_metadata: { full_name: "New Name" },
+    });
+  });
+
   it("provisions Auth and Core profiles in the current tenant", async () => {
     const profile = {
       email: "teacher@example.com",
