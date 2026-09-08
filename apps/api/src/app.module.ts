@@ -9,6 +9,7 @@ import { CalendarEventsModule } from "./modules/calendar-events/calendar-events.
 import { UsersModule } from "./modules/users/users.module";
 import { TenantModule } from "./modules/tenants/tenant.module";
 import { PermissionsModule } from "./modules/permissions/permissions.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { validateEnvironment } from "./config/environment";
 
 @Module({
@@ -26,6 +27,7 @@ import { validateEnvironment } from "./config/environment";
     UsersModule,
     TenantModule,
     PermissionsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
 })
