@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { LogoutButton } from "../../components/auth/logout-button";
+import { PermissionGate } from "../../components/auth/permission-gate";
 import { Badge } from "../../components/ui/badge";
 import { ButtonLink } from "../../components/ui/button";
 import {
@@ -65,6 +66,7 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
         </Card>
+        <PermissionGate permission="tenants.update_own">
         <Card>
           <CardHeader>
             <CardTitle>Tenant profile</CardTitle>
@@ -77,6 +79,8 @@ export default async function DashboardPage() {
             Open tenant settings
           </ButtonLink>
         </Card>
+        </PermissionGate>
+        <PermissionGate permission="users.read">
         <Card>
           <CardHeader>
             <CardTitle>User master</CardTitle>
@@ -89,6 +93,7 @@ export default async function DashboardPage() {
             Manage users
           </ButtonLink>
         </Card>
+        </PermissionGate>
       </section>
     </main>
   );

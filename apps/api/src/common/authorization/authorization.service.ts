@@ -40,39 +40,38 @@ export class AuthorizationService {
       ? user.user_levels[0] ?? null
       : user.user_levels;
 
-    if (!userLevel) {
-      return {
-        userId,
-        userLevel: null,
-        roles: [],
-        permissions: [],
-      };
+    const levelRoleMappings = userLevel
+      ? await supabase
+          .from("user_level_roles")
+          .select(`roles ( id, code, name )`)
+          .eq("user_level_id", userLevel.id)
+      : { data: [], error: null };
+
+    if (levelRoleMappings.error) throw levelRoleMappings.error;
+
+    const { data: directRoleMappings, error: directRoleError } = await supabase
+      .from("user_roles")
+      .select(`roles ( id, code, name )`)
+      .eq("user_id", userId);
+
+    if (directRoleError) {
+      throw directRoleError;
     }
 
-    const { data: roleMappings, error: roleError } = await supabase
-      .from("user_level_roles")
-      .select(
-        `
-          roles (
-            id,
-            code,
-            name
-          )
-        `,
-      )
-      .eq("user_level_id", userLevel.id);
-
-    if (roleError) {
-      throw roleError;
-    }
-
-    const roles: AuthorizationRole[] = (roleMappings ?? [])
+    const roles: AuthorizationRole[] = [
+      ...(levelRoleMappings.data ?? []),
+      ...(directRoleMappings ?? []),
+    ]
       .map((item) =>
         Array.isArray(item.roles)
           ? item.roles[0]
           : item.roles,
       )
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(
+        (role, index, all) =>
+          all.findIndex((candidate) => candidate.id === role.id) === index,
+      );
 
     if (roles.length === 0) {
       return {
