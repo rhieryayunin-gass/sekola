@@ -151,8 +151,9 @@ verification on staging.
 - The fixed six-role catalog remains unchanged; no academic or operational module is introduced.
 - Migration `0014` and trusted staging verification passed.
 
-# Phase 09 — Profile (in progress)
+# Phase 09 — Profile
 
 - Self-service profile includes display name, avatar URL, contact phone, and emergency contact.
 - Profile updates are restricted to the authenticated account and synchronize display name to Auth.
 - Tenant, notification, calendar, and localization settings remain in their scheduled phases.
+- Migration `0015`, regression coverage, CI, and trusted staging verification passed.
