@@ -1,0 +1,8 @@
+"use client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "../../lib/supabase/client";
+import { Button } from "../ui/button";
+import { EmptyState } from "../ui/empty-state";
+type Item={id:string;title:string;body:string|null;read_at:string|null};
+async function request<T>(path:string,method="GET"){const session=(await createClient().auth.getSession()).data.session;if(!session)throw new Error("Session unavailable");const base=process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/,"");const response=await fetch(base+path,{method,headers:{Authorization:"Bearer "+session.access_token}});const body=await response.json();if(!response.ok)throw new Error(body.error?.message??"Request failed");return body.data as T;}
+export function NotificationCenter(){const client=useQueryClient();const q=useQuery({queryKey:["notifications"],queryFn:()=>request<Item[]>("/notifications")});const invalidate=()=>client.invalidateQueries({queryKey:["notifications"]});const read=useMutation({mutationFn:(id:string)=>request("/notifications/"+id+"/read","PATCH"),onSuccess:invalidate});const all=useMutation({mutationFn:()=>request("/notifications/read-all","PATCH"),onSuccess:invalidate});return <div className="mt-5"><Button variant="secondary" onClick={()=>all.mutate()}>Mark all as read</Button>{q.data?.length?<div className="mt-4 space-y-2">{q.data.map(item=><button className="w-full rounded-md border border-border p-3 text-left" key={item.id} onClick={()=>!item.read_at&&read.mutate(item.id)}><strong>{item.title}</strong>{item.body?<p className="text-sm text-muted">{item.body}</p>:null}</button>)}</div>:<EmptyState title="Notifications" description="You are all caught up."/ >}</div>;}
