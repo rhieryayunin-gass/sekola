@@ -7,7 +7,7 @@ after its implementation and quality gates pass on the current branch.
 
 ## Current phase
 
-**Level 1 — 12 Calendar Core+ (local implementation)**
+**Level 1 — 12 Calendar Core+ (staging verified)**
 
 Branch: `phase/12-calendar`
 
@@ -122,7 +122,7 @@ Branch: `phase/12-calendar`
 
 ## Next phase
 
-Phase 12 awaits its repository checkpoint, CI, and trusted staging verification.
+Phase 12 awaits its final merge to `main`.
 
 ## Remaining roadmap levels
 
@@ -171,7 +171,7 @@ Phase 12 awaits its repository checkpoint, CI, and trusted staging verification.
   and global language switcher are implemented.
 - GitHub CI and post-merge verification passed.
 
-# Phase 12 — Calendar Core+ (local implementation)
+# Phase 12 — Calendar Core+
 
 - Shared tenant-scoped calendars and event CRUD are extended with event types,
   all-day events, recurrence rules, invitations, accept/reject responses, and
