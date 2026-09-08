@@ -94,6 +94,19 @@ export default async function DashboardPage() {
           </ButtonLink>
         </Card>
         </PermissionGate>
+        <PermissionGate permission="calendar.read">
+        <Card>
+          <CardHeader>
+            <CardTitle>Shared calendar</CardTitle>
+            <CardDescription>
+              Plan tenant events, recurring schedules, invitations, and approvals.
+            </CardDescription>
+          </CardHeader>
+          <ButtonLink href="/dashboard/calendar" variant="secondary">
+            Open calendar
+          </ButtonLink>
+        </Card>
+        </PermissionGate>
       </section>
     </main>
   );

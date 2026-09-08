@@ -18,6 +18,9 @@ import { RequirePermission } from "../../common/authorization/decorators/require
 import { CalendarEventsService } from "./calendar-events.service";
 import { CreateCalendarEventDto } from "./dto/create-calendar-event.dto";
 import { UpdateCalendarEventDto } from "./dto/update-calendar-event.dto";
+import { InviteCalendarParticipantDto } from "./dto/invite-calendar-participant.dto";
+import { RespondCalendarInviteDto } from "./dto/respond-calendar-invite.dto";
+import { ReviewCalendarApprovalDto } from "./dto/review-calendar-approval.dto";
 
 @Controller("calendars/:calendarId/events")
 @UseGuards(AuthGuard, PermissionGuard)
@@ -124,5 +127,26 @@ export class CalendarEventsController {
       calendarId,
       eventId,
     );
+  }
+
+  @Post(":eventId/participants")
+  @RequirePermission("calendar.update")
+  async invite(@Req() request: Request, @Param("calendarId") calendarId: string, @Param("eventId") eventId: string, @Body() dto: InviteCalendarParticipantDto) {
+    if (!request.user) throw new Error("Authenticated user is missing");
+    return this.calendarEventsService.invite(request.user.id, calendarId, eventId, dto.user_id);
+  }
+
+  @Patch(":eventId/invitation")
+  @RequirePermission("calendar.read")
+  async respond(@Req() request: Request, @Param("eventId") eventId: string, @Body() dto: RespondCalendarInviteDto) {
+    if (!request.user) throw new Error("Authenticated user is missing");
+    return this.calendarEventsService.respond(request.user.id, eventId, dto.response);
+  }
+
+  @Patch(":eventId/approval")
+  @RequirePermission("calendar.update")
+  async review(@Req() request: Request, @Param("calendarId") calendarId: string, @Param("eventId") eventId: string, @Body() dto: ReviewCalendarApprovalDto) {
+    if (!request.user) throw new Error("Authenticated user is missing");
+    return this.calendarEventsService.review(request.user.id, calendarId, eventId, dto.status, dto.note);
   }
 }
