@@ -5,8 +5,10 @@ import { useState } from "react";
 import { useAuthStore } from "../../stores/auth-store";
 import { Button } from "../ui/button";
 import { useToast } from "../ui/toast";
+import { useTranslations } from "../i18n/i18n-provider";
 
 export function LogoutButton() {
+  const { t } = useTranslations();
   const router = useRouter();
   const signOut = useAuthStore((state) => state.signOut);
   const { toast } = useToast();
@@ -31,7 +33,7 @@ export function LogoutButton() {
 
   return (
     <Button disabled={isPending} onClick={handleLogout} variant="ghost">
-      {isPending ? "Signing out…" : "Sign out"}
+      {isPending ? t("signingOut") : t("signOut")}
     </Button>
   );
 }
