@@ -1,0 +1,175 @@
+name: Trusted Phase 06 Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Inspect migration status or apply Phase 06
+        required: true
+        default: inspect
+        type: choice
+        options: [inspect, apply]
+      confirmation:
+        description: Use APPLY_0012 when applying Phase 06
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trusted-phase06-staging
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: ${{ inputs.operation }} pinned Phase 06 commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    env:
+      PHASE_06_COMMIT: ea9c7c6abe33c1c4a3fdf511ba68e3affab91019
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+
+    steps:
+      - name: Validate explicit confirmation
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$CONFIRMATION" != "APPLY_0012" ]; then
+            echo "::error::Apply requires confirmation APPLY_0012"
+            exit 1
+          fi
+
+      - name: Check out pinned Phase 06 commit
+        uses: actions/checkout@v4
+        with:
+          repository: rhieryayunin-gass/sekola
+          ref: ${{ env.PHASE_06_COMMIT }}
+
+      - name: Validate public staging configuration
+        run: |
+          missing=0
+          for name in SUPABASE_PROJECT_REF SUPABASE_URL SUPABASE_PUBLISHABLE_KEY
+          do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not configured in the staging environment"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Prepare migration workspace
+        run: |
+          mkdir -p .staging-db/supabase/migrations
+          cp apps/api/database/migrations/*.sql .staging-db/supabase/migrations/
+          supabase init --workdir .staging-db
+
+      - name: Validate private staging configuration
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          missing=0
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_SERVICE_ROLE_KEY
+          do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not configured in the staging environment"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Link staging project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --workdir .staging-db --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Inspect migration status
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase migration list --workdir .staging-db --linked
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+
+      - name: Require migration history through 0011
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          dry_run_output="$(supabase db push --workdir .staging-db --linked --dry-run --include-all 2>&1)"
+          echo "$dry_run_output"
+          if echo "$dry_run_output" | grep -Eq '000[1-9]_|001[01]_'; then
+            echo "::error::Migration history through 0011 is incomplete"
+            exit 1
+          fi
+
+      - name: Apply pending Phase 06 migration
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase db push --workdir .staging-db --linked --include-all --yes
+          supabase migration list --workdir .staging-db --linked
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+
+      - name: Run project quality gate
+        if: ${{ inputs.operation == 'apply' }}
+        run: pnpm check
+
+      - name: Verify live Phase 06 role catalog
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { createClient } from '@supabase/supabase-js';
+          const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+          const required = ['OWNER', 'PRINCIPAL', 'STAFF', 'TEACHER', 'STUDENT', 'PARENT'];
+          const { data, error } = await client.from('roles').select('code, is_active').in('code', required);
+          if (error) throw error;
+          const active = new Set((data ?? []).filter((role) => role.is_active).map((role) => role.code));
+          const missing = required.filter((code) => !active.has(code));
+          if (missing.length) throw new Error(`Missing active canonical roles: ${missing.join(', ')}`);
+          console.log('✓ Canonical atsekola role catalog is complete and active');
+          NODE
+
+      - name: Publish verification summary
+        if: ${{ always() }}
+        env:
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          {
+            echo "## Trusted Phase 06 staging"
+            echo
+            echo "- Operation: `$OPERATION`"
+            echo "- Pinned commit: `$PHASE_06_COMMIT`"
+            echo "- Result: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
