@@ -50,7 +50,6 @@ export default async function DashboardPage() {
       </section>
 
       <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <PermissionGate permission="tenants.update_own">
         <Card>
           <CardHeader>
             <CardTitle>Secure session</CardTitle>
@@ -59,8 +58,6 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
         </Card>
-        </PermissionGate>
-        <PermissionGate permission="users.read">
         <Card>
           <CardHeader>
             <CardTitle>Protected routes</CardTitle>
@@ -69,7 +66,7 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
         </Card>
-        </PermissionGate>
+        <PermissionGate permission="tenants.update_own">
         <Card>
           <CardHeader>
             <CardTitle>Tenant profile</CardTitle>
@@ -82,6 +79,8 @@ export default async function DashboardPage() {
             Open tenant settings
           </ButtonLink>
         </Card>
+        </PermissionGate>
+        <PermissionGate permission="users.read">
         <Card>
           <CardHeader>
             <CardTitle>User master</CardTitle>
@@ -94,6 +93,7 @@ export default async function DashboardPage() {
             Manage users
           </ButtonLink>
         </Card>
+        </PermissionGate>
       </section>
     </main>
   );
