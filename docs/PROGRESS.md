@@ -7,9 +7,9 @@ after its implementation and quality gates pass on the current branch.
 
 ## Current phase
 
-**Level 1 — 05 Users**
+**Level 1 — 06 Roles**
 
-Branch: `phase/05-users`
+Branch: `phase/06-roles`
 
 ### 00 Project Foundation
 
@@ -108,10 +108,22 @@ Branch: `phase/05-users`
 - [x] Run live CRUD, Auth-sync, status, RLS, and isolation verification
 - [x] GitHub CI checkpoint
 
+### 06 Roles
+
+- [x] Audit legacy Role, User Level, and authorization relationships
+- [x] Define the fixed canonical role catalog
+- [x] Preserve existing legacy role records and relationships
+- [x] Keep Permission and Access Control work in their scheduled phases
+- [x] Add migration and migration regression tests
+- [x] Run local lint, typecheck, test, and production build
+- [x] Apply migration `0012` to Supabase staging
+- [x] Verify the canonical role catalog on staging
+- [x] GitHub CI checkpoint
+
 ## Next phase
 
-Level 1 — 06 Roles. This phase starts only after Phase 05 is merged to
-`main`.
+Level 1 — 07 Permissions. This phase starts only after Phase 06 passes live
+verification on staging.
 
 ## Remaining roadmap levels
 
