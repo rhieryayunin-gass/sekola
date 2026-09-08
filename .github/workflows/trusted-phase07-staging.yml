@@ -1,0 +1,108 @@
+name: Trusted Phase 07 Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Inspect migration status or apply Phase 07
+        required: true
+        default: inspect
+        type: choice
+        options: [inspect, apply]
+      confirmation:
+        description: Use APPLY_0013 when applying Phase 07
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trusted-phase07-staging
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    env:
+      PHASE_07_COMMIT: 1622a6f9700830d66a4ab64323f189d4a56c7e42
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+
+    steps:
+      - name: Validate explicit confirmation
+        if: ${{ inputs.operation == 'apply' }}
+        env: { CONFIRMATION: ${{ inputs.confirmation }} }
+        run: test "$CONFIRMATION" = APPLY_0013
+
+      - uses: actions/checkout@v4
+        with:
+          repository: rhieryayunin-gass/sekola
+          ref: ${{ env.PHASE_07_COMMIT }}
+
+      - name: Validate staging configuration
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          for name in SUPABASE_PROJECT_REF SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_SERVICE_ROLE_KEY; do test -n "${!name}" || { echo "::error::$name is not configured"; exit 1; }; done
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.21.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - name: Prepare and link migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          mkdir -p .staging-db/supabase/migrations
+          cp apps/api/database/migrations/*.sql .staging-db/supabase/migrations/
+          supabase init --workdir .staging-db
+          supabase link --workdir .staging-db --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Inspect migration status
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase migration list --workdir .staging-db --linked
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+      - name: Apply migration and quality gate
+        if: ${{ inputs.operation == 'apply' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          pending="$(supabase db push --workdir .staging-db --linked --dry-run --include-all 2>&1)"
+          echo "$pending"
+          echo "$pending" | grep -Eq '000[1-9]_|001[0-2]_' && { echo '::error::Migration history through 0012 is incomplete'; exit 1; } || true
+          supabase db push --workdir .staging-db --linked --include-all --yes
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+          pnpm check
+      - name: Verify live Phase 07 permissions
+        if: ${{ inputs.operation == 'apply' }}
+        working-directory: apps/api
+        env: { SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }} }
+        run: |
+          node --input-type=module <<'NODE'
+          import { createClient } from '@supabase/supabase-js';
+          const c=createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false}});
+          const codes=['permissions.read','permissions.manage','roles.read','roles.manage','users.roles.manage'];
+          const {data,error}=await c.from('permissions').select('id,code').in('code',codes); if(error) throw error;
+          if((data??[]).length!==codes.length) throw new Error('Phase 07 permission catalog is incomplete');
+          const {data: owner,error:ownerError}=await c.from('roles').select('id').eq('code','OWNER').single(); if(ownerError) throw ownerError;
+          const {data: mappings,error:mapError}=await c.from('role_permissions').select('permissions(code)').eq('role_id',owner.id); if(mapError) throw mapError;
+          const actual=new Set((mappings??[]).map(x=>Array.isArray(x.permissions)?x.permissions[0]?.code:x.permissions?.code));
+          if(codes.some(code=>!actual.has(code))) throw new Error('OWNER management mapping is incomplete');
+          console.log('✓ Phase 07 permission catalog and OWNER mappings verified');
+          NODE
+      - name: Publish summary
+        if: ${{ always() }}
+        run: echo "## Trusted Phase 07 staging — ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
