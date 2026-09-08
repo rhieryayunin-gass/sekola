@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { LogoutButton } from "../../../components/auth/logout-button";
-import { TenantProfileForm } from "../../../components/tenant/tenant-profile-form";
+import { TenantProfileForm, type TenantSettings } from "../../../components/tenant/tenant-profile-form";
 import { Badge } from "../../../components/ui/badge";
 import { ButtonLink } from "../../../components/ui/button";
 import {
@@ -18,7 +18,7 @@ export const metadata = {
   title: "Tenant | SEKOLA AI",
 };
 
-interface Tenant {
+interface Tenant extends TenantSettings {
   code: string;
   created_at: string;
   id: string;
@@ -91,7 +91,7 @@ export default async function TenantPage() {
               Administrators can update only their own school name.
             </CardDescription>
           </CardHeader>
-          <TenantProfileForm initialName={tenant.name} />
+          <TenantProfileForm initial={tenant} />
         </Card>
       </section>
     </main>

@@ -25,6 +25,17 @@ export class TenantService {
   private readonly tenantSelect = `
     id,
     name,
+    legal_name,
+    address,
+    contact_email,
+    contact_phone,
+    website_url,
+    academic_year_label,
+    week_starts_on,
+    notifications_email_enabled,
+    notifications_in_app_enabled,
+    timezone,
+    locale,
     code,
     is_active,
     created_at,
@@ -103,7 +114,16 @@ export class TenantService {
 
   async updateForUser(userId: string, dto: UpdateOwnTenantDto) {
     const tenantId = await this.getTenantIdByUserId(userId);
-    return this.updateRecord(tenantId, { name: dto.name.trim() });
+    const changes = Object.fromEntries(
+      Object.entries(dto).map(([key, value]) => [
+        key,
+        typeof value === "string" ? value.trim() || null : value,
+      ]).filter(([, value]) => value !== undefined),
+    );
+    if (Object.keys(changes).length === 0) {
+      throw new BadRequestException("At least one tenant setting is required");
+    }
+    return this.updateRecord(tenantId, changes);
   }
 
   async update(tenantId: string, dto: UpdateTenantDto) {
@@ -128,7 +148,7 @@ export class TenantService {
 
   private async updateRecord(
     tenantId: string,
-    changes: Record<string, boolean | string>,
+    changes: Record<string, boolean | string | number | null>,
   ) {
     const { data, error } = await this.client
       .from("tenants")

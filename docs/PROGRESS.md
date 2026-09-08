@@ -157,3 +157,10 @@ verification on staging.
 - Profile updates are restricted to the authenticated account and synchronize display name to Auth.
 - Tenant, notification, calendar, and localization settings remain in their scheduled phases.
 - Migration `0015`, regression coverage, CI, and trusted staging verification passed.
+
+# Phase 10 — Settings (in progress)
+
+- Tenant-scoped school profile, academic-year preference, notification defaults,
+  operational calendar preference, and locale/timezone preference are implemented.
+- Calendar events and multilingual message catalogs remain deferred to their
+  scheduled roadmap phases.
