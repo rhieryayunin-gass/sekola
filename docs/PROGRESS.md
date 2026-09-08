@@ -137,3 +137,8 @@ verification on staging.
 - Level 8 — Core Operational Modules
 - Level 9 — Analytics+
 - Level 10 — Cross-module Ecosystem and Production Readiness
+# Phase 07 — Permissions (in progress)
+
+- Permission catalog, canonical role mappings, and direct tenant-scoped user-role assignment are implemented locally.
+- Only `OWNER` receives permission-matrix and direct-role management permissions.
+- Access scopes remain deferred to Phase 08.
