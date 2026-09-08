@@ -146,6 +146,7 @@ jobs:
 
       - name: Verify live Phase 06 role catalog
         if: ${{ inputs.operation == 'apply' }}
+        working-directory: apps/api
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
@@ -169,7 +170,7 @@ jobs:
           {
             echo "## Trusted Phase 06 staging"
             echo
-            echo "- Operation: `$OPERATION`"
-            echo "- Pinned commit: `$PHASE_06_COMMIT`"
+            echo "- Operation: \`$OPERATION\`"
+            echo "- Pinned commit: \`$PHASE_06_COMMIT\`"
             echo "- Result: ${{ job.status }}"
           } >> "$GITHUB_STEP_SUMMARY"
