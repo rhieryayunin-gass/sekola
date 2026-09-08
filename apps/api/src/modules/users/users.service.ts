@@ -505,7 +505,18 @@ export class UsersService {
       const { error: authError } = await this.client.auth.admin.updateUserById(userId, {
         user_metadata: { full_name: dto.full_name },
       });
-      if (authError) throw new InternalServerErrorException("Unable to synchronize profile name");
+      if (authError) {
+        const { error: rollbackError } = await this.client
+          .from("users")
+          .update({ full_name: current.full_name })
+          .eq("id", userId);
+
+        if (rollbackError) {
+          console.error("Unable to roll back profile name", rollbackError);
+        }
+
+        throw new InternalServerErrorException("Unable to synchronize profile name");
+      }
     }
     return data;
   }
