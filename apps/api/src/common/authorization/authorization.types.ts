@@ -16,9 +16,17 @@ export interface AuthorizationUserLevel {
   name: string;
 }
 
+export type AccessScopeType = "GLOBAL" | "TENANT" | "MODULE" | "RESOURCE";
+
+export interface AuthorizationAccessScope {
+  scopeKey: string;
+  scopeType: AccessScopeType;
+}
+
 export interface AuthorizationContext {
   userId: string;
   userLevel: AuthorizationUserLevel | null;
   roles: AuthorizationRole[];
   permissions: AuthorizationPermission[];
+  accessScopes: AuthorizationAccessScope[];
 }
