@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service";
 import {
   AuthorizationContext,
+  AuthorizationAccessScope,
   AuthorizationPermission,
   AuthorizationRole,
   AuthorizationUserLevel,
@@ -79,6 +80,7 @@ export class AuthorizationService {
         userLevel: userLevel as AuthorizationUserLevel,
         roles: [],
         permissions: [],
+        accessScopes: [],
       };
     }
 
@@ -119,11 +121,28 @@ export class AuthorizationService {
       ).values(),
     );
 
+    const { data: scopeMappings, error: scopeError } = await supabase
+      .from("role_access_scopes")
+      .select("scope_type, scope_key")
+      .in("role_id", roleIds);
+
+    if (scopeError) throw scopeError;
+
+    const accessScopes = Array.from(
+      new Map(
+        (scopeMappings ?? []).map((scope) => [
+          `${scope.scope_type}:${scope.scope_key}`,
+          { scopeType: scope.scope_type, scopeKey: scope.scope_key },
+        ]),
+      ).values(),
+    ) as AuthorizationAccessScope[];
+
     return {
       userId,
       userLevel: userLevel as AuthorizationUserLevel,
       roles,
       permissions: uniquePermissions as AuthorizationPermission[],
+      accessScopes,
     };
   }
 
@@ -135,6 +154,14 @@ export class AuthorizationService {
 
     return context.permissions.some(
       (permission) => permission.code === permissionCode,
+    );
+  }
+
+  async hasAccessScope(userId: string, scopeType: string, scopeKey: string): Promise<boolean> {
+    const context = await this.getContext(userId);
+    return context.accessScopes.some((scope) =>
+      scope.scopeType === "GLOBAL" ||
+      (scope.scopeType === scopeType && (scope.scopeKey === "*" || scope.scopeKey === scopeKey)),
     );
   }
 }

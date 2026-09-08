@@ -143,3 +143,10 @@ verification on staging.
 - Only `OWNER` receives permission-matrix and direct-role management permissions.
 - Access scopes remain deferred to Phase 08.
 - Migration `0013` and trusted staging verification passed.
+
+# Phase 08 — User Level / Access Control
+
+- Generic role access grants define `GLOBAL`, `TENANT`, `MODULE`, and `RESOURCE` scope types.
+- Authorization context and backend guard evaluate scope grants; `GLOBAL:*` satisfies narrower checks.
+- The fixed six-role catalog remains unchanged; no academic or operational module is introduced.
+- Migration `0014` and trusted staging verification passed.
