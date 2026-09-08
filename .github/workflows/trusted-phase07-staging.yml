@@ -34,8 +34,9 @@ jobs:
 
     steps:
       - name: Validate explicit confirmation
-        if: ${{ inputs.operation == 'apply' }}
-        env: { CONFIRMATION: ${{ inputs.confirmation }} }
+        if: inputs.operation == 'apply'
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
         run: test "$CONFIRMATION" = APPLY_0013
 
       - uses: actions/checkout@v4
@@ -52,12 +53,16 @@ jobs:
           for name in SUPABASE_PROJECT_REF SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_SERVICE_ROLE_KEY; do test -n "${!name}" || { echo "::error::$name is not configured"; exit 1; }; done
 
       - uses: pnpm/action-setup@v4
-        with: { version: 11.21.0 }
+        with:
+          version: 11.21.0
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
+        with:
+          node-version: 22
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - uses: supabase/setup-cli@v1
-        with: { version: latest }
+        with:
+          version: latest
       - name: Prepare and link migrations
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -75,7 +80,7 @@ jobs:
           supabase migration list --workdir .staging-db --linked
           supabase db push --workdir .staging-db --linked --dry-run --include-all
       - name: Apply migration and quality gate
-        if: ${{ inputs.operation == 'apply' }}
+        if: inputs.operation == 'apply'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -87,9 +92,10 @@ jobs:
           supabase db push --workdir .staging-db --linked --dry-run --include-all
           pnpm check
       - name: Verify live Phase 07 permissions
-        if: ${{ inputs.operation == 'apply' }}
+        if: inputs.operation == 'apply'
         working-directory: apps/api
-        env: { SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }} }
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           node --input-type=module <<'NODE'
           import { createClient } from '@supabase/supabase-js';
