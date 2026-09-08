@@ -53,6 +53,6 @@ jobs:
           supabase migration list --workdir .staging-db --linked
           supabase db push --workdir .staging-db --linked --dry-run --include-all
           if [ "${{ inputs.operation }}" = apply ]; then
-            supabase db push --workdir .staging-db --linked --include-all --yes
+            supabase db push --workdir .staging-db --linked --include-all
             pnpm check
           fi
