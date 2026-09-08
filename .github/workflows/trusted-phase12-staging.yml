@@ -1,0 +1,110 @@
+name: Trusted Phase 12 Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Inspect migration status or apply Phase 12
+        required: true
+        default: inspect
+        type: choice
+        options: [inspect, apply]
+      confirmation:
+        description: Use APPLY_0017 when applying Phase 12
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trusted-phase12-staging
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    env:
+      PHASE_12_COMMIT: 730be0a4e83b051a9bea125d74daba18a70409c3
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+
+    steps:
+      - name: Validate explicit confirmation
+        if: inputs.operation == 'apply'
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: test "$CONFIRMATION" = APPLY_0017
+      - uses: actions/checkout@v4
+        with:
+          repository: rhieryayunin-gass/sekola
+          ref: ${{ env.PHASE_12_COMMIT }}
+      - name: Validate staging configuration
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          for name in SUPABASE_PROJECT_REF SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_SERVICE_ROLE_KEY; do
+            test -n "${!name}" || { echo "::error::$name is not configured"; exit 1; }
+          done
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Prepare and link migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          mkdir -p .staging-db/supabase/migrations
+          cp apps/api/database/migrations/*.sql .staging-db/supabase/migrations/
+          supabase init --workdir .staging-db
+          supabase link --workdir .staging-db --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Inspect migration status
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase migration list --workdir .staging-db --linked
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+      - name: Apply migration and quality gate
+        if: inputs.operation == 'apply'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          pending="$(supabase db push --workdir .staging-db --linked --dry-run --include-all 2>&1)"
+          echo "$pending"
+          echo "$pending" | grep -Eq '000[1-9]_|001[0-6]_' && { echo '::error::Migration history through 0016 is incomplete'; exit 1; } || true
+          supabase db push --workdir .staging-db --linked --include-all --yes
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+          pnpm check
+      - name: Verify live Phase 12 calendar catalog
+        if: inputs.operation == 'apply'
+        working-directory: apps/api
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { createClient } from '@supabase/supabase-js';
+          const c=createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false}});
+          for (const table of ['calendars','calendar_events','calendar_event_participants','calendar_approvals']) {
+            const {error}=await c.from(table).select('*',{head:true,count:'exact'});
+            if(error) throw error;
+          }
+          console.log('✓ Phase 12 calendar catalog verified');
+          NODE
+      - name: Publish summary
+        if: ${{ always() }}
+        run: echo "## Trusted Phase 12 staging — ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
