@@ -60,10 +60,10 @@ describe("TenantService", () => {
     const tenantQuery = query({ id: tenantId, name: "Sekola Baru" });
     const { service } = serviceWithQueries(contextQuery, tenantQuery);
 
-    await service.updateForUser(userId, { name: " Sekola Baru " });
+    await service.updateForUser(userId, { name: " Sekola Baru ", timezone: "Asia/Jakarta", week_starts_on: 1 });
 
     expect(contextQuery.eq).toHaveBeenCalledWith("id", userId);
-    expect(tenantQuery.update).toHaveBeenCalledWith({ name: "Sekola Baru" });
+    expect(tenantQuery.update).toHaveBeenCalledWith({ name: "Sekola Baru", timezone: "Asia/Jakarta", week_starts_on: 1 });
     expect(tenantQuery.eq).toHaveBeenCalledWith("id", tenantId);
   });
 
