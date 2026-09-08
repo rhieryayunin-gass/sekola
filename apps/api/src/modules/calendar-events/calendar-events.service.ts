@@ -23,7 +23,7 @@ export class CalendarEventsService {
   ) {
     const { data, error } = await this.client
       .from("calendars")
-      .select("id")
+      .select("id, tenant_id")
       .eq("id", calendarId)
       .eq("owner_user_id", userId)
       .single();
@@ -31,7 +31,14 @@ export class CalendarEventsService {
     if (error || !data) {
       throw new NotFoundException("Calendar not found");
     }
+
+    return data;
   }
+
+  private eventFields = `
+    id, calendar_id, title, description, starts_at, ends_at, is_all_day,
+    event_type, recurrence_rule, requires_approval, created_at, updated_at
+  `;
 
   private validateEventTimes(
     startsAt: string,
@@ -69,17 +76,7 @@ export class CalendarEventsService {
 
     const { data, error } = await this.client
       .from("calendar_events")
-      .select(`
-        id,
-        calendar_id,
-        title,
-        description,
-        starts_at,
-        ends_at,
-        is_all_day,
-        created_at,
-        updated_at
-      `)
+      .select(this.eventFields)
       .eq("calendar_id", calendarId)
       .order("starts_at", {
         ascending: true,
@@ -106,17 +103,7 @@ export class CalendarEventsService {
 
     const { data, error } = await this.client
       .from("calendar_events")
-      .select(`
-        id,
-        calendar_id,
-        title,
-        description,
-        starts_at,
-        ends_at,
-        is_all_day,
-        created_at,
-        updated_at
-      `)
+      .select(this.eventFields)
       .eq("id", eventId)
       .eq("calendar_id", calendarId)
       .single();
@@ -154,24 +141,33 @@ export class CalendarEventsService {
         starts_at: dto.starts_at,
         ends_at: dto.ends_at ?? null,
         is_all_day: dto.is_all_day ?? false,
+        event_type: dto.event_type ?? "GENERAL",
+        recurrence_rule: dto.recurrence_rule ?? null,
+        requires_approval: dto.requires_approval ?? false,
       })
-      .select(`
-        id,
-        calendar_id,
-        title,
-        description,
-        starts_at,
-        ends_at,
-        is_all_day,
-        created_at,
-        updated_at
-      `)
+      .select(this.eventFields)
       .single();
 
     if (error || !data) {
       throw new BadRequestException(
         "Failed to create calendar event",
       );
+    }
+
+    const createdEvent = data as unknown as {
+      id: string;
+      requires_approval: boolean;
+    };
+
+    if (createdEvent.requires_approval) {
+      const { error: approvalError } = await this.client
+        .from("calendar_approvals")
+        .insert({ event_id: createdEvent.id });
+
+      if (approvalError) {
+        await this.client.from("calendar_events").delete().eq("id", createdEvent.id);
+        throw new BadRequestException("Failed to create calendar approval");
+      }
     }
 
     return data;
@@ -237,21 +233,14 @@ export class CalendarEventsService {
         ...(dto.is_all_day !== undefined && {
           is_all_day: dto.is_all_day,
         }),
+        ...(dto.event_type !== undefined && { event_type: dto.event_type }),
+        ...(dto.recurrence_rule !== undefined && { recurrence_rule: dto.recurrence_rule }),
+        ...(dto.requires_approval !== undefined && { requires_approval: dto.requires_approval }),
         updated_at: new Date().toISOString(),
       })
       .eq("id", eventId)
       .eq("calendar_id", calendarId)
-      .select(`
-        id,
-        calendar_id,
-        title,
-        description,
-        starts_at,
-        ends_at,
-        is_all_day,
-        created_at,
-        updated_at
-      `)
+      .select(this.eventFields)
       .single();
 
     if (error || !data) {
@@ -291,5 +280,32 @@ export class CalendarEventsService {
       success: true,
       id: data.id,
     };
+  }
+
+  async invite(userId: string, calendarId: string, eventId: string, participantId: string) {
+    const calendar = await this.ensureCalendarOwner(userId, calendarId);
+    const { data: event, error: eventError } = await this.client.from("calendar_events").select("id").eq("id", eventId).eq("calendar_id", calendarId).single();
+    if (eventError || !event) throw new NotFoundException("Calendar event not found");
+    const { data: participant, error: participantError } = await this.client
+      .from("users").select("id, tenant_id, is_active").eq("id", participantId).single();
+    if (participantError || !participant || !participant.is_active || participant.tenant_id !== calendar.tenant_id) {
+      throw new NotFoundException("Participant not found in the calendar tenant");
+    }
+    const { data, error } = await this.client.from("calendar_event_participants").upsert({ event_id: eventId, user_id: participantId }, { onConflict: "event_id,user_id" }).select("event_id,user_id,response").single();
+    if (error || !data) throw new BadRequestException("Unable to invite calendar participant");
+    return data;
+  }
+
+  async respond(userId: string, eventId: string, response: "ACCEPTED" | "REJECTED") {
+    const { data, error } = await this.client.from("calendar_event_participants").update({ response, responded_at: new Date().toISOString() }).eq("event_id", eventId).eq("user_id", userId).select("event_id,user_id,response").single();
+    if (error || !data) throw new NotFoundException("Calendar invitation not found");
+    return data;
+  }
+
+  async review(userId: string, calendarId: string, eventId: string, status: "APPROVED" | "REJECTED", note?: string) {
+    await this.ensureCalendarOwner(userId, calendarId);
+    const { data, error } = await this.client.from("calendar_approvals").update({ status, note: note ?? null, reviewed_by_user_id: userId, reviewed_at: new Date().toISOString() }).eq("event_id", eventId).select("event_id,status").single();
+    if (error || !data) throw new NotFoundException("Calendar approval not found");
+    return data;
   }
 }

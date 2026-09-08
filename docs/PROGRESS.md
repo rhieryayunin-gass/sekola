@@ -1,15 +1,15 @@
 # SEKOLA AI Development Progress
 
-Last updated: 2026-09-06
+Last updated: 2026-09-08
 
 This file records repository-verified progress. A roadmap item is complete only
 after its implementation and quality gates pass on the current branch.
 
 ## Current phase
 
-**Level 1 — 06 Roles**
+**Level 1 — 12 Calendar Core+ (staging verified)**
 
-Branch: `phase/06-roles`
+Branch: `phase/12-calendar`
 
 ### 00 Project Foundation
 
@@ -122,8 +122,7 @@ Branch: `phase/06-roles`
 
 ## Next phase
 
-Level 1 — 07 Permissions. This phase starts only after Phase 06 passes live
-verification on staging.
+Phase 12 awaits its final merge to `main`.
 
 ## Remaining roadmap levels
 
@@ -166,7 +165,20 @@ verification on staging.
   scheduled roadmap phases.
 - Migration `0016`, regression coverage, CI, and trusted staging verification passed.
 
-# Phase 11 — Internationalization (in progress)
+# Phase 11 — Internationalization
 
 - English and Bahasa Indonesia message catalogs, locale cookie, typed provider,
   and global language switcher are implemented.
+- GitHub CI and post-merge verification passed.
+
+# Phase 12 — Calendar Core+
+
+- Shared tenant-scoped calendars and event CRUD are extended with event types,
+  all-day events, recurrence rules, invitations, accept/reject responses, and
+  approval queues.
+- Invitation targets are validated as active users in the calendar tenant;
+  direct authenticated mutation remains denied by RLS.
+- The Calendar page exposes tenant calendars and event creation without
+  introducing Academic+ behavior.
+- Migration `0017`, regression coverage, and local quality gates are pending
+  the public checkpoint and staging verification.

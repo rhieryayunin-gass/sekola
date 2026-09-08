@@ -21,12 +21,23 @@ export class CalendarService {
     userId: string,
     dto: CreateCalendarDto,
   ) {
+    const { data: owner, error: ownerError } = await this.client
+      .from("users")
+      .select("tenant_id, is_active")
+      .eq("id", userId)
+      .single();
+
+    if (ownerError || !owner?.is_active || !owner.tenant_id) {
+      throw new NotFoundException("Active tenant user not found");
+    }
+
     const { data, error } = await this.client
       .from("calendars")
       .insert({
         name: dto.name,
         description: dto.description ?? null,
         owner_user_id: userId,
+        tenant_id: owner.tenant_id,
       })
       .select(
         `
@@ -34,6 +45,7 @@ export class CalendarService {
           name,
           description,
           owner_user_id,
+          tenant_id,
           is_active,
           created_at,
           updated_at
@@ -58,6 +70,7 @@ export class CalendarService {
       name,
       description,
       owner_user_id,
+      tenant_id,
       is_active,
       created_at,
       updated_at
@@ -84,6 +97,7 @@ async findOne(userId: string, calendarId: string) {
       name,
       description,
       owner_user_id,
+      tenant_id,
       is_active,
       created_at,
       updated_at
@@ -121,6 +135,7 @@ async update(
       name,
       description,
       owner_user_id,
+      tenant_id,
       is_active,
       created_at,
       updated_at

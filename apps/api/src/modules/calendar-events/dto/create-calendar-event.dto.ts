@@ -3,6 +3,7 @@ import {
   IsDateString,
   IsOptional,
   IsString,
+  IsIn,
 } from "class-validator";
 
 export class CreateCalendarEventDto {
@@ -23,4 +24,11 @@ export class CreateCalendarEventDto {
   @IsOptional()
   @IsBoolean()
   is_all_day?: boolean;
+
+  @IsOptional() @IsIn(["GENERAL", "MEETING", "HOLIDAY", "DEADLINE"])
+  event_type?: string;
+  @IsOptional() @IsString()
+  recurrence_rule?: string | null;
+  @IsOptional() @IsBoolean()
+  requires_approval?: boolean;
 }
