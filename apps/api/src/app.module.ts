@@ -10,6 +10,7 @@ import { UsersModule } from "./modules/users/users.module";
 import { TenantModule } from "./modules/tenants/tenant.module";
 import { PermissionsModule } from "./modules/permissions/permissions.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
+import { AuditModule } from "./modules/audit/audit.module";
 import { validateEnvironment } from "./config/environment";
 
 @Module({
@@ -28,6 +29,7 @@ import { validateEnvironment } from "./config/environment";
     TenantModule,
     PermissionsModule,
     NotificationsModule,
+    AuditModule,
   ],
   controllers: [AppController],
 })
