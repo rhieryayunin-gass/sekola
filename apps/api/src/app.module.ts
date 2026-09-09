@@ -11,6 +11,7 @@ import { TenantModule } from "./modules/tenants/tenant.module";
 import { PermissionsModule } from "./modules/permissions/permissions.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { AuditModule } from "./modules/audit/audit.module";
+import { AcademicModule } from "./modules/academic/academic.module";
 import { validateEnvironment } from "./config/environment";
 
 @Module({
@@ -30,6 +31,7 @@ import { validateEnvironment } from "./config/environment";
     PermissionsModule,
     NotificationsModule,
     AuditModule,
+    AcademicModule,
   ],
   controllers: [AppController],
 })
