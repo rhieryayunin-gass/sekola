@@ -1,0 +1,34 @@
+name: Trusted People Phase 19-22 Staging
+on:
+  workflow_dispatch:
+    inputs:
+      operation: { required: true, default: inspect, type: choice, options: [inspect, apply] }
+      confirmation: { required: false, type: string }
+permissions: { contents: read }
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - if: inputs.operation == 'apply'
+        run: test "${{ inputs.confirmation }}" = APPLY_0024_0027
+      - uses: actions/checkout@v4
+        with: { repository: rhieryayunin-gass/sekola, ref: b50400f708eba2c255236e18df86dcd1685711c4 }
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.21.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v1
+      - env:
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          mkdir -p .staging-db/supabase/migrations
+          cp apps/api/database/migrations/*.sql .staging-db/supabase/migrations/
+          supabase init --workdir .staging-db
+          supabase link --workdir .staging-db --project-ref "$SUPABASE_PROJECT_REF"
+          supabase migration list --workdir .staging-db --linked
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+          if [ "${{ inputs.operation }}" = apply ]; then supabase db push --workdir .staging-db --linked --include-all; pnpm check; fi
