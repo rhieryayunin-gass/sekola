@@ -12,6 +12,7 @@ import { PermissionsModule } from "./modules/permissions/permissions.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { AuditModule } from "./modules/audit/audit.module";
 import { AcademicModule } from "./modules/academic/academic.module";
+import { PeopleModule } from "./modules/people/people.module";
 import { validateEnvironment } from "./config/environment";
 
 @Module({
@@ -32,6 +33,7 @@ import { validateEnvironment } from "./config/environment";
     NotificationsModule,
     AuditModule,
     AcademicModule,
+    PeopleModule,
   ],
   controllers: [AppController],
 })
