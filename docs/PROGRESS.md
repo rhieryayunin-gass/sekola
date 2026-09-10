@@ -264,7 +264,10 @@ Validation scope and remaining release gates: [Phase 51–54 verification](PHASE
 - [x] API package includes source/architecture metadata, checksums and first-install staging script ([PR #53](https://github.com/rhieryayunin-gass/sekola/pull/53))
 - [x] Operator staged release `68a3db128387f662f376a92b61e6b279e4ecb84b`, selected Supabase project `xrqjutbwnlkogpfhtuwr`, and reported `OSEKOLA_CONFIG_OK` plus basic database readiness
 - [x] Operator enabled the isolated API after refreshed pre-start checks (2825 MiB available RAM, port 3020 free, RIRI/Emerald/Nginx active); local health and readiness passed at 2026-09-10 14:27 UTC with the exact release and listener `127.0.0.1:3020` ([evidence and limits](OSEKOLA_DEPLOYMENT.md#operator-confirmed-api-activation))
-- [x] Operator confirmed public IPv4 `34.101.129.25`, Cloudflare DNS and Vercel team/project `albi-s-agentic/osekola`; Vercel connector access returned 403, and DNS/TLS deployment remains unverified
+- [x] Operator confirmed public IPv4 `34.101.129.25`, Cloudflare DNS and Vercel team/project `albi-s-agentic/osekola`; Vercel connector access returned 403 and frontend deployment remains unverified
+- [x] Operator confirmed HTTP/ACME bootstrap after PR #55, subsequent VPS DNS resolution of `api.osekola.com` to `34.101.129.25`, and successful Certbot webroot issuance expiring 2026-12-09 ([evidence and limits](OSEKOLA_DEPLOYMENT.md#operator-confirmed-dns-and-certificate-checkpoint))
+- [x] HTTPS activation helper with certificate/template checks, HTTP backup/rollback, API release probes and a certificate-scoped Nginx renewal hook
+- [ ] HTTPS vhost activation, public API HTTPS probes, renewal dry-run and post-change RIRI/Emerald health verified
 - [x] Production environment validation and separate public/server configuration templates
 - [x] Non-root API and standalone web container definitions with Compose/TLS ingress configuration
 - [x] Independent liveness, bounded database readiness and release identity endpoints
@@ -281,7 +284,7 @@ Validation scope and remaining release gates: [Phase 51–54 verification](PHASE
 
 Phase 55 remains incomplete until the live gates in the
 [production readiness runbook](PHASE_55_PRODUCTION_READINESS.md) pass.
-The local API checkpoint does not verify public DNS/TLS, Vercel deployment,
+The local API and certificate checkpoints do not verify public HTTPS service, renewal, Vercel deployment,
 complete production migration/Auth/Storage configuration, post-change trading
 service health, or full application workflows. The selected Supabase project's
 relationship to the earlier staging database is still unverified.

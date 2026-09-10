@@ -62,6 +62,8 @@ jobs:
         run: bash deploy/test-osekola-config.sh
       - name: Verify first-install HTTP vhost and rollback in disposable Ubuntu
         run: bash deploy/test-osekola-nginx-bootstrap.sh
+      - name: Verify HTTPS activation, rollback and scoped renewal hook
+        run: bash deploy/test-osekola-tls.sh
       - name: Verify isolated Node installer in disposable Ubuntu
         run: bash deploy/test-osekola-runtime.sh
 
