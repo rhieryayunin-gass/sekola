@@ -118,7 +118,7 @@ begin
   perform public.mutate_tenant_record(a,'payments',payment_id,'UPDATE','{"status":"REFUNDED"}','FINANCE');
   perform pg_temp.assert_true((select outstanding_amount=100 from public.finance_analytics where tenant_id=tenant),'Refund restores outstanding');
   perform pg_temp.assert_true((select count(*)>10 from public.audit_logs where actor_user_id=a),'Actor audit written for mutations');
-end $;
+end $$;
 -- Exercise RLS as a real authenticated role, not only as the database owner.
 grant select on public.calendars,public.calendar_events to authenticated;
 set local role authenticated;
