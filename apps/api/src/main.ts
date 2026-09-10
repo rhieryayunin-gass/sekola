@@ -10,7 +10,7 @@ async function bootstrap() {
 
   configureApp(app);
 
-  await app.listen(config.get<number>("PORT", 3001));
+  await app.listen(config.get<number>("PORT", 3001), config.get<string>("HOST", "0.0.0.0"));
 }
 
 void bootstrap();

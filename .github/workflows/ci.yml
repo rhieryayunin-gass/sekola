@@ -58,6 +58,8 @@ jobs:
         env:
           RELEASE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: bash deploy/test-containers.sh "$RELEASE_SHA"
+      - name: Validate shared VPS Nginx and systemd configuration
+        run: bash deploy/test-osekola-config.sh
 
   quality:
     name: Lint, test, and build
@@ -84,3 +86,12 @@ jobs:
 
       - name: Run quality gate
         run: pnpm check
+      - name: Verify Vercel web build with public fixtures
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          NEXT_PUBLIC_API_URL: https://api.osekola.com
+          NEXT_PUBLIC_SUPABASE_URL: https://database.invalid
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_fixture
+        run: node deploy/vercel-build.mjs
+      - name: Verify native API release packaging
+        run: bash ops/package-api.sh "$RUNNER_TEMP/osekola-api.tar.gz"

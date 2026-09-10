@@ -37,6 +37,12 @@ describe("validateEnvironment", () => {
   it("accepts explicit production configuration", () => {
     expect(validateEnvironment(production).NODE_ENV).toBe("production");
   });
+  it("supports a loopback-only API listener on a shared host", () => {
+    expect(validateEnvironment({ ...production, HOST: "127.0.0.1", PORT: "3020" })).toMatchObject({ HOST: "127.0.0.1", PORT: 3020 });
+  });
+  it("rejects an invalid listener address", () => {
+    expect(() => validateEnvironment({ ...production, HOST: "api.example.com" })).toThrow("HOST must be an IP address");
+  });
   it.each([
     { CORS_ORIGINS: undefined }, { CORS_ORIGINS: "*" },
     { CORS_ORIGINS: "http://school.example.com" }, { CORS_ORIGINS: "https://localhost" },

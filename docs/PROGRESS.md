@@ -257,6 +257,8 @@ Validation scope and remaining release gates: [Phase 51–54 verification](PHASE
 
 # Phase 55 — Production Readiness
 
+- [x] User-selected deployment target: Vercel at osekola.com, isolated API on the existing RIRI/RIRI Emerald VPS ([setup](OSEKOLA_DEPLOYMENT.md))
+- [x] Vercel build configuration, API loopback binding, systemd/Nginx templates and read-only shared VPS inspection script
 - [x] Production environment validation and separate public/server configuration templates
 - [x] Non-root API and standalone web container definitions with Compose/TLS ingress configuration
 - [x] Independent liveness, bounded database readiness and release identity endpoints
@@ -265,7 +267,7 @@ Validation scope and remaining release gates: [Phase 51–54 verification](PHASE
 - [x] Read-only deployment probe and manual staging/production verification workflow
 - [x] Encrypted logical backup and guarded local recovery rehearsal tooling
 - [x] Deployment, monitoring, logging, backup, recovery and rollback runbook
-- [x] Local lint, typecheck, 119 API tests, 25 web tests and production builds
+- [x] Local lint, typecheck, 121 API tests, 25 web tests and production builds
 - [x] GitHub CI container and encrypted PostgreSQL restore checkpoint ([run 122](https://github.com/rhieryayunin-gass/sekola/actions/runs/34478748444))
 - [ ] Actual production environment, deployment, monitoring and log retention verified
 - [ ] Scheduled off-host backups, Storage coverage and production-sized recovery/rollback verified
