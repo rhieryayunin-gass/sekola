@@ -188,7 +188,7 @@ Implementation references: [PostgreSQL pg_dump](https://www.postgresql.org/docs/
 
 ## Regression scope and release checklist
 
-`pnpm check` covers API/web lint, types, 118 API tests, 25 web tests and builds.
+`pnpm check` covers API/web lint, types, 119 API tests, 25 web tests and builds.
 CI additionally replays every migration through `0059`, checks Phase 50 upgrade
 fixtures and concurrent transactions, encrypts/restores the fixture and reruns
 SQL invariants, and builds/boots both production images. Container checks cover

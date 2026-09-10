@@ -264,7 +264,7 @@ Validation scope and remaining release gates: [Phase 51–54 verification](PHASE
 - [x] Read-only deployment probe and manual staging/production verification workflow
 - [x] Encrypted logical backup and guarded local recovery rehearsal tooling
 - [x] Deployment, monitoring, logging, backup, recovery and rollback runbook
-- [x] Local lint, typecheck, 118 API tests, 25 web tests and production builds
+- [x] Local lint, typecheck, 119 API tests, 25 web tests and production builds
 - [ ] GitHub CI container and encrypted PostgreSQL restore checkpoint
 - [ ] Actual production environment, deployment, monitoring and log retention verified
 - [ ] Scheduled off-host backups, Storage coverage and production-sized recovery/rollback verified

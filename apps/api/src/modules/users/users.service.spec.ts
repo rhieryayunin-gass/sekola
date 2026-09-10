@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConsoleLogger,
   ForbiddenException,
   NotFoundException,
 } from "@nestjs/common";
@@ -49,6 +50,22 @@ const tenantId = "00000000-0000-0000-0000-000000000010";
 const userLevelId = "00000000-0000-0000-0000-000000000020";
 
 describe("UsersService tenant isolation", () => {
+  it("keeps provider details out of failed compensation logs", async () => {
+    const service = serviceWith({
+      from: vi.fn()
+        .mockReturnValueOnce(query({ data: { full_name: "New name" } }))
+        .mockReturnValueOnce({ update: () => ({ eq: async () => ({ error: new Error("private-provider-detail") }) }) }),
+      auth: { admin: { updateUserById: async () => ({ error: new Error("private-provider-detail") }) } },
+    });
+    vi.spyOn(service, "findMe").mockResolvedValue({ full_name: "Old name" } as Awaited<ReturnType<UsersService["findMe"]>>);
+    const log = vi.spyOn(ConsoleLogger.prototype, "error").mockImplementation(() => {});
+    try {
+      await expect(service.updateMyProfile(currentUserId, { full_name: "New name" })).rejects.toThrow("Unable to synchronize profile name");
+      expect(log).toHaveBeenCalledWith({ event: "rollback_failed", operation: "profile_name" });
+      expect(JSON.stringify(log.mock.calls)).not.toContain("private-provider-detail");
+    } finally { log.mockRestore(); }
+  });
+
   it("paginates and filters only users in the current tenant", async () => {
     const tenantQuery = query({ data: { tenant_id: tenantId } });
     const listQuery = query({

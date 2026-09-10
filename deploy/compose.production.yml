@@ -22,7 +22,7 @@ services:
       target: api
       args:
         RELEASE_SHA: ${RELEASE_SHA:?Set RELEASE_SHA}
-    env_file: ./api.env.local
+    env_file: ${API_ENV_FILE:-./api.env.local}
     read_only: true
     tmpfs: ["/tmp:size=64m,mode=1777"]
     mem_limit: 1g
