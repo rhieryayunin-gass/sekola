@@ -266,7 +266,7 @@ Validation scope and remaining release gates: [Phase 51–54 verification](PHASE
 - [x] Encrypted logical backup and guarded local recovery rehearsal tooling
 - [x] Deployment, monitoring, logging, backup, recovery and rollback runbook
 - [x] Local lint, typecheck, 119 API tests, 25 web tests and production builds
-- [ ] GitHub CI container and encrypted PostgreSQL restore checkpoint
+- [x] GitHub CI container and encrypted PostgreSQL restore checkpoint ([run 122](https://github.com/rhieryayunin-gass/sekola/actions/runs/34478748444))
 - [ ] Actual production environment, deployment, monitoring and log retention verified
 - [ ] Scheduled off-host backups, Storage coverage and production-sized recovery/rollback verified
 - [ ] Final live regression and release sign-off

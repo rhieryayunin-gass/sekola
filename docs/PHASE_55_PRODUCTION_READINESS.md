@@ -188,6 +188,10 @@ Implementation references: [PostgreSQL pg_dump](https://www.postgresql.org/docs/
 
 ## Regression scope and release checklist
 
+Implementation checkpoint [PR #50](https://github.com/rhieryayunin-gass/sekola/pull/50)
+passed all three CI jobs in [run 122](https://github.com/rhieryayunin-gass/sekola/actions/runs/34478748444)
+on source commit `05d23cea5521a1df52acfb7749ebdb5f1557fe83`.
+
 `pnpm check` covers API/web lint, types, 119 API tests, 25 web tests and builds.
 CI additionally replays every migration through `0059`, checks Phase 50 upgrade
 fixtures and concurrent transactions, encrypts/restores the fixture and reruns
