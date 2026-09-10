@@ -107,6 +107,19 @@ export default async function DashboardPage() {
           </ButtonLink>
         </Card>
         </PermissionGate>
+        <PermissionGate permission="team_projects.read">
+        <Card>
+          <CardHeader>
+            <CardTitle>Team+ workspace</CardTitle>
+            <CardDescription>
+              Plan projects, assign tasks, and deliver work through a Jira-style Kanban board.
+            </CardDescription>
+          </CardHeader>
+          <ButtonLink href="/dashboard/team" variant="secondary">
+            Open Team+
+          </ButtonLink>
+        </Card>
+        </PermissionGate>
       </section>
     </main>
   );

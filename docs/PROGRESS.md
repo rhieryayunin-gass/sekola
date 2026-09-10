@@ -1,15 +1,15 @@
 # SEKOLA AI Development Progress
 
-Last updated: 2026-09-08
+Last updated: 2026-09-10
 
 This file records repository-verified progress. A roadmap item is complete only
 after its implementation and quality gates pass on the current branch.
 
 ## Current phase
 
-**Level 1 — 12 Calendar Core+ (staging verified)**
+**Level 7 — Phase 38–42 Team+ (local quality gate verified)**
 
-Branch: `phase/12-calendar`
+Branch: `phase/38-team-projects`
 
 ### 00 Project Foundation
 
@@ -122,7 +122,8 @@ Branch: `phase/12-calendar`
 
 ## Next phase
 
-Phase 12 awaits its final merge to `main`.
+Phase 43 — Room Booking. Team+ migrations `0043`–`0047` must be inspected and
+applied to staging before Level 8 implementation starts.
 
 ## Remaining roadmap levels
 
@@ -182,3 +183,19 @@ Phase 12 awaits its final merge to `main`.
   introducing Academic+ behavior.
 - Migration `0017`, regression coverage, and local quality gates are pending
   the public checkpoint and staging verification.
+
+# Phase 38–42 — Team+
+
+- [x] Tenant-scoped projects, project members, ownership, and settings
+- [x] Tasks with priority, assignee, reporter, due date, and sortable board position
+- [x] Jira-style Kanban workflow: Backlog, To do, In progress, Review, and Done
+- [x] Drag-and-drop task transitions with immutable transition history
+- [x] Task comments and project activity feed
+- [x] Project invoices, payments, and Finance+ account/category integration
+- [x] Role-aware API permissions, RLS read policies, server-mediated mutations, and audit records
+- [x] Team+ dashboard entry and responsive project workspace
+- [x] Migration and UI/API contract tests
+- [x] Local lint, typecheck, test, and production build
+- [ ] GitHub CI checkpoint
+- [ ] Apply migrations `0043`–`0047` to Supabase staging
+- [ ] Run live tenant-isolation, workflow, collaboration, and project-finance verification
