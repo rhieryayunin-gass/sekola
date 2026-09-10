@@ -1,7 +1,7 @@
 # osekola.com — Vercel frontend and shared production VPS
 
-Selected by the user on 2026-09-10. This configures the Phase 55 deployment target;
-it does not assert that either application is live.
+Selected by the user on 2026-09-10. The operator has verified the API on the VPS
+loopback interface. Public API access and the Vercel frontend remain unverified.
 
 | Component | Selected target |
 | --- | --- |
@@ -12,8 +12,8 @@ it does not assert that either application is live.
 | API files | `/opt/osekola/releases/<source-sha>` and `/opt/osekola/current` |
 | API Node runtime | `/opt/osekola/runtime/node/bin/node`, isolated Node.js 22.23.2 |
 | API secrets | `/etc/osekola/api.env`, root-owned mode 0600 |
-| API listener | `127.0.0.1:3020`, subject to a live port-availability check |
-| Database/Auth | A separately configured production Supabase project |
+| API listener | `127.0.0.1:3020`, operator-verified on 2026-09-10 |
+| Database/Auth | User-selected project `xrqjutbwnlkogpfhtuwr`; production migration/Auth/Storage verification pending |
 | Public ingress | Existing Nginx, a separate `api.osekola.com` virtual host |
 
 The server is the VPS computer running the backend processes. Vercel hosts the
@@ -48,9 +48,10 @@ Operator-provided output from the reviewed inspection script at **2026-09-10
 
 This supports the isolated runtime installation and an initial API deployment
 with the configured resource ceilings. It is a single snapshot, not peak-load
-sizing or an application health check. The API is still undeployed. CPU count,
-architecture and current public IP were not included in that output. Refresh
-capacity and port checks immediately before starting the API.
+sizing or an application health check. The API was undeployed at that inspection;
+the later activation evidence is recorded below. CPU count, architecture and
+current public IP were not included in that initial output. Refresh capacity and
+port checks before future changes, accounting for the now-running osekola API.
 
 In the established `rhiery86_ayunin@riri-prod-01` SSH session, run the reviewed
 `ops/inspect-shared-vps.sh`. It prints hostname, capacity, runtime versions,
@@ -96,8 +97,44 @@ and CPU count, even though the shell's global `node` command can remain absent.
 official archive checksum `OK` and `OSEKOLA_NODE_READY` for Node.js `v22.23.2` at
 `/opt/osekola/runtime/node/bin/node`. The reported architecture is `x86_64` and
 the CPU count is **2**. The pasted metadata-query output did not contain an IP
-address; this does not establish that the VM has no public IP. API staging,
-service activation and live checks remain pending.
+address; this does not establish that the VM has no public IP. Subsequent API
+staging and local activation are recorded below; public release checks remain
+pending.
+
+### Operator-confirmed API activation
+
+The operator staged the artifact from [PR #53](https://github.com/rhieryayunin-gass/sekola/pull/53)
+and its successful [main CI run](https://github.com/rhieryayunin-gass/sekola/actions/runs/34486087640),
+then configured `https://xrqjutbwnlkogpfhtuwr.supabase.co` as the selected database
+endpoint. The credential stayed in `/etc/osekola/api.env`; no credential value is
+recorded here. The pre-start check reported `OSEKOLA_CONFIG_OK` and
+`OSEKOLA_DB_READY`.
+
+The user supplied the following activation and local HTTP evidence on
+**2026-09-10 at 14:27 UTC**:
+
+| Check | Operator-reported result |
+| --- | --- |
+| Staged and running source | `68a3db128387f662f376a92b61e6b279e4ecb84b` |
+| Refreshed pre-start capacity | 2825 MiB available RAM of 3910 MiB; no swap |
+| Pre-start guards | Port 3020 free; RIRI, Emerald and Nginx active; API configured for loopback port 3020 |
+| Service activation | Unit verification passed; `enable --now osekola-api` created the boot-enablement symlink |
+| `/api/v1/health` | `success: true`, `status: ok`, exact source above, uptime 9 seconds at `14:27:42.692Z` |
+| `/api/v1/ready` | `success: true`, `status: ready` at `14:27:43.042Z` |
+| Listening socket | `127.0.0.1:3020` |
+
+Readiness exercises a bounded read of `calendar_events` through the configured
+Supabase client. It does not inspect the complete migration history, Auth/Storage
+settings, tenant workflows or backup coverage. The chosen project's relationship
+to the earlier staging database has not been verified; prior staging migration
+success is not automatically production evidence. Post-change RIRI/Emerald
+health, public DNS/TLS and the frontend still require their own checks.
+
+The first-install staging and free-port activation commands have already been
+completed for this release. Use the upgrade procedure for subsequent API changes.
+Documentation-only commits after this checkpoint do not change the source SHA
+reported by the running API; coordinate the actual web/API release before the
+paired-release verification in section 6.
 
 ## 2. Prepare the Vercel project and DNS
 
@@ -259,10 +296,13 @@ trading-service health. No SQL reversal is added by this deployment change.
 
 - [x] Operator's VPS inventory and initial capacity/port snapshot reviewed (2026-09-10 13:22:16 UTC).
 - [x] Operator confirmed isolated Node v22.23.2 installation, x86_64 architecture and 2 CPUs after PR #52.
-- [ ] Current public IP and refreshed pre-start capacity/port checks verified.
+- [x] Refreshed pre-start capacity/port checks passed before local API activation (2825 MiB available RAM, port 3020 free).
+- [x] Selected Supabase endpoint configured; environment validation and basic database readiness passed.
+- [x] Isolated API installed and enabled; exact release, local health/readiness and loopback listener verified by the operator at 2026-09-10 14:27 UTC.
+- [ ] Current public IP verified.
 - [ ] Vercel project, production variables, DNS and web certificate verified.
 - [ ] Production Supabase migration/Auth/Storage configuration verified.
-- [ ] Isolated API installed, loopback listener verified and API TLS/renewal tested.
+- [ ] Public API DNS, TLS and certificate renewal tested.
 - [ ] RIRI/Emerald remain healthy after the shared-host change.
 - [ ] Deployment probe and browser regression pass on the paired release.
 - [ ] Operational monitoring, logging retention and recovery gates from Phase 55 pass.

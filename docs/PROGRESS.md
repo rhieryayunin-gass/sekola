@@ -261,7 +261,9 @@ Validation scope and remaining release gates: [Phase 51–54 verification](PHASE
 - [x] Vercel build configuration, API loopback binding, systemd/Nginx templates and read-only shared VPS inspection script
 - [x] Operator-provided VPS inspection reviewed (2026-09-10 13:22:16 UTC): 2812 MiB available RAM, 16G free disk, port 3020 free, RIRI/Emerald/Nginx active; Node missing
 - [x] Operator confirmed isolated Node v22.23.2 installed with checksum OK after PR #52; VPS architecture x86_64 and 2 CPUs; public IP still unconfirmed
-- [x] API package includes source/architecture metadata, checksums and first-install staging script; production configuration and activation remain pending
+- [x] API package includes source/architecture metadata, checksums and first-install staging script ([PR #53](https://github.com/rhieryayunin-gass/sekola/pull/53))
+- [x] Operator staged release `68a3db128387f662f376a92b61e6b279e4ecb84b`, selected Supabase project `xrqjutbwnlkogpfhtuwr`, and reported `OSEKOLA_CONFIG_OK` plus basic database readiness
+- [x] Operator enabled the isolated API after refreshed pre-start checks (2825 MiB available RAM, port 3020 free, RIRI/Emerald/Nginx active); local health and readiness passed at 2026-09-10 14:27 UTC with the exact release and listener `127.0.0.1:3020` ([evidence and limits](OSEKOLA_DEPLOYMENT.md#operator-confirmed-api-activation))
 - [x] Production environment validation and separate public/server configuration templates
 - [x] Non-root API and standalone web container definitions with Compose/TLS ingress configuration
 - [x] Independent liveness, bounded database readiness and release identity endpoints
@@ -278,6 +280,10 @@ Validation scope and remaining release gates: [Phase 51–54 verification](PHASE
 
 Phase 55 remains incomplete until the live gates in the
 [production readiness runbook](PHASE_55_PRODUCTION_READINESS.md) pass.
+The local API checkpoint does not verify public DNS/TLS, Vercel deployment,
+complete production migration/Auth/Storage configuration, post-change trading
+service health, or full application workflows. The selected Supabase project's
+relationship to the earlier staging database is still unverified.
 Phase 43–50 live verification remains pending; Phase 51–54 is tracked in
 [issue #49](https://github.com/rhieryayunin-gass/sekola/issues/49), with all seven
 checks still unchecked. Successful staging inspect/apply `0056`–`0059` and
