@@ -1,55 +1,51 @@
 "use client";
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { createClient } from "../../lib/supabase/client";
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { EmptyState } from "../ui/empty-state";
-import { Input } from "../ui/input";
-import { useToast } from "../ui/toast";
+import { browserApi } from "../../lib/api/browser";
+import { usePermissionStore } from "../../stores/permission-store";
+import { useTranslations } from "../i18n/i18n-provider";
+import { Button, Card, EmptyState, Input, Select, useToast } from "../ui";
 
-type Calendar = { id: string; name: string; description: string | null; is_active: boolean };
-type Event = { id: string; title: string; starts_at: string; ends_at: string | null; is_all_day: boolean; event_type: string; recurrence_rule: string | null; requires_approval: boolean };
-
-function baseUrl() {
-  const value = process.env.NEXT_PUBLIC_API_URL;
-  if (!value) throw new Error("Public API configuration is missing");
-  return value.replace(/\/$/, "");
-}
-
-async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const { data } = await createClient().auth.getSession();
-  if (!data.session?.access_token) throw new Error("Authenticated session is unavailable");
-  const response = await fetch(`${baseUrl()}${path}`, { ...init, headers: { Authorization: `Bearer ${data.session.access_token}`, ...(init?.body ? { "Content-Type": "application/json" } : {}), ...init?.headers } });
-  const body = await response.json() as { data?: T; error?: { message?: string | string[] } };
-  if (!response.ok || body.data === undefined) throw new Error(Array.isArray(body.error?.message) ? body.error.message.join(", ") : body.error?.message ?? "Calendar request failed");
-  return body.data;
-}
-
+type Calendar = { id: string; name: string; is_active: boolean };
+type Event = { id: string; title: string; starts_at: string; ends_at: string | null; event_type: string };
+const dateKey = (date: Date) => [date.getFullYear(), String(date.getMonth()+1).padStart(2,"0"), String(date.getDate()).padStart(2,"0")].join("-");
 export function CalendarManager() {
+  const { t, locale } = useTranslations();
   const client = useQueryClient();
   const { toast } = useToast();
-  const [calendarName, setCalendarName] = useState("");
-  const [eventTitle, setEventTitle] = useState("");
-  const [eventStart, setEventStart] = useState("");
-  const calendars = useQuery({ queryKey: ["calendars"], queryFn: () => api<Calendar[]>("/calendars") });
-  const activeCalendar = calendars.data?.[0];
-  const events = useQuery({ enabled: Boolean(activeCalendar), queryKey: ["calendar-events", activeCalendar?.id], queryFn: () => api<Event[]>(`/calendars/${activeCalendar?.id}/events`) });
-  const createCalendar = useMutation({ mutationFn: (name: string) => api<Calendar>("/calendars", { method: "POST", body: JSON.stringify({ name }) }), onSuccess: async () => { setCalendarName(""); await client.invalidateQueries({ queryKey: ["calendars"] }); toast({ title: "Calendar created", tone: "success" }); } });
-  const createEvent = useMutation({ mutationFn: () => api<Event>(`/calendars/${activeCalendar?.id}/events`, { method: "POST", body: JSON.stringify({ title: eventTitle, starts_at: new Date(eventStart).toISOString(), event_type: "GENERAL" }) }), onSuccess: async () => { setEventTitle(""); setEventStart(""); await client.invalidateQueries({ queryKey: ["calendar-events"] }); toast({ title: "Event created", tone: "success" }); } });
-
-  function submitCalendar(event: FormEvent) { event.preventDefault(); createCalendar.mutate(calendarName); }
-  function submitEvent(event: FormEvent) { event.preventDefault(); createEvent.mutate(); }
-
-  return <section className="mt-6 grid gap-5 lg:grid-cols-2">
-    <Card><CardHeader><CardTitle>Shared calendars</CardTitle><CardDescription>Calendars are scoped to this tenant and can be shared through event invitations.</CardDescription></CardHeader>
-      <form className="flex gap-2" onSubmit={submitCalendar}><Input aria-label="Calendar name" value={calendarName} onChange={(event) => setCalendarName(event.target.value)} placeholder="Calendar name" required /><Button disabled={createCalendar.isPending}>Create calendar</Button></form>
-      <div className="mt-4 space-y-2">{calendars.data?.map((calendar) => <div key={calendar.id} className="rounded-md border border-border p-3"><strong>{calendar.name}</strong>{calendar.description ? <p className="text-sm text-muted">{calendar.description}</p> : null}</div>)}</div>
-    </Card>
-    <Card><CardHeader><CardTitle>Events</CardTitle><CardDescription>{activeCalendar ? `Adding to ${activeCalendar.name}` : "Create a calendar to start planning."}</CardDescription></CardHeader>
-      {activeCalendar ? <><form className="grid gap-2" onSubmit={submitEvent}><Input aria-label="Event title" value={eventTitle} onChange={(event) => setEventTitle(event.target.value)} placeholder="Event title" required /><Input aria-label="Event start" type="datetime-local" value={eventStart} onChange={(event) => setEventStart(event.target.value)} required /><Button disabled={createEvent.isPending}>Create event</Button></form><div className="mt-4 space-y-2">{events.data?.map((event) => <div key={event.id} className="rounded-md border border-border p-3"><div className="flex justify-between gap-2"><strong>{event.title}</strong><Badge tone="info">{event.event_type}</Badge></div><p className="mt-1 text-sm text-muted">{new Date(event.starts_at).toLocaleString()}</p>{event.recurrence_rule ? <p className="text-xs text-muted">Recurring: {event.recurrence_rule}</p> : null}</div>)}</div></> : <EmptyState description="No shared calendar is available yet." title="Create your first calendar" />}
-    </Card>
+  const has = usePermissionStore(s => s.has);
+  const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [selectedDay, setSelectedDay] = useState(() => dateKey(new Date()));
+  const [calendarId, setCalendarId] = useState("");
+  const calendars = useQuery({ queryKey: ["calendars"], queryFn: () => browserApi<Calendar[]>("/calendars") });
+  const activeId = calendarId || calendars.data?.find(c => c.is_active)?.id || calendars.data?.[0]?.id;
+  const events = useQuery({ enabled: Boolean(activeId), queryKey: ["calendar-events", activeId], queryFn: () => browserApi<Event[]>("/calendars/" + activeId + "/events") });
+  const [form, setForm] = useState<"calendar" | "event" | null>(null);
+  const create = useMutation({
+    mutationFn: ({ path, body }: { path: string; body: object }) => browserApi<Calendar>(path, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: async (_, variables) => { if (variables.path === "/calendars") setCalendarId(""); await Promise.all([client.invalidateQueries({ queryKey: ["calendars"] }), client.invalidateQueries({ queryKey: ["calendar-events"] }), client.invalidateQueries({ queryKey: ["dashboard-calendars"] })]); setForm(null); toast({ title: t("saved"), tone: "success" }); },
+  });
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    create.mutate(form === "calendar" ? { path: "/calendars", body: { name: data.get("name") } } : { path: "/calendars/" + activeId + "/events", body: { title: data.get("title"), starts_at: new Date(String(data.get("starts_at"))).toISOString(), event_type: "GENERAL" } });
+  }
+  const startOffset = (month.getDay() + 6) % 7;
+  const days = new Date(month.getFullYear(), month.getMonth()+1, 0).getDate();
+  const dayEvents = (events.data ?? []).filter(e => dateKey(new Date(e.starts_at)) === selectedDay).sort((a,b) => a.starts_at.localeCompare(b.starts_at));
+  return <section>
+    <div className="ose-calendar-controls">
+      <Select aria-label={t("chooseCalendar")} value={activeId ?? ""} onChange={e => setCalendarId(e.target.value)}><option value="" disabled>{t("chooseCalendar")}</option>{calendars.data?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>
+      {has("calendar.create") && <><Button variant="ghost" onClick={() => { setForm("calendar"); create.reset(); }}>{t("createCalendar")}</Button><Button disabled={!activeId} onClick={() => { setForm("event"); create.reset(); }}>{t("createEvent")}</Button></>}
+    </div>
+    {(calendars.isError || events.isError) && <div role="alert" className="ose-status glass-panel"><p>{t("loadError")}</p><Button onClick={() => { void calendars.refetch(); if(activeId) void events.refetch(); }}>{t("retry")}</Button></div>}
+    {calendars.isLoading ? <p role="status">{t("loading")}</p> : <div className="ose-calendar-grid"><Card>
+      <div className="ose-calendar-controls"><h2 className="mr-auto text-lg font-medium">{month.toLocaleDateString(locale, {month:"long",year:"numeric"})}</h2><Button aria-label={t("previousMonth")} variant="ghost" onClick={() => setMonth(new Date(month.getFullYear(),month.getMonth()-1,1))}>←</Button><Button variant="ghost" onClick={() => { const now=new Date(); setMonth(new Date(now.getFullYear(),now.getMonth(),1)); setSelectedDay(dateKey(now)); }}>{t("today")}</Button><Button aria-label={t("nextMonth")} variant="ghost" onClick={() => setMonth(new Date(month.getFullYear(),month.getMonth()+1,1))}>→</Button></div>
+      <div className="ose-month">{Array.from({length:7},(_,i)=><span className="ose-weekday" key={i}>{new Date(2026,5,1+i).toLocaleDateString(locale,{weekday:"short"})}</span>)}{Array.from({length:Math.ceil((startOffset+days)/7)*7},(_,i)=>{
+        const day=i-startOffset+1; const valid=day>0&&day<=days;
+        const key=dateKey(new Date(month.getFullYear(),month.getMonth(),day)); const inDay=(events.data??[]).filter(e=>dateKey(new Date(e.starts_at))===key);
+        return <button key={i} className="ose-day" disabled={!valid} data-today={key===dateKey(new Date())} aria-pressed={key===selectedDay} aria-label={new Date(month.getFullYear(),month.getMonth(),day).toLocaleDateString(locale,{dateStyle:"full"})+(inDay.length?" · "+inDay.length+" "+t("events"):"")} onClick={()=>setSelectedDay(key)}>{valid&&<><span>{day}</span>{inDay.slice(0,2).map(e=><small className="ose-event-dot" key={e.id}>{e.title}</small>)}{inDay.length>2&&<small>+{inDay.length-2}</small>}</>}</button>;
+      })}</div></Card><div className="ose-aside"><Card><h2 className="font-medium">{new Date(selectedDay+"T12:00:00").toLocaleDateString(locale,{dateStyle:"long"})}</h2>{events.isLoading?<p className="mt-3" role="status">{t("loading")}</p>:dayEvents.length?dayEvents.map(e=><article className="ose-event-detail" key={e.id}><strong>{e.title}</strong><p>{new Date(e.starts_at).toLocaleTimeString(locale,{hour:"2-digit",minute:"2-digit"})}{e.ends_at?" – "+new Date(e.ends_at).toLocaleTimeString(locale,{hour:"2-digit",minute:"2-digit"}):""}</p></article>):!events.isError&&<div className="mt-4"><EmptyState title={t("events")} description={activeId?t("noEvents"):t("noCalendar")}/></div>}</Card>
+      {form&&<Card><h2 className="mb-4 font-medium">{t(form==="calendar"?"createCalendar":"createEvent")}</h2><form key={form} className="grid gap-4" onSubmit={submit}>{form==="calendar"?<Input label={t("calendarName")} name="name" required maxLength={160}/>:<><Input label={t("eventTitle")} name="title" required maxLength={200}/><Input label={t("eventStart")} name="starts_at" type="datetime-local" defaultValue={selectedDay+"T08:00"} required/></>}{create.isError&&<p role="alert" className="text-danger">{create.error.message}</p>}<div className="flex gap-2"><Button type="submit" disabled={create.isPending}>{t("create")}</Button><Button variant="ghost" onClick={()=>setForm(null)}>{t("cancel")}</Button></div></form></Card>}</div></div>}
   </section>;
 }

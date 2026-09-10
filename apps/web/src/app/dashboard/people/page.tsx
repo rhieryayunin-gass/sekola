@@ -1,1 +1,6 @@
-import { redirect } from "next/navigation";import { LogoutButton } from "../../../components/auth/logout-button";import { PeopleManager } from "../../../components/people/people-manager";import { ButtonLink } from "../../../components/ui/button";import { createClient } from "../../../lib/supabase/server";export const dynamic="force-dynamic";export default async function PeoplePage(){const s=await createClient();const {data,error}=await s.auth.getClaims();if(error||!data?.claims)redirect("/login");return <main className="mx-auto min-h-screen max-w-7xl px-6 py-8 sm:px-10"><header className="glass-panel flex items-center justify-between rounded-[var(--radius-lg)] p-5"><div><p className="text-sm font-black">atsekola</p><p className="mt-1 text-sm text-muted">People management</p></div><div className="flex gap-2"><ButtonLink href="/dashboard" variant="ghost">Dashboard</ButtonLink><LogoutButton/></div></header><PeopleManager/></main>}
+import { PeopleManager } from "../../../components/people/people-manager";
+import { ModulePage } from "../../../components/layout/module-page";
+export const metadata = { title: "People" };
+export default function Page() {
+  return <ModulePage name="people" title="people" description="peopleDesc"><PeopleManager/></ModulePage>;
+}

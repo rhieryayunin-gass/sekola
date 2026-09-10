@@ -1,3 +1,4 @@
+import { apiBaseUrl } from "./base-url";
 import { createClient } from "../supabase/server";
 
 interface ApiSuccessResponse<T> {
@@ -14,7 +15,7 @@ interface ApiErrorResponse {
 }
 
 function getApiUrl() {
-  const url = process.env.NEXT_PUBLIC_API_URL;
+  const url = apiBaseUrl();
 
   if (!url) {
     throw new Error("Public API configuration is missing");
