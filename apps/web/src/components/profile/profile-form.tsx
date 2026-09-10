@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "../../lib/api/base-url";
 import { useState, type FormEvent } from "react";
 import { createClient } from "../../lib/supabase/client";
 import { Button } from "../ui/button";
@@ -11,7 +12,7 @@ export function ProfileForm({ initial }: { initial: Profile }) {
   const set = (key: keyof Profile, value: string) => setForm((state) => ({ ...state, [key]: value }));
   async function submit(event: FormEvent) { event.preventDefault(); setSaving(true); try {
     const { data } = await createClient().auth.getSession(); if (!data.session) throw new Error("Authenticated session is unavailable");
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "")}/users/me/profile`, { method:"PATCH", headers:{Authorization:`Bearer ${data.session.access_token}`,"Content-Type":"application/json"}, body:JSON.stringify(form) });
+    const response = await fetch(`${apiBaseUrl()}/users/me/profile`, { method:"PATCH", headers:{Authorization:`Bearer ${data.session.access_token}`,"Content-Type":"application/json"}, body:JSON.stringify(form) });
     if (!response.ok) throw new Error("Unable to update profile"); toast({ title:"Profile saved", description:"Your account details are up to date.", tone:"success" });
   } catch (error) { toast({ title:error instanceof Error ? error.message : "Unable to update profile", tone:"error" }); } finally { setSaving(false); } }
   return <form className="grid gap-4" onSubmit={submit}>

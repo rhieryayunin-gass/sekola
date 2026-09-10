@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "../../lib/api/base-url";
 import { usePermissionStore } from "../../stores/permission-store";
 import { Pagination } from "../ui/pagination";
 import { useQuery } from "@tanstack/react-query";
@@ -12,7 +13,7 @@ import { EmptyState } from "../ui/empty-state";
 type Tab="academic"|"attendance"|"finance";
 type Row=Record<string,string|number|null>;
 type Grouped=Record<string,Row[]>;
-async function api<T>(path:string){const {data}=await createClient().auth.getSession();if(!data.session)throw new Error("Authenticated session is unavailable");const response=await fetch(`${process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/,"")}${path}`,{headers:{Authorization:`Bearer ${data.session.access_token}`}});const payload=await response.json();if(!response.ok||payload.data===undefined)throw new Error(payload.error?.message??"Request failed");return payload.data as T;}
+async function api<T>(path:string){const {data}=await createClient().auth.getSession();if(!data.session)throw new Error("Authenticated session is unavailable");const response=await fetch(`${apiBaseUrl()}${path}`,{headers:{Authorization:`Bearer ${data.session.access_token}`}});const payload=await response.json();if(!response.ok||payload.data===undefined)throw new Error(payload.error?.message??"Request failed");return payload.data as T;}
 const title=(value:string)=>value.replace(/_analytics$/," analytics").replaceAll("_"," ").replace(/\b\w/g,letter=>letter.toUpperCase());
 const display=(key:string,value:string|number|null)=>{if(value===null)return "—";if(/amount|revenue|receivable/.test(key)||key==="finance_outstanding")return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(value));if(/rate/.test(key))return `${Number(value).toFixed(1)}%`;if(/score/.test(key))return Number(value).toFixed(1);return String(value)};
 

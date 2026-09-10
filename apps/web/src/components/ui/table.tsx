@@ -26,7 +26,7 @@ export function TableHeader({
 }: HTMLAttributes<HTMLTableSectionElement>) {
   return (
     <thead
-      className={classNames("bg-white/70 text-foreground", className)}
+      className={classNames("bg-surface text-foreground", className)}
       {...props}
     />
   );
@@ -38,7 +38,7 @@ export function TableBody({
 }: HTMLAttributes<HTMLTableSectionElement>) {
   return (
     <tbody
-      className={classNames("divide-y divide-border bg-white/45", className)}
+      className={classNames("divide-y divide-border bg-surface", className)}
       {...props}
     />
   );

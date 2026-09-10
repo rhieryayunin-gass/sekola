@@ -4,7 +4,7 @@ import { classNames } from "../../lib/class-names";
 type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info";
 
 const toneClasses: Record<BadgeTone, string> = {
-  neutral: "bg-white/80 text-muted",
+  neutral: "bg-surface text-muted",
   success: "bg-primary-soft text-success",
   warning: "bg-orange-50 text-warning",
   danger: "bg-red-50 text-danger",

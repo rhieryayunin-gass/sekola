@@ -1,7 +1,8 @@
+import { apiBaseUrl } from "./base-url";
 import { createClient } from "../supabase/client";
 
 export async function browserApi<T>(path: string, init?: RequestInit): Promise<T> {
-  const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+  const base = apiBaseUrl();
   if (!base) throw new Error("API configuration is unavailable");
   const { data } = await createClient().auth.getSession();
   if (!data.session) throw new Error("Session unavailable");

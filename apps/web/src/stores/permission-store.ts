@@ -1,3 +1,4 @@
+import { apiBaseUrl } from "../lib/api/base-url";
 import { create } from "zustand";
 import { createClient } from "../lib/supabase/client";
 
@@ -16,7 +17,7 @@ interface PermissionState {
 }
 
 function apiUrl() {
-  const url = process.env.NEXT_PUBLIC_API_URL;
+  const url = apiBaseUrl();
   if (!url) throw new Error("Public API configuration is missing");
   return url.replace(/\/$/, "");
 }

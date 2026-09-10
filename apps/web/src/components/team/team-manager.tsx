@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "../../lib/api/base-url";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type DragEvent, type FormEvent, useState } from "react";
@@ -37,7 +38,7 @@ const columns: { key: Status; label: string; tone: "neutral" | "info" | "warning
 async function api<T>(path: string, init?: RequestInit) {
   const { data } = await createClient().auth.getSession();
   if (!data.session) throw new Error("Authenticated session is unavailable");
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "")}${path}`, {
+  const response = await fetch(`${apiBaseUrl()}${path}`, {
     ...init,
     headers: { Authorization: `Bearer ${data.session.access_token}`, "Content-Type": "application/json", ...init?.headers },
   });

@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "../../lib/api/base-url";
 import { Pagination } from "../ui/pagination";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,7 +20,7 @@ type User = { id:string; full_name?:string; email?:string };
 type RequestItem = { id:string; title?:string; leave_type?:string; reason?:string; purpose?:string; starts_at?:string; starts_on?:string; proposed_starts_at?:string; status:Status; requester_user_id:string; kind:string };
 type Approval = { id:string; title:string; resource_type:string; status:Status; current_step:number; approval_steps:{ approver_user_id:string; sequence:number; status:Status }[] };
 
-async function api<T>(path:string,init?:RequestInit){const {data}=await createClient().auth.getSession();if(!data.session)throw new Error("Authenticated session is unavailable");const response=await fetch(`${process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/,"")}${path}`,{...init,headers:{Authorization:`Bearer ${data.session.access_token}`,"Content-Type":"application/json",...init?.headers}});const payload=await response.json();if(!response.ok||payload.data===undefined)throw new Error(payload.error?.message??"Request failed");return payload.data as T;}
+async function api<T>(path:string,init?:RequestInit){const {data}=await createClient().auth.getSession();if(!data.session)throw new Error("Authenticated session is unavailable");const response=await fetch(`${apiBaseUrl()}${path}`,{...init,headers:{Authorization:`Bearer ${data.session.access_token}`,"Content-Type":"application/json",...init?.headers}});const payload=await response.json();if(!response.ok||payload.data===undefined)throw new Error(payload.error?.message??"Request failed");return payload.data as T;}
 const label=(user?:User)=>user?.full_name||user?.email||"Unknown user";
 const statusTone=(status:Status):"neutral"|"info"|"warning"|"success"|"danger"=>status==="APPROVED"?"success":status==="REJECTED"?"danger":status==="PENDING"?"warning":"neutral";
 
