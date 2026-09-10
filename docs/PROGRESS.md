@@ -7,9 +7,9 @@ after its implementation and quality gates pass on the current branch.
 
 ## Current phase
 
-**Level 7 — Phase 38–42 Team+ (local quality gate verified)**
+**Level 10 — Phase 51–54 integration and readiness hardening (staging pending)**
 
-Branch: `phase/38-team-projects`
+Branch: `phase/51-54-integration-hardening`
 
 ### 00 Project Foundation
 
@@ -241,10 +241,13 @@ Live operations workflow verification remains pending.
 - [x] Serialized invoice payments and partial-payment-aware finance analytics
 - [x] Bounded API pagination, supporting indexes, short-lived account-scoped analytics caching, and logout cache isolation
 - [x] Local lint, typecheck, unit/component tests, and production build
-- [ ] PostgreSQL clean-install and Phase 50 upgrade regression CI checkpoint
-- [ ] GitHub CI checkpoint and merge
+- [x] PostgreSQL migration replay with legacy prerequisite fixture and Phase 50 upgrade regression CI checkpoint
+- [x] GitHub CI implementation checkpoint (run 114)
+- [x] Commit-pinned trusted runner for migrations `0056`–`0059`
 - [ ] Inspect and apply migrations `0056`–`0059` to Supabase staging
 - [ ] Live cross-module, concurrent workflow, tenant-isolation, and representative performance verification
 
 Previous Phase 43–50 live workflow verification remains pending. This batch does
 not mark staging execution, production readiness, or Phase 55 complete.
+
+Validation scope and remaining release gates: [Phase 51–54 verification](PHASE_51_54_VERIFICATION.md).
