@@ -281,7 +281,7 @@ export class TeamProjectsService {
     const tenantId = await this.tenant(userId);
     await this.project(tenantId, projectId, userId, "write");
     await this.project(tenantId, projectId, userId);
-    if (input.assignee_user_id) await this.activeTenantUser(tenantId, String(input.assignee_user_id));
+    if (input.assignee_user_id) { await this.activeTenantUser(tenantId, String(input.assignee_user_id)); await this.project(tenantId, projectId, String(input.assignee_user_id)); }
     const values = {
       ...input,
       title: String(input.title ?? "").trim(),
@@ -300,7 +300,7 @@ export class TeamProjectsService {
     const tenantId = await this.tenant(userId);
     await this.project(tenantId, projectId, userId, "write");
     const before = await this.task(tenantId, projectId, taskId, userId);
-    if (input.assignee_user_id) await this.activeTenantUser(tenantId, String(input.assignee_user_id));
+    if (input.assignee_user_id) { await this.activeTenantUser(tenantId, String(input.assignee_user_id)); await this.project(tenantId, projectId, String(input.assignee_user_id)); }
     const changes = Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined));
     if (typeof changes.title === "string") changes.title = changes.title.trim();
     if (!Object.keys(changes).length) throw new BadRequestException("At least one field is required");

@@ -55,6 +55,25 @@ revoke all on function public.reconcile_invoice_payment() from public,anon,authe
 create trigger payment_balance before insert or update or delete on public.payments for each row execute function public.reconcile_invoice_payment();
 create trigger project_payment_balance before insert or update or delete on public.team_project_payments for each row execute function public.reconcile_invoice_payment();
 
+-- Invoice edits cannot erase confirmed debt/payment history or invent a paid status.
+create function public.validate_invoice_totals() returns trigger
+language plpgsql set search_path='' as $$
+declare payment_table text; invoice_key text; paid numeric;
+begin
+  payment_table:=case tg_table_name when 'student_bills' then 'payments' else 'team_project_payments' end;
+  invoice_key:=case tg_table_name when 'student_bills' then 'student_bill_id' else 'project_invoice_id' end;
+  execute format('select coalesce(sum(amount),0) from public.%I where %I=$1 and tenant_id=$2 and status=''CONFIRMED''',payment_table,invoice_key) into paid using new.id,new.tenant_id;
+  if new.amount<paid or (new.status in('DRAFT','VOID') and paid>0) then raise exception 'Invoice conflicts with confirmed payments' using errcode='23514'; end if;
+  -- Payment trigger has already derived its prospective balance under row lock.
+  if pg_trigger_depth()=1 and new.status not in('DRAFT','VOID') then
+    new.status:=case when paid=new.amount then 'PAID' when paid>0 then 'PARTIAL' when new.due_date<current_date then 'OVERDUE' else 'OPEN' end;
+  end if;
+  return new;
+end $$;
+revoke all on function public.validate_invoice_totals() from public,anon,authenticated;
+create trigger invoice_totals before insert or update on public.student_bills for each row execute function public.validate_invoice_totals();
+create trigger project_invoice_totals before insert or update on public.team_project_invoices for each row execute function public.validate_invoice_totals();
+
 create or replace view public.finance_analytics with(security_invoker=true) as
 select t.id as tenant_id,
  coalesce(p.revenue,0) as revenue,coalesce(b.outstanding_amount,0) as receivable,

@@ -114,6 +114,8 @@ begin
   perform pg_temp.assert_true(balance=60,'Partial payment subtracts from outstanding');
   perform pg_temp.assert_true((select outstanding_amount=60 from public.finance_dashboard where tenant_id=tenant),'Finance dashboard agrees with analytics');
   perform pg_temp.assert_true((select status='PARTIAL' from public.student_bills where id=bill_id),'Invoice status derived atomically');
+  begin update public.student_bills set amount=20 where id=bill_id; raise exception 'Invoice reduced below confirmed payments'; exception when check_violation then null; end;
+  begin update public.student_bills set status='VOID' where id=bill_id; raise exception 'Paid invoice voided without refund'; exception when check_violation then null; end;
   begin perform public.mutate_tenant_record(a,'payments',null,'CREATE',jsonb_build_object('student_bill_id',bill_id,'account_id',account_id,'receipt_number','OVERPAY','amount',70),'FINANCE'); raise exception 'Overpayment accepted'; exception when check_violation then null; end;
   perform public.mutate_tenant_record(a,'payments',payment_id,'UPDATE','{"status":"REFUNDED"}','FINANCE');
   perform pg_temp.assert_true((select outstanding_amount=100 from public.finance_analytics where tenant_id=tenant),'Refund restores outstanding');
