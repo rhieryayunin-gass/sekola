@@ -60,6 +60,8 @@ jobs:
         run: bash deploy/test-containers.sh "$RELEASE_SHA"
       - name: Validate shared VPS Nginx and systemd configuration
         run: bash deploy/test-osekola-config.sh
+      - name: Verify isolated Node installer in disposable Ubuntu
+        run: bash deploy/test-osekola-runtime.sh
 
   quality:
     name: Lint, test, and build

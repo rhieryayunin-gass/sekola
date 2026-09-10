@@ -259,6 +259,8 @@ Validation scope and remaining release gates: [Phase 51–54 verification](PHASE
 
 - [x] User-selected deployment target: Vercel at osekola.com, isolated API on the existing RIRI/RIRI Emerald VPS ([setup](OSEKOLA_DEPLOYMENT.md))
 - [x] Vercel build configuration, API loopback binding, systemd/Nginx templates and read-only shared VPS inspection script
+- [x] Operator-provided VPS inspection reviewed (2026-09-10 13:22:16 UTC): 2812 MiB available RAM, 16G free disk, port 3020 free, RIRI/Emerald/Nginx active; Node missing
+- [x] Isolated Node runtime installer and API service path prepared for the inspected VPS; actual installation remains pending
 - [x] Production environment validation and separate public/server configuration templates
 - [x] Non-root API and standalone web container definitions with Compose/TLS ingress configuration
 - [x] Independent liveness, bounded database readiness and release identity endpoints
