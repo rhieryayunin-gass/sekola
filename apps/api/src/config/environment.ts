@@ -1,3 +1,5 @@
+import { isIP } from "node:net";
+
 const DEFAULT_PORT = 3001;
 const DEFAULT_WEB_ORIGIN = "http://localhost:3000";
 
@@ -20,6 +22,8 @@ export function validateEnvironment(config: Environment): Environment {
   if (!Number.isInteger(port) || port < 1 || port > 65_535) {
     throw new Error("PORT must be an integer between 1 and 65535");
   }
+  const host = String(config.HOST ?? "0.0.0.0");
+  if (!isIP(host)) throw new Error("HOST must be an IP address");
   const mode = config.NODE_ENV ?? "development";
   if (!["development", "test", "production"].includes(String(mode))) throw new Error("Invalid NODE_ENV");
   const supabaseUrl = requireString(config, "SUPABASE_URL");
@@ -42,6 +46,7 @@ export function validateEnvironment(config: Environment): Environment {
     ...config,
     NODE_ENV: mode,
     PORT: port,
+    HOST: host,
     CORS_ORIGINS: origins.join(","),
     RELEASE_SHA: release,
     SUPABASE_URL: supabaseUrl,

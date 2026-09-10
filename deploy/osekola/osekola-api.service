@@ -1,0 +1,36 @@
+[Unit]
+Description=osekola.com school API
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=osekola
+Group=osekola
+WorkingDirectory=/opt/osekola/current
+EnvironmentFile=/etc/osekola/api.env
+EnvironmentFile=/opt/osekola/current/release.env
+ExecStart=/usr/bin/node dist/main.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+InaccessiblePaths=-/opt/riri -/opt/riri-releases -/opt/riri-emerald -/etc/riri-emerald
+MemoryHigh=512M
+MemoryMax=768M
+CPUQuota=50%
+TasksMax=128
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=osekola-api
+
+[Install]
+WantedBy=multi-user.target

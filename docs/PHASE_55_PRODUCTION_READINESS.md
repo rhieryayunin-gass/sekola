@@ -17,6 +17,12 @@ build or migration is not evidence of a deployed, recoverable production system.
 
 ## Production environment and deployment
 
+The user has now selected **Vercel + osekola.com**, with the API on the existing
+RIRI/RIRI Emerald VPS. Follow [osekola.com deployment](OSEKOLA_DEPLOYMENT.md)
+for that target, using the existing Nginx and an isolated API service. The generic
+Docker/Compose procedure below is retained for a dedicated host and must not be
+used to start a second ingress on the shared VPS.
+
 The reference deployment is one Linux Docker host with Docker Compose v2,
 separate web/API domains and a production Supabase project. It is a single-host
 baseline, not high availability. An existing hosting provider can run the same
@@ -192,7 +198,7 @@ Implementation checkpoint [PR #50](https://github.com/rhieryayunin-gass/sekola/p
 passed all three CI jobs in [run 122](https://github.com/rhieryayunin-gass/sekola/actions/runs/34478748444)
 on source commit `05d23cea5521a1df52acfb7749ebdb5f1557fe83`.
 
-`pnpm check` covers API/web lint, types, 119 API tests, 25 web tests and builds.
+`pnpm check` covers API/web lint, types, API/web tests and builds.
 CI additionally replays every migration through `0059`, checks Phase 50 upgrade
 fixtures and concurrent transactions, encrypts/restores the fixture and reruns
 SQL invariants, and builds/boots both production images. Container checks cover

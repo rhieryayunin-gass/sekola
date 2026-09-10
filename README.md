@@ -106,3 +106,5 @@ Container deployment, health probes, logging, encrypted backup, recovery rehears
 and pending live release gates are documented in
 [Phase 55 production readiness](docs/PHASE_55_PRODUCTION_READINESS.md).
 Passing CI or applying staging migrations does not complete production release.
+
+The selected production target is [osekola.com on Vercel with a shared VPS API](docs/OSEKOLA_DEPLOYMENT.md).
