@@ -24,6 +24,7 @@ docker run --rm \
     test -f /opt/osekola/current/dist/main.js
     test -f /opt/osekola/current/node_modules/@nestjs/core/package.json
     test "$(id -u osekola)" != 0
+    runuser -u osekola -- /opt/osekola/runtime/node/bin/node -e '\''require("/opt/osekola/current/node_modules/@nestjs/core"); require("/opt/osekola/current/dist/config/environment.js"); console.log("Service account can load packaged API modules")'\''
     test ! -e /etc/systemd/system/multi-user.target.wants/osekola-api.service
     before="$(sha256sum /etc/osekola/api.env)"
     if bash /stage.sh /input/api.tar.gz "$SOURCE_SHA" "$ARCHIVE_SHA"; then exit 1; fi
