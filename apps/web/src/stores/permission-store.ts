@@ -8,6 +8,7 @@ export interface PermissionContext {
 }
 
 interface PermissionState {
+  error: boolean;
   context: PermissionContext | null;
   has: (code: string) => boolean;
   load: () => Promise<void>;
@@ -23,10 +24,12 @@ function apiUrl() {
 let requestVersion = 0;
 
 export const usePermissionStore = create<PermissionState>((set, get) => ({
+  error: false,
   context: null,
   has: (code) => get().context?.permissions.some((item) => item.code === code) ?? false,
   async load() {
     const version = ++requestVersion;
+    set({ error: false });
     try {
     const { data, error } = await createClient().auth.getSession();
     if (error || !data.session?.access_token) {
@@ -40,8 +43,8 @@ export const usePermissionStore = create<PermissionState>((set, get) => ({
     if (!response.ok || !payload.data) throw new Error("Unable to load permission context");
     if (version === requestVersion && payload.data.userId === data.session.user.id) set({ context: payload.data });
     } catch {
-      if (version === requestVersion) set({ context: null });
+      if (version === requestVersion) set({ context: null, error: true });
     }
   },
-  reset: () => { requestVersion++; set({ context: null }); },
+  reset: () => { requestVersion++; set({ context: null, error: false }); },
 }));

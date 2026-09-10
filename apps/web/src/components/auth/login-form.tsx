@@ -58,7 +58,7 @@ export function LoginForm() {
         type="password"
       />
       {storeError && (
-        <p className="rounded-[var(--radius-sm)] bg-red-50 p-3 text-sm text-danger" role="alert">
+        <p className="rounded-[var(--radius-sm)] bg-danger/10 p-3 text-sm text-danger" role="alert">
           {storeError}
         </p>
       )}

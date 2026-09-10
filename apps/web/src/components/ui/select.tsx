@@ -24,7 +24,7 @@ export function Select({
         aria-describedby={errorId}
         aria-invalid={Boolean(error)}
         className={classNames(
-          "min-h-11 w-full rounded-[var(--radius-sm)] border border-border bg-white/80 px-3 text-foreground shadow-sm transition hover:bg-white focus:border-secondary",
+          "min-h-11 w-full rounded-[var(--radius-sm)] border border-border bg-surface px-3 text-foreground shadow-sm transition hover:bg-secondary-soft focus:border-secondary",
           error && "border-danger",
           className,
         )}

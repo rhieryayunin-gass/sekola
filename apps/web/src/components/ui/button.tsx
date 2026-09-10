@@ -7,10 +7,10 @@ type ButtonSize = "sm" | "md" | "lg";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-primary text-foreground shadow-sm hover:bg-primary-strong hover:text-white",
+    "bg-primary text-[#122033] shadow-sm hover:brightness-105",
   secondary:
     "bg-secondary text-white shadow-sm hover:bg-secondary-strong",
-  ghost: "bg-white/55 text-foreground hover:bg-white/90",
+  ghost: "bg-surface text-foreground hover:bg-secondary-soft",
   danger: "bg-danger text-white hover:brightness-90",
 };
 

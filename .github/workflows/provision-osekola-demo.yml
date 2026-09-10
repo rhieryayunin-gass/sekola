@@ -1,0 +1,47 @@
+name: Provision requested osekola demo accounts
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/provision-osekola-demo.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: osekola-demo-20260910
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Create only the six requested demo identities
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DEMO_OUTPUT_FILE: ${{ runner.temp }}/osekola-demo.encrypted.json
+        run: node apps/api/scripts/provision-osekola-demo.mjs
+      - name: Store encrypted login details, including partial-run recovery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: osekola-demo-encrypted
+          path: ${{ runner.temp }}/osekola-demo.encrypted.json
+          if-no-files-found: ignore
+          retention-days: 3
