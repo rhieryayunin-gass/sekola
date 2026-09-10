@@ -122,8 +122,8 @@ Branch: `phase/38-team-projects`
 
 ## Next phase
 
-Phase 43 — Room Booking. Team+ migrations `0043`–`0047` must be inspected and
-applied to staging before Level 8 implementation starts.
+Phase 43–50 implementation is complete locally. Operations and analytics migrations
+`0048`–`0055` require the trusted staging inspect/apply gate after merge.
 
 ## Remaining roadmap levels
 
@@ -196,14 +196,31 @@ applied to staging before Level 8 implementation starts.
 - [x] Team+ dashboard entry and responsive project workspace
 - [x] Migration and UI/API contract tests
 - [x] Local lint, typecheck, test, and production build
-- [ ] GitHub CI checkpoint
-- [ ] Apply migrations `0043`–`0047` to Supabase staging
-- [ ] Run live tenant-isolation, workflow, collaboration, and project-finance verification
+- [x] GitHub CI checkpoint
+- [x] Apply migrations `0043`–`0047` to Supabase staging
+- [x] Run live tenant-isolation, workflow, collaboration, and project-finance verification
 
 ## Finance+ and Team+ staging gate
 
 - [x] Confirm latest successful staging apply is Phase 27–33 through migration `0038`
 - [x] Confirm Finance+ migrations `0039`–`0042` have not yet been applied
 - [x] Add a commit-pinned trusted runner for migrations `0039`–`0047`
-- [ ] Run `inspect` and review the dry-run migration plan
-- [ ] Run `apply` with confirmation `APPLY_0039_0047`
+- [x] Run `inspect` and review the dry-run migration plan
+- [x] Run `apply` with confirmation `APPLY_0039_0047`
+
+# Phase 43–50 — Operations and Analytics+
+
+- [x] Tenant-scoped room directory and conflict-aware booking requests
+- [x] Reusable sequential approval engine with assigned decision queue
+- [x] Leave and schedule-change requests integrated with approvals
+- [x] Approved booking and leave synchronization to operational calendars
+- [x] Request and decision notifications plus audit events
+- [x] Jira-style operations board with Pending, Approved, Rejected, and Cancelled lanes
+- [x] Academic analytics for students, teachers, classrooms, subjects, and performance
+- [x] Attendance analytics by student, classroom, and teacher
+- [x] Finance analytics for revenue, receivable, payments, and outstanding balances
+- [x] Cross-domain executive dashboard covering Academic, Attendance, Finance, Learning, Exam, and Team+
+- [x] Role-aware API permissions, tenant isolation, migration tests, and UI/API contracts
+- [ ] GitHub CI checkpoint
+- [ ] Inspect and apply migrations `0048`–`0055` to Supabase staging
+- [ ] Run live operations workflow, calendar, notification, and analytics verification
