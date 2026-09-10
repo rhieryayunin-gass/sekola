@@ -5,7 +5,7 @@ loopback interface. Public API access and the Vercel frontend remain unverified.
 
 | Component | Selected target |
 | --- | --- |
-| Web frontend | Vercel project `osekola`, Next.js root directory `apps/web` |
+| Web frontend | Vercel team `albi-s-agentic`, project `osekola`, Next.js root directory `apps/web` |
 | Main website | `https://osekola.com`; `www.osekola.com` redirects to the apex |
 | Backend/API | `https://api.osekola.com` on the existing `riri-prod-01` VPS |
 | API process | systemd `osekola-api`, separate Linux user/group `osekola` |
@@ -15,12 +15,15 @@ loopback interface. Public API access and the Vercel frontend remain unverified.
 | API listener | `127.0.0.1:3020`, operator-verified on 2026-09-10 |
 | Database/Auth | User-selected project `xrqjutbwnlkogpfhtuwr`; production migration/Auth/Storage verification pending |
 | Public ingress | Existing Nginx, a separate `api.osekola.com` virtual host |
+| VPS public IPv4 | `34.101.129.25`, confirmed by the operator on 2026-09-10 |
+| DNS provider | Cloudflare, selected by the operator |
 
 The server is the VPS computer running the backend processes. Vercel hosts the
 school's frontend; Supabase hosts its database/Auth. RIRI and Emerald continue
 using their own processes, directories, ports and configuration. Their recent
 records identify `riri-api` and `riri-emerald-api`, with ports 8000/8010. The
-operator supplied the live inspection below; the public IP remains unverified.
+operator supplied the live inspection below and subsequently confirmed the public
+IPv4 above. Public API routing still requires its own verification.
 
 **Use this shared-VPS procedure for the selected target.** The generic
 `compose.production.yml` from Phase 55 is a separate-host reference. Do not start
@@ -137,6 +140,18 @@ reported by the running API; coordinate the actual web/API release before the
 paired-release verification in section 6.
 
 ## 2. Prepare the Vercel project and DNS
+
+The operator supplied [the intended Vercel project](https://vercel.com/albi-s-agentic/osekola).
+The connected Vercel app returned `403 Forbidden` for this team/project during
+setup. Account/team authorization must be resolved before its deployment state
+can be inspected or changed; the URL does not establish successful deployment.
+
+In Cloudflare's DNS records for `osekola.com`, add or edit the intended API record:
+type **A**, name **api**, IPv4 **34.101.129.25**, proxy status **DNS only**, TTL
+**Auto**. This selected initial mode routes directly to the VPS for certificate
+issuance and public verification. The apex and `www` records must use the exact
+values shown by this Vercel project. Do not substitute the API's VPS IP for the
+frontend records. No Cloudflare DNS mutation has been confirmed yet.
 
 Import `rhieryayunin-gass/sekola` as a separate Vercel project. Set Root Directory
 to `apps/web`, framework Next.js, Node.js 22.x, and allow access to files outside
@@ -258,6 +273,33 @@ logs, and verify RIRI/Emerald are still healthy.
 
 ## 5. Add the API virtual host and certificate
 
+For this first installation, the reviewed `ops/bootstrap-osekola-nginx.sh` accepts
+the reviewed `deploy/osekola/nginx-bootstrap.conf` file as its only argument:
+
+```bash
+sudo bash ops/bootstrap-osekola-nginx.sh deploy/osekola/nginx-bootstrap.conf
+```
+
+It checks the template digest, protected directories, existing Nginx state and
+hostname conflicts, then installs only the osekola HTTP vhost, tests Nginx and
+gracefully reloads it. It verifies a local ACME challenge probe and prints
+`OSEKOLA_NGINX_HTTP_READY`. A failed configuration/reload/probe rolls back the
+new vhost. Existing osekola files are refused for review. It never requests a
+certificate, edits DNS, restarts the API or changes a sibling vhost. The local
+probe is not evidence of public DNS or ingress. Ubuntu CI exercises the real
+Nginx daemon, a failed-reload rollback and sibling-vhost preservation.
+
+After Cloudflare's API DNS record resolves to the confirmed VPS IP and the HTTP
+setup succeeds, run Certbot interactively using the existing host account:
+
+```bash
+sudo certbot certonly --webroot -w /var/www/osekola-acme \
+  --cert-name api.osekola.com -d api.osekola.com
+```
+
+Complete any account/contact prompts locally. Only after certificate issuance
+succeeds, install the TLS vhost and verify renewal as described below.
+
 Use a uniquely named `/etc/nginx/sites-available/osekola-api` and corresponding
 sites-enabled link; preserve all existing vhosts. First install the supplied
 `nginx-bootstrap.conf`, create `/var/www/osekola-acme` and confirm the API DNS
@@ -299,7 +341,7 @@ trading-service health. No SQL reversal is added by this deployment change.
 - [x] Refreshed pre-start capacity/port checks passed before local API activation (2825 MiB available RAM, port 3020 free).
 - [x] Selected Supabase endpoint configured; environment validation and basic database readiness passed.
 - [x] Isolated API installed and enabled; exact release, local health/readiness and loopback listener verified by the operator at 2026-09-10 14:27 UTC.
-- [ ] Current public IP verified.
+- [x] Operator confirmed current public IPv4 `34.101.129.25`; selected Cloudflare DNS and Vercel team/project `albi-s-agentic/osekola`.
 - [ ] Vercel project, production variables, DNS and web certificate verified.
 - [ ] Production Supabase migration/Auth/Storage configuration verified.
 - [ ] Public API DNS, TLS and certificate renewal tested.
