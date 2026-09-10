@@ -10,6 +10,7 @@ it does not assert that either application is live.
 | Backend/API | `https://api.osekola.com` on the existing `riri-prod-01` VPS |
 | API process | systemd `osekola-api`, separate Linux user/group `osekola` |
 | API files | `/opt/osekola/releases/<source-sha>` and `/opt/osekola/current` |
+| API Node runtime | `/opt/osekola/runtime/node/bin/node`, isolated Node.js 22.23.2 |
 | API secrets | `/etc/osekola/api.env`, root-owned mode 0600 |
 | API listener | `127.0.0.1:3020`, subject to a live port-availability check |
 | Database/Auth | A separately configured production Supabase project |
@@ -18,9 +19,8 @@ it does not assert that either application is live.
 The server is the VPS computer running the backend processes. Vercel hosts the
 school's frontend; Supabase hosts its database/Auth. RIRI and Emerald continue
 using their own processes, directories, ports and configuration. Their recent
-records identify `riri-api` and `riri-emerald-api`, with ports 8000/8010; inspect
-the host before relying on those records. Current capacity and public IP have
-not been verified from this workspace.
+records identify `riri-api` and `riri-emerald-api`, with ports 8000/8010. The
+operator supplied the live inspection below; the public IP remains unverified.
 
 **Use this shared-VPS procedure for the selected target.** The generic
 `compose.production.yml` from Phase 55 is a separate-host reference. Do not start
@@ -31,23 +31,66 @@ still need review against measured spare host capacity and school workload.
 
 ## 1. Inspect the existing VPS
 
+Operator-provided output from the reviewed inspection script at **2026-09-10
+13:22:16 UTC**, after [PR #51](https://github.com/rhieryayunin-gass/sekola/pull/51):
+
+| Check | Observed result |
+| --- | --- |
+| Host | `riri-prod-01.asia-southeast2-a.c.riri-agent.internal` |
+| Memory | 3910 MiB total; 2812 MiB available; no swap |
+| Disk | 16G available; 45% used |
+| Load average | 0.09 / 0.27 / 0.40 |
+| Existing services | `riri-api`, `riri-emerald-api`, `nginx`: active |
+| Existing API listeners | Loopback 8000 and 8010 |
+| osekola listener | Port 3020 free at inspection time |
+| Runtime | Node missing; Nginx 1.24.0; Certbot 2.9.0 |
+| New app paths | `/opt/osekola`, `/etc/osekola`, osekola Nginx vhost absent |
+
+This supports the isolated runtime installation and an initial API deployment
+with the configured resource ceilings. It is a single snapshot, not peak-load
+sizing or an application health check. The API is still undeployed. CPU count,
+architecture and current public IP were not included in that output. Refresh
+capacity and port checks immediately before starting the API.
+
 In the established `rhiery86_ayunin@riri-prod-01` SSH session, run the reviewed
 `ops/inspect-shared-vps.sh`. It prints hostname, capacity, runtime versions,
 service state, listening TCP addresses and presence of the new project's paths.
 It does not read environment files, dump Nginx config, install packages, reload
 services or restart trading. Review the result before installing anything:
 
-- Node.js 22 must be available as a system runtime; check `/usr/bin/node` matches
-  the selected binary. Do not replace a shared Node runtime without inspecting
-  its existing consumers. Adjust this unit's ExecStart for an isolated runtime
-  if the existing runtime differs.
+- Install the isolated runtime as described below. The API unit explicitly uses
+  `/opt/osekola/runtime/node/bin/node`; a global `node` command is not required.
 - Port 3020 must be free. If occupied, choose another unused port and update
   `api.env`, the Nginx upstream and probe commands together.
 - Review CPU, available memory, swap/disk pressure and RIRI/Emerald health before
   reserving capacity. Initial osekola limits are 50% of one CPU and 768 MiB RAM;
   this is a ceiling, not a guarantee of spare capacity or application sizing.
 - Existing `/opt/osekola`, `/etc/osekola` or `osekola-api` means this is an upgrade;
-  inventory the existing release/configuration before making changes.
+  inventory the existing release/configuration before making changes. A runtime
+  directory alone can be the completed runtime-only installation below.
+
+### Install the isolated Node runtime
+
+Run the reviewed `ops/install-osekola-node.sh` using `sudo bash`. It downloads the
+[official Node.js 22.23.2 Linux binary](https://nodejs.org/en/download/archive/v22.23.2)
+for x64 or arm64 over HTTPS, checks the archive against the release's official
+`SHASUMS256.txt`, validates the binary version, then installs it under
+`/opt/osekola/runtime` with a `node` symlink. The installer requires curl, tar,
+xz, sha256sum, flock and stat. It reports missing prerequisites without running
+apt or changing a global runtime. There is no package compilation on the VPS.
+
+```bash
+sudo bash ops/install-osekola-node.sh
+/opt/osekola/runtime/node/bin/node --version
+```
+
+Expected success: `OSEKOLA_NODE_READY` and `v22.23.2`. Re-running with this exact
+runtime already installed succeeds without replacing it; conflicting directories
+or another runtime cause an error for operator review. The script never starts,
+stops or reloads services and does not create secrets, firewall rules or vhosts.
+Updating Node later requires a separately reviewed version change and promotion.
+Use the updated inspection script to report the isolated runtime, architecture
+and CPU count, even though the shell's global `node` command can remain absent.
 
 ## 2. Prepare the Vercel project and DNS
 
@@ -172,7 +215,8 @@ trading-service health. No SQL reversal is added by this deployment change.
 
 ## Remaining live gates
 
-- [ ] VPS inventory, capacity, current IP and port 3020 reviewed.
+- [x] Operator's VPS inventory and initial capacity/port snapshot reviewed (2026-09-10 13:22:16 UTC).
+- [ ] Isolated Node installation, CPU count/architecture, current public IP and refreshed pre-start capacity/port checks verified.
 - [ ] Vercel project, production variables, DNS and web certificate verified.
 - [ ] Production Supabase migration/Auth/Storage configuration verified.
 - [ ] Isolated API installed, loopback listener verified and API TLS/renewal tested.

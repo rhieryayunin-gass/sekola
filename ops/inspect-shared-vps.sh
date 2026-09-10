@@ -5,6 +5,8 @@ printf 'HOST: '; hostname
 printf 'USER: '; id -un
 printf 'TIME: '; date -u +%FT%TZ
 printf '\nCAPACITY\n'
+printf 'ARCH: '; uname -m
+printf 'CPU_COUNT: '; nproc
 uptime
 free -m
 df -h / /opt 2>/dev/null
@@ -15,6 +17,11 @@ for tool in node nginx certbot; do
     case "$tool" in nginx) nginx -v 2>&1 ;; *) "$tool" --version 2>&1 ;; esac
   else printf '%s: MISSING\n' "$tool"; fi
 done
+if [[ -x /opt/osekola/runtime/node/bin/node ]]; then
+  printf 'OSEKOLA_NODE: '; /opt/osekola/runtime/node/bin/node --version
+else
+  echo 'OSEKOLA_NODE: not installed'
+fi
 printf '\nSERVICE STATE\n'
 for service in riri-api riri-emerald-api nginx osekola-api; do
   printf '%s: ' "$service"

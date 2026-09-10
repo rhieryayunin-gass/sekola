@@ -10,8 +10,8 @@ for config in nginx-bootstrap.conf nginx-api.conf; do
     -v "$config_temp/certs:/etc/letsencrypt/live/api.osekola.com:ro" nginx:stable-alpine nginx -t
 done
 # CI's Node binary may live in a tool cache. Validate the unit with that
-# executable; the production /usr/bin/node path is checked on the actual VPS.
+# executable; the isolated runtime path is checked on the actual VPS.
 node_binary="$(command -v node)"
-sed "s|^ExecStart=/usr/bin/node |ExecStart=$node_binary |" \
+sed "s|^ExecStart=/opt/osekola/runtime/node/bin/node |ExecStart=$node_binary |" \
   deploy/osekola/osekola-api.service > "$config_temp/osekola-api.service"
 systemd-analyze verify "$config_temp/osekola-api.service"
