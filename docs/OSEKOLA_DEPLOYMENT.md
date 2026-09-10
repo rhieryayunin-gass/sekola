@@ -162,6 +162,25 @@ the root directory for the pnpm workspace and `deploy/vercel-build.mjs`.
 the framework default. Do not deploy the NestJS backend as this frontend project.
 See [Vercel monorepo configuration](https://vercel.com/docs/monorepos).
 
+The Next.js configuration uses framework-default output when Vercel supplies
+`VERCEL=1`; self-hosted/Docker builds retain `output: "standalone"`. Next.js
+16.3.1 runs an adapter's `onBuildComplete` before standalone copying, which then
+reads `.next/next-server.js.nft.json`. The operator's failed build reported that
+file missing after the Vercel hook. Keeping standalone packaging out of Vercel
+avoids that extra copy step. CI builds with `VERCEL=1` and verifies that no
+standalone artifact is produced; the container job still boots the standalone
+web image. These checks do not run Vercel's hosted adapter or prove a live
+deployment. See [Next.js output configuration](https://nextjs.org/docs/app/api-reference/config/next-config-js/output).
+
+Before retrying, verify the connected Git repository and full source commit in
+Vercel. The reported failed build cloned `rhieryayunin-gass/osekola` at `4f8eee6`,
+while this runbook and reviewed changes target `rhieryayunin-gass/sekola`.
+The former repository returned 404 through the available GitHub connection;
+its relationship to this repository is unverified. A fix merged here will not
+automatically update another repository. Build the commit containing the fix,
+keep release identity truthful, and complete frontend/API compatibility and
+paired-release verification before marking Phase 55 complete.
+
 For **Production**, add the variables from `deploy/osekola/vercel.env.example`:
 `NEXT_PUBLIC_API_URL=https://api.osekola.com`, the production Supabase URL, and
 its publishable key (or legacy anon JWT in the publishable-key variable).
