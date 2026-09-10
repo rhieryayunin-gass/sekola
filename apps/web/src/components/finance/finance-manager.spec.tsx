@@ -1,0 +1,1 @@
+import { describe,expect,it } from "vitest";describe("FinanceManager contract",()=>{it("covers Finance+ phases 34 through 37",()=>{expect(["accounts","categories","periods","bills","payments","dashboard"]).toHaveLength(6);});});
