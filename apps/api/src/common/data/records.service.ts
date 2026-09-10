@@ -25,6 +25,16 @@ export class RecordsService {
   async list(userId: string, resource: string, page = new PageDto()) {
     const tenantId = await this.tenant(userId);
     let query = this.client.from(resource).select("*").eq("tenant_id", tenantId);
+    if (["courses", "lessons", "assignments"].includes(resource)) {
+      const permission = await this.client.rpc("app_has_permission", { actor_id: userId, permission_code: "courses.create" });
+      if (permission.error) databaseError(permission.error);
+      if (permission.data !== true) {
+        const range = pageRange(page);
+        const { data, error } = await this.client.rpc("list_student_learning", { actor_id: userId, resource, page_offset: range[0], page_limit: range[1] - range[0] + 1 });
+        if (error) databaseError(error);
+        return data ?? [];
+      }
+    }
     if (resource === "submissions") { const student = await this.learner(userId, tenantId); if (student) query = query.eq("student_id", student); }
     const { data, error } = await query.order("created_at", { ascending: false }).order("id").range(...pageRange(page));
     if (error) databaseError(error);

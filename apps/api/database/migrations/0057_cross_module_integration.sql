@@ -3,6 +3,14 @@ alter table public.calendars add column integration_managed boolean not null def
 create unique index calendars_integration_owner on public.calendars(tenant_id,owner_user_id) where integration_managed;
 alter table public.calendar_events add column source_table text, add column source_id uuid;
 create unique index calendar_event_source on public.calendar_events(calendar_id,source_table,source_id);
+-- Shared manual calendars retain their existing scope. Integration calendars
+-- contain recipient-specific tasks/deadlines and are readable only by the owner.
+drop policy calendars_select_tenant on public.calendars;
+create policy calendars_select_tenant on public.calendars for select to authenticated
+  using(tenant_id=public.current_tenant_id() and (not integration_managed or owner_user_id=auth.uid()));
+drop policy calendar_events_select_tenant on public.calendar_events;
+create policy calendar_events_select_tenant on public.calendar_events for select to authenticated
+  using(exists(select 1 from public.calendars c where c.id=calendar_events.calendar_id and c.tenant_id=public.current_tenant_id() and (not c.integration_managed or c.owner_user_id=auth.uid())));
 
 create function public.integration_recipients(source text, row_data jsonb) returns setof uuid
 language plpgsql stable set search_path='' as $$

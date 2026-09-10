@@ -20,3 +20,4 @@ for migration in "$db_root"/migrations/*.sql; do
   fi
 done
 psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/phase51_54.sql"
+bash "$repo_root/apps/api/scripts/test-database-concurrency.sh"

@@ -1,4 +1,24 @@
 -- Phase 52/54: serialize payments per invoice and derive outstanding from confirmed payments.
+-- Student reads use one paged SQL query, not an unbounded client-side course-ID list.
+create function public.list_student_learning(actor_id uuid, resource text, page_offset integer default 0, page_limit integer default 50) returns jsonb
+language plpgsql stable set search_path='' as $$
+declare tenant uuid:=public.app_tenant(actor_id); student uuid; result jsonb; course_join text; published text;
+begin
+  if resource not in('courses','lessons','assignments') or not public.app_has_permission(actor_id,resource||'.read') then raise exception 'Missing permission' using errcode='42501'; end if;
+  select s.id into student from public.students s where s.user_id=actor_id and s.tenant_id=tenant;
+  if student is null then return '[]'::jsonb; end if;
+  course_join:=case when resource='courses' then 'c.id=r.id' else 'c.id=r.course_id' end;
+  published:=case when resource='courses' then 'true' else 'r.is_published' end;
+  execute format('select coalesce(jsonb_agg(q),''[]''::jsonb) from (select r.* from public.%I r join public.courses c on %s and c.tenant_id=r.tenant_id where r.tenant_id=$1 and %s and exists(select 1 from public.student_assignments a where a.tenant_id=$1 and a.student_id=$2 and a.classroom_id=c.classroom_id and a.semester_id=c.semester_id and a.is_active) order by r.created_at desc,r.id offset $3 limit $4) q',resource,course_join,published)
+    into result using tenant,student,greatest(page_offset,0),least(greatest(page_limit,1),100);
+  return result;
+end $$;
+revoke all on function public.list_student_learning(uuid,text,integer,integer) from public,anon,authenticated;
+grant execute on function public.list_student_learning(uuid,text,integer,integer) to service_role;
+insert into public.role_permissions(role_id,permission_id)
+ select r.id,p.id from public.roles r cross join public.permissions p
+ where r.code='STUDENT' and p.code in('courses.read','lessons.read','assignments.read') on conflict do nothing;
+
 create function public.list_visible_projects(actor_id uuid, page_offset integer default 0, page_limit integer default 50) returns jsonb
 language sql stable set search_path='' as $$
   select coalesce(jsonb_agg(p),'[]'::jsonb) from (

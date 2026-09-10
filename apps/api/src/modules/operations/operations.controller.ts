@@ -24,6 +24,7 @@ export class OperationsController {
   @Post("room-bookings/:id/cancel") @RequirePermission("room_bookings.delete") cancelBooking(@Req() request: Request, @Param("id") id: string) { return this.service.cancel(this.userId(request), "room_bookings", id); }
 
   @Get("approvals") @RequirePermission("approvals.read") approvals(@Req() request: Request, @Query() page: PageDto) { return this.service.approvals(this.userId(request), page); }
+  @Get("approvers") @RequirePermission("approvals.read") approvers(@Req() request: Request, @Query() page: PageDto) { return this.service.approvers(this.userId(request), page); }
   @Post("approvals") @RequirePermission("approvals.create") createApproval(@Req() request: Request, @Body() body: CreateApprovalRequestDto) { return this.service.createGenericApproval(this.userId(request), this.input(body)); }
   @Post("approvals/:id/decision") @RequirePermission("approvals.decide") decide(@Req() request: Request, @Param("id") id: string, @Body() body: DecideApprovalDto) { return this.service.decide(this.userId(request), id, body.decision, body.note); }
 

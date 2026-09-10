@@ -1,4 +1,16 @@
 -- Phase 52: one transaction per request, decision, or cancellation.
+-- Minimal approver directory for requesters who cannot access user administration.
+create function public.list_operational_approvers(actor_id uuid, page_offset integer default 0, page_limit integer default 50) returns jsonb
+language sql stable set search_path='' as $$
+  select coalesce(jsonb_agg(q),'[]'::jsonb) from (
+    select u.id,u.full_name from public.users u where u.tenant_id=public.app_tenant(actor_id) and u.is_active
+      and public.app_has_permission(actor_id,'approvals.read') and public.app_has_permission(u.id,'approvals.decide')
+    order by u.full_name,u.id offset greatest(page_offset,0) limit least(greatest(page_limit,1),100)
+  ) q;
+$$;
+revoke all on function public.list_operational_approvers(uuid,integer,integer) from public,anon,authenticated;
+grant execute on function public.list_operational_approvers(uuid,integer,integer) to service_role;
+
 alter table public.approval_requests add column metadata jsonb not null default '{}'::jsonb;
 create unique index approval_source_unique on public.approval_requests(tenant_id,resource_type,resource_id);
 

@@ -73,6 +73,12 @@ export class OperationsService {
     if (error) databaseError(error);
     return data ?? [];
   }
+  async approvers(userId: string, page = new PageDto()) {
+    const range = pageRange(page);
+    const { data, error } = await this.client.rpc("list_operational_approvers", { actor_id: userId, page_offset: range[0], page_limit: range[1] - range[0] + 1 });
+    if (error) databaseError(error);
+    return data ?? [];
+  }
   async decide(userId: string, id: string, decision: "APPROVED" | "REJECTED", note?: string) {
     const { data, error } = await this.client.rpc("decide_operational_request", { actor_id: userId, request_id: id, decision, note: note ?? null });
     if (error || !data) databaseError(error);

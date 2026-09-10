@@ -63,6 +63,7 @@ language sql stable set search_path='' as $$
       select ur.role_id from public.user_roles ur where ur.user_id=u.id
       union select lr.role_id from public.user_level_roles lr where lr.user_level_id=u.user_level_id)
     join public.permissions p on p.id=rp.permission_id
+    join public.roles role on role.id=rp.role_id and role.is_active
     where u.id=actor_id and u.is_active and p.code=permission_code);
 $$;
 revoke all on function public.app_tenant(uuid), public.app_has_permission(uuid,text) from public, anon, authenticated;

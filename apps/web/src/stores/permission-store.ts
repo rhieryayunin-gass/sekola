@@ -27,6 +27,7 @@ export const usePermissionStore = create<PermissionState>((set, get) => ({
   has: (code) => get().context?.permissions.some((item) => item.code === code) ?? false,
   async load() {
     const version = ++requestVersion;
+    try {
     const { data, error } = await createClient().auth.getSession();
     if (error || !data.session?.access_token) {
       if (version === requestVersion) set({ context: null });
@@ -38,6 +39,9 @@ export const usePermissionStore = create<PermissionState>((set, get) => ({
     const payload = (await response.json()) as { data?: PermissionContext };
     if (!response.ok || !payload.data) throw new Error("Unable to load permission context");
     if (version === requestVersion && payload.data.userId === data.session.user.id) set({ context: payload.data });
+    } catch {
+      if (version === requestVersion) set({ context: null });
+    }
   },
   reset: () => { requestVersion++; set({ context: null }); },
 }));
