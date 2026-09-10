@@ -14,6 +14,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  database:
+    name: Migration and PostgreSQL regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-local-only
+          POSTGRES_DB: sekola_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replay migrations, upgrade Phase 50 fixtures, and verify invariants
+        env:
+          DATABASE_TEST_URL: postgres://postgres:ci-local-only@localhost:5432/sekola_test
+        run: bash apps/api/scripts/test-database.sh
+
   quality:
     name: Lint, test, and build
     runs-on: ubuntu-latest

@@ -5,6 +5,7 @@ import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
 import { parseCorsOrigins } from "./config/environment";
+import { UuidParamPipe } from "./common/data/uuid-param.pipe";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -18,6 +19,7 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   app.useGlobalPipes(
+    new UuidParamPipe(),
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,

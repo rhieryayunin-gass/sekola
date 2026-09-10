@@ -1,1 +1,27 @@
-import { Body,Controller,Get,Post,Req,UseGuards } from "@nestjs/common";import { Request } from "express";import { AuthGuard } from "../auth/guards/auth.guard";import { LearningService } from "./learning.service";@UseGuards(AuthGuard)class B{constructor(protected s:LearningService){}u(r:Request){if(!r.user)throw new Error("Authenticated user missing");return r.user.id}}@Controller("courses")export class CoursesController extends B{@Get()l(@Req()r:Request){return this.s.list(this.u(r),"courses")}@Post()c(@Req()r:Request,@Body()b:Record<string,unknown>){return this.s.save(this.u(r),"courses",b)}}@Controller("lessons")export class LessonsController extends B{@Get()l(@Req()r:Request){return this.s.list(this.u(r),"lessons")}@Post()c(@Req()r:Request,@Body()b:Record<string,unknown>){return this.s.save(this.u(r),"lessons",b)}}@Controller("assignments")export class AssignmentsController extends B{@Get()l(@Req()r:Request){return this.s.list(this.u(r),"assignments")}@Post()c(@Req()r:Request,@Body()b:Record<string,unknown>){return this.s.save(this.u(r),"assignments",b)}}@Controller("submissions")export class SubmissionsController extends B{@Get()l(@Req()r:Request){return this.s.list(this.u(r),"submissions")}@Post()c(@Req()r:Request,@Body()b:Record<string,unknown>){return this.s.save(this.u(r),"submissions",b)}}
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Request } from "express";
+import { RequirePermission } from "../../common/authorization/decorators/require-permission.decorator";
+import { PermissionGuard } from "../../common/authorization/guards/permission.guard";
+import { PageDto } from "../../common/data/page.dto";
+import { AuthGuard } from "../auth/guards/auth.guard";
+import { LearningService } from "./learning.service";
+
+function learningController(resource: string) {
+  @Controller(resource)
+  @UseGuards(AuthGuard, PermissionGuard)
+  class ResourceController {
+    constructor(public readonly service: LearningService) {}
+    user(request: Request) { if (!request.user) throw new Error("Authenticated user missing"); return request.user.id; }
+    @Get() @RequirePermission(`${resource}.read`)
+    list(@Req() request: Request, @Query() page: PageDto) { return this.service.list(this.user(request), resource, page); }
+    @Post() @RequirePermission(`${resource}.create`)
+    create(@Req() request: Request, @Body() body: unknown) { return this.service.save(this.user(request), resource, body); }
+    @Patch(":id") @RequirePermission(`${resource}.update`)
+    update(@Req() request: Request, @Param("id") id: string, @Body() body: unknown) { return this.service.save(this.user(request), resource, body, id); }
+  }
+  return ResourceController;
+}
+export const CoursesController = learningController("courses");
+export const LessonsController = learningController("lessons");
+export const AssignmentsController = learningController("assignments");
+export const SubmissionsController = learningController("submissions");
