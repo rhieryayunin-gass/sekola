@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ConsoleLogger,
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
@@ -15,6 +16,7 @@ import { UpdateMyProfileDto } from "./dto/update-my-profile.dto";
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new ConsoleLogger("Users", { json: true });
   constructor(
     private readonly supabaseService: SupabaseService,
   ) {}
@@ -289,10 +291,7 @@ export class UsersService {
         await this.client.auth.admin.deleteUser(authUserId);
 
       if (rollbackError) {
-        console.error(
-          "Unable to roll back Auth user after profile failure",
-          rollbackError,
-        );
+        this.logger.error({ event: "rollback_failed", operation: "auth_user_creation" });
       }
 
       throw new InternalServerErrorException(
@@ -421,7 +420,7 @@ export class UsersService {
       .eq("tenant_id", tenantId);
 
     if (error) {
-      console.error("Unable to roll back user profile", error);
+      this.logger.error({ event: "rollback_failed", operation: "user_profile" });
     }
   }
 
@@ -469,7 +468,7 @@ export class UsersService {
         });
 
       if (rollbackError) {
-        console.error("Unable to roll back Auth user status", rollbackError);
+        this.logger.error({ event: "rollback_failed", operation: "auth_user_status" });
       }
 
       throw new InternalServerErrorException("Failed to update user status");
@@ -512,7 +511,7 @@ export class UsersService {
           .eq("id", userId);
 
         if (rollbackError) {
-          console.error("Unable to roll back profile name", rollbackError);
+          this.logger.error({ event: "rollback_failed", operation: "profile_name" });
         }
 
         throw new InternalServerErrorException("Unable to synchronize profile name");

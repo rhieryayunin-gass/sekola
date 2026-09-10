@@ -20,6 +20,7 @@ import { TeamProjectsModule } from "./modules/team-projects/team-projects.module
 import { OperationsModule } from "./modules/operations/operations.module";
 import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { validateEnvironment } from "./config/environment";
+import { ReadinessService } from "./common/observability/readiness.service";
 
 @Module({
   imports: [
@@ -48,5 +49,6 @@ import { validateEnvironment } from "./config/environment";
     AnalyticsModule,
   ],
   controllers: [AppController],
+  providers: [ReadinessService],
 })
 export class AppModule {}

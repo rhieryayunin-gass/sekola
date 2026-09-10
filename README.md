@@ -99,3 +99,10 @@ complete. See [development progress](docs/PROGRESS.md).
 The service-role Supabase key is server-only. Backend authorization and database
 RLS are complementary controls; every tenant-owned resource must enforce tenant
 isolation in both layers before production release.
+
+## Production readiness
+
+Container deployment, health probes, logging, encrypted backup, recovery rehearsal
+and pending live release gates are documented in
+[Phase 55 production readiness](docs/PHASE_55_PRODUCTION_READINESS.md).
+Passing CI or applying staging migrations does not complete production release.

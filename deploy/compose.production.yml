@@ -1,0 +1,71 @@
+name: atsekola
+
+x-runtime: &runtime
+  restart: unless-stopped
+  init: true
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+  stop_grace_period: 30s
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+services:
+  api:
+    <<: *runtime
+    image: atsekola-api:${RELEASE_SHA:?Set RELEASE_SHA}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: api
+      args:
+        RELEASE_SHA: ${RELEASE_SHA:?Set RELEASE_SHA}
+    env_file: ${API_ENV_FILE:-./api.env.local}
+    read_only: true
+    tmpfs: ["/tmp:size=64m,mode=1777"]
+    mem_limit: 1g
+    cpus: 1
+    expose: ["3001"]
+
+  web:
+    <<: *runtime
+    image: atsekola-web:${RELEASE_SHA:?Set RELEASE_SHA}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: web
+      args:
+        RELEASE_SHA: ${RELEASE_SHA:?Set RELEASE_SHA}
+        NEXT_PUBLIC_API_URL: https://${API_DOMAIN:?Set API_DOMAIN}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Set NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?Set public key}
+    read_only: true
+    tmpfs: ["/tmp:size=64m,mode=1777", "/app/apps/web/.next/cache:size=128m,uid=1000,gid=1000"]
+    mem_limit: 1g
+    cpus: 1
+    expose: ["3000"]
+
+  ingress:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      WEB_DOMAIN: ${WEB_DOMAIN:?Set WEB_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      api: { condition: service_healthy }
+      web: { condition: service_healthy }
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+volumes:
+  caddy-data:
+  caddy-config:

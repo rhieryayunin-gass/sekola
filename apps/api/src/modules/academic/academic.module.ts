@@ -1,2 +1,3 @@
+import { AuthModule } from "../auth/auth.module";
 import { Module } from "@nestjs/common"; import { AuthorizationModule } from "../../common/authorization/authorization.module"; import { SupabaseModule } from "../../common/supabase/supabase.module"; import { AuditModule } from "../audit/audit.module"; import { AcademicService } from "./academic.service"; import { AcademicYearsController,ClassroomsController,SemestersController,SubjectsController } from "./academic.controller";
-@Module({imports:[SupabaseModule,AuthorizationModule,AuditModule],controllers:[AcademicYearsController,SemestersController,ClassroomsController,SubjectsController],providers:[AcademicService]}) export class AcademicModule{}
+@Module({imports:[AuthModule, SupabaseModule,AuthorizationModule,AuditModule],controllers:[AcademicYearsController,SemestersController,ClassroomsController,SubjectsController],providers:[AcademicService]}) export class AcademicModule{}
