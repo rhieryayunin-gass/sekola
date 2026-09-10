@@ -32,6 +32,19 @@ describe("validateEnvironment", () => {
       }),
     ).toThrow("PORT must be an integer between 1 and 65535");
   });
+
+  const production = { ...requiredEnvironment, NODE_ENV: "production", CORS_ORIGINS: "https://school.example.com", RELEASE_SHA: "a".repeat(40) };
+  it("accepts explicit production configuration", () => {
+    expect(validateEnvironment(production).NODE_ENV).toBe("production");
+  });
+  it.each([
+    { CORS_ORIGINS: undefined }, { CORS_ORIGINS: "*" },
+    { CORS_ORIGINS: "http://school.example.com" }, { CORS_ORIGINS: "https://localhost" },
+    { CORS_ORIGINS: "https://school.example.com/path" }, { CORS_ORIGINS: "https://user:pass@school.example.com" },
+    { SUPABASE_URL: "http://example.supabase.co" }, { RELEASE_SHA: undefined }, { RELEASE_SHA: "main" },
+  ])("rejects unsafe/incomplete production configuration: %j", (override) => {
+    expect(() => validateEnvironment({ ...production, ...override })).toThrow();
+  });
 });
 
 describe("parseCorsOrigins", () => {

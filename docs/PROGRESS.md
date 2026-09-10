@@ -7,9 +7,9 @@ after its implementation and quality gates pass on the current branch.
 
 ## Current phase
 
-**Level 10 — Phase 51–54 integration and readiness hardening (staging applied; live verification pending)**
+**Level 10 — Phase 55 production readiness (implementation checkpoint; deployment and live gates pending)**
 
-Branch: `phase/51-54-integration-hardening`
+Branch: `phase/55-production-readiness`
 
 ### 00 Project Foundation
 
@@ -254,3 +254,25 @@ Previous Phase 43–50 live workflow verification remains pending. Staging migra
 success does not mark live verification, production readiness, or Phase 55 complete.
 
 Validation scope and remaining release gates: [Phase 51–54 verification](PHASE_51_54_VERIFICATION.md).
+
+# Phase 55 — Production Readiness
+
+- [x] Production environment validation and separate public/server configuration templates
+- [x] Non-root API and standalone web container definitions with Compose/TLS ingress configuration
+- [x] Independent liveness, bounded database readiness and release identity endpoints
+- [x] Structured request logs, request correlation, safe error output, body limits and no-store API responses
+- [x] Read-only deployment probe and manual staging/production verification workflow
+- [x] Encrypted logical backup and guarded local recovery rehearsal tooling
+- [x] Deployment, monitoring, logging, backup, recovery and rollback runbook
+- [x] Local lint, typecheck, 118 API tests, 25 web tests and production builds
+- [ ] GitHub CI container and encrypted PostgreSQL restore checkpoint
+- [ ] Actual production environment, deployment, monitoring and log retention verified
+- [ ] Scheduled off-host backups, Storage coverage and production-sized recovery/rollback verified
+- [ ] Final live regression and release sign-off
+
+Phase 55 remains incomplete until the live gates in the
+[production readiness runbook](PHASE_55_PRODUCTION_READINESS.md) pass.
+Phase 43–50 live verification remains pending; Phase 51–54 is tracked in
+[issue #49](https://github.com/rhieryayunin-gass/sekola/issues/49), with all seven
+checks still unchecked. Successful staging inspect/apply `0056`–`0059` and
+[PR #48](https://github.com/rhieryayunin-gass/sekola/pull/48) remain recorded above.

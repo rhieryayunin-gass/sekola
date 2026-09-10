@@ -1,0 +1,30 @@
+name: Read-only deployment verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Configured environment to probe
+        type: choice
+        options: [staging, production]
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    environment: ${{ inputs.target }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify public health, database readiness, release identity and anonymous denial
+        env:
+          API_ORIGIN: ${{ vars.API_ORIGIN }}
+          WEB_ORIGIN: ${{ vars.WEB_ORIGIN }}
+          EXPECTED_RELEASE_SHA: ${{ vars.EXPECTED_RELEASE_SHA }}
+        run: node ops/verify-deployment.mjs

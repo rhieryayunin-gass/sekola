@@ -36,6 +36,28 @@ jobs:
         env:
           DATABASE_TEST_URL: postgres://postgres:ci-local-only@localhost:5432/sekola_test
         run: bash apps/api/scripts/test-database.sh
+      - name: Build PostgreSQL 17 backup tools
+        run: docker build -f ops/Dockerfile.backup -t atsekola-backup:ci .
+      - name: Rehearse encrypted backup and restore with restored SQL invariants
+        run: >-
+          docker run --rm --network host -v "$PWD:/repo:ro" -w /repo
+          -e PGHOST=127.0.0.1 -e PGPORT=5432 -e PGUSER=postgres
+          -e PGPASSWORD=ci-local-only -e PGDATABASE=sekola_test
+          atsekola-backup:ci bash ops/test-backup-restore.sh
+
+  containers:
+    name: Production containers and health regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build and verify production images without live credentials
+        env:
+          RELEASE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: bash deploy/test-containers.sh "$RELEASE_SHA"
 
   quality:
     name: Lint, test, and build
