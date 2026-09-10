@@ -15,6 +15,7 @@ import { AcademicModule } from "./modules/academic/academic.module";
 import { PeopleModule } from "./modules/people/people.module";
 import { LearningModule } from "./modules/learning/learning.module";
 import { AssessmentModule } from "./modules/assessment/assessment.module";
+import { FinanceModule } from "./modules/finance/finance.module";
 import { validateEnvironment } from "./config/environment";
 
 @Module({
@@ -38,6 +39,7 @@ import { validateEnvironment } from "./config/environment";
     PeopleModule,
     LearningModule,
     AssessmentModule,
+    FinanceModule,
   ],
   controllers: [AppController],
 })
