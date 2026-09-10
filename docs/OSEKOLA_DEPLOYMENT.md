@@ -92,6 +92,13 @@ Updating Node later requires a separately reviewed version change and promotion.
 Use the updated inspection script to report the isolated runtime, architecture
 and CPU count, even though the shell's global `node` command can remain absent.
 
+**Operator-confirmed installation:** after PR #52, the operator reported the
+official archive checksum `OK` and `OSEKOLA_NODE_READY` for Node.js `v22.23.2` at
+`/opt/osekola/runtime/node/bin/node`. The reported architecture is `x86_64` and
+the CPU count is **2**. The pasted metadata-query output did not contain an IP
+address; this does not establish that the VM has no public IP. API staging,
+service activation and live checks remain pending.
+
 ## 2. Prepare the Vercel project and DNS
 
 Import `rhieryayunin-gass/sekola` as a separate Vercel project. Set Root Directory
@@ -136,14 +143,49 @@ and pnpm 11.21.0. Install using the frozen lockfile, then run:
 bash ops/package-api.sh /tmp/osekola-api.tar.gz
 ```
 
-Alternatively run **Package osekola API release** on `main` in GitHub Actions and
-download its `osekola-api-<source-sha>` artifact. Verify that this exact source SHA
-passed CI before promoting it. The archive includes built API code, production
-dependencies and `release.env` containing only the source SHA. It contains no
-Supabase credentials. Record the archive SHA-256 and transfer it to the VPS
-through the existing authenticated SSH/SCP workflow. Verify the hash there.
+The main-branch CI quality job now stores `osekola-api-<source-sha>` after packaging
+and staging tests. **Only use it after the complete CI run, including every job,
+has concluded successfully.** An artifact can appear before other jobs finish.
+Alternatively run **Package osekola API release** on `main` and check that exact
+source SHA already passed CI. Neither workflow deploys to a server.
+
+The artifact contains four files: `osekola-api.tar.gz`, its `.sha256` checksum,
+`osekola-api-stage.sh`, and `osekola-api-release.txt` with the source SHA. The
+archive contains compiled API code, production dependencies, build platform and
+architecture metadata, `release.env`, a blank environment template and the service
+unit. It contains no Supabase credentials. Verify the published archive SHA-256
+independently of the downloaded copy, then transfer the files through the existing
+authenticated SSH/SCP workflow or the SSH console's file-upload control.
 
 ## 4. Install the isolated API
+
+For the **first installation**, the artifact's staging script implements the
+file/account setup below and stops before service activation. It requires the
+isolated Node runtime and Python 3 with `tarfile` data-filter support (available
+on the selected Ubuntu 24.04 host). From the directory containing the artifact's
+four extracted files:
+
+```bash
+sudo bash osekola-api-stage.sh osekola-api.tar.gz <reviewed-source-sha> <published-archive-sha256>
+sudoedit /etc/osekola/api.env
+```
+
+Use the independently reviewed SHA values, not the literal placeholders. The
+staging script validates archive checksum, source SHA, platform/architecture and
+archive paths/links, creates the separate `osekola` user, installs a root-owned
+release and mode-0600 environment template, then prints `OSEKOLA_API_STAGED`.
+It refuses an existing release, current symlink, account, unit or environment
+file rather than overwriting an installation. A second invocation requires
+review; use the upgrade procedure for later releases. It never enables, starts,
+restarts or reloads a service.
+
+Fill the production `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` locally in the
+editor. Confirm this is the intended production database and that its migration
+history through `0059` has been checked; staging migration success is separate
+evidence. Share only configuration-presence or validation results, not secrets.
+The subsequent activation and readiness checks below remain separate steps.
+
+For a manual installation, use the same layout:
 
 After reviewing the preflight, create only the `osekola` Linux service account
 and `/opt/osekola` plus `/etc/osekola` directories. Keep release directories
@@ -216,7 +258,8 @@ trading-service health. No SQL reversal is added by this deployment change.
 ## Remaining live gates
 
 - [x] Operator's VPS inventory and initial capacity/port snapshot reviewed (2026-09-10 13:22:16 UTC).
-- [ ] Isolated Node installation, CPU count/architecture, current public IP and refreshed pre-start capacity/port checks verified.
+- [x] Operator confirmed isolated Node v22.23.2 installation, x86_64 architecture and 2 CPUs after PR #52.
+- [ ] Current public IP and refreshed pre-start capacity/port checks verified.
 - [ ] Vercel project, production variables, DNS and web certificate verified.
 - [ ] Production Supabase migration/Auth/Storage configuration verified.
 - [ ] Isolated API installed, loopback listener verified and API TLS/renewal tested.
