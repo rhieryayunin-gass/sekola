@@ -28,5 +28,11 @@ assert.ok(asset, "Standalone page must reference built assets");
 assert.equal((await request(`http://127.0.0.1:3100${asset[1]}`)).status, 200);
 const protectedPage = await request("http://127.0.0.1:3100/dashboard", { redirect: "manual" });
 assert.equal(protectedPage.status, 307);
-assert.equal(new URL(protectedPage.headers.get("location")).pathname, "/login");
+const location = protectedPage.headers.get("location");
+assert.ok(location, "Protected page must provide a login redirect");
+// HTTP Location may be relative; resolve it against the requested origin.
+const redirect = new URL(location, "http://127.0.0.1:3100");
+assert.equal(redirect.origin, "http://127.0.0.1:3100");
+assert.equal(redirect.pathname, "/login");
+assert.equal(redirect.searchParams.get("next"), "/dashboard");
 console.log("Non-root read-only containers, dependency failure, auth denial, web assets and login redirect passed");
