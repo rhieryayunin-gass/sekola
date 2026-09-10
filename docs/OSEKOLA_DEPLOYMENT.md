@@ -151,7 +151,9 @@ type **A**, name **api**, IPv4 **34.101.129.25**, proxy status **DNS only**, TTL
 **Auto**. This selected initial mode routes directly to the VPS for certificate
 issuance and public verification. The apex and `www` records must use the exact
 values shown by this Vercel project. Do not substitute the API's VPS IP for the
-frontend records. No Cloudflare DNS mutation has been confirmed yet.
+frontend records. The operator subsequently showed the API A record in Cloudflare
+and successful resolution from the VPS; the DNS and certificate checkpoint below
+records this separately from frontend verification.
 
 Import `rhieryayunin-gass/sekola` as a separate Vercel project. Set Root Directory
 to `apps/web`, framework Next.js, Node.js 22.x, and allow access to files outside
@@ -300,20 +302,74 @@ sudo certbot certonly --webroot -w /var/www/osekola-acme \
 Complete any account/contact prompts locally. Only after certificate issuance
 succeeds, install the TLS vhost and verify renewal as described below.
 
-Use a uniquely named `/etc/nginx/sites-available/osekola-api` and corresponding
-sites-enabled link; preserve all existing vhosts. First install the supplied
-`nginx-bootstrap.conf`, create `/var/www/osekola-acme` and confirm the API DNS
-record points to this server. Run `sudo nginx -t`, then `sudo systemctl reload
-nginx` only if the test succeeds. The bootstrap vhost serves ACME challenges and
-returns 503 for API traffic until TLS is installed.
+### Operator-confirmed DNS and certificate checkpoint
 
-With the host's established certificate tooling, obtain a certificate for
-**only** `api.osekola.com`; for Certbot use `certonly --webroot` with
-`-w /var/www/osekola-acme -d api.osekola.com` and the operator's ACME email.
-Do not replace certificates for RIRI/Emerald or run a standalone listener that
-competes for port 80. After the certificate exists, replace only the osekola
-vhost with `nginx-api.conf`, test Nginx again and gracefully reload. Establish
-and test renewal for this certificate using the host's existing renewal timer.
+On **2026-09-10**, the operator reported `OSEKOLA_NGINX_HTTP_READY` after
+[PR #55](https://github.com/rhieryayunin-gass/sekola/pull/55), including the local
+ACME route check. A repeat invocation was correctly refused because the vhost
+already existed; it did not undo the completed installation.
+
+The first public DNS queries still showed `pixel.dns-parking.com` and
+`byte.dns-parking.com`, with Cloudflare pending and the API name returning
+NXDOMAIN. After the operator followed the nameserver setup, `getent ahostsv4
+api.osekola.com` on the VPS returned **34.101.129.25**. No separate Cloudflare
+Active-status screenshot or final public NS response was supplied.
+
+Certbot then reported **Successfully received certificate**, with expiry
+**2026-12-09**, at `/etc/letsencrypt/live/api.osekola.com/fullchain.pem` and its
+matching private-key path. No private-key contents were shared. The successful
+webroot issuance provides evidence of public ACME HTTP validation. Certbot also
+reported a scheduled renewal task; neither renewal execution nor HTTPS service
+activation is established by certificate issuance alone.
+
+### Activate the reviewed HTTPS vhost
+
+From a reviewed checkout, run:
+
+```bash
+sudo bash ops/activate-osekola-tls.sh deploy/osekola/nginx-api.conf
+```
+
+The helper accepts only the known HTTP bootstrap and matching enabled link,
+checks root-controlled directories, active Nginx/API/RIRI/Emerald services,
+certificate trust/hostname and remaining validity, then captures local API
+health and release identity. It copies and checks the TLS template before use,
+keeps the prior HTTP configuration in `/opt/osekola/nginx-backups/tls-*`, and
+replaces only the osekola vhost. A failed Nginx test, reload, HTTPS probe or
+post-change service check restores and reloads the HTTP bootstrap. It refuses
+repeat activation or an existing osekola renewal hook for review.
+
+Success reports `OSEKOLA_TLS_READY` only after HTTPS through loopback validates
+the real certificate, health/readiness and unchanged API release. It installs
+`/etc/letsencrypt/renewal-hooks/deploy/50-osekola-nginx-reload`, which tests Nginx
+and gracefully reloads it only when `RENEWED_LINEAGE` is exactly the osekola
+certificate directory. Other certificate hooks, units, secrets and vhosts are
+not edited. Service-active checks do not establish complete RIRI/Emerald health.
+
+Ubuntu CI uses a disposable trusted certificate and a fixture API with the real
+Nginx daemon to test HTTPS, release identity, ACME continuity, rollback on reload
+and readiness failures, unchanged sibling HTTP/HTTPS, repeat/conflict refusal,
+and the renewal hook's certificate scope and config-test guard. These fixture
+checks are not production ACME renewal or application workflow evidence.
+
+After activation, check public ingress and the existing renewal schedule:
+
+```bash
+curl -fsS --max-time 10 https://api.osekola.com/api/v1/health
+curl -fsS --max-time 10 https://api.osekola.com/api/v1/ready
+sudo systemctl list-timers --all --no-pager 'certbot*'
+sudo certbot renew --cert-name api.osekola.com --dry-run \
+  --no-directory-hooks --run-deploy-hooks \
+  --deploy-hook /etc/letsencrypt/renewal-hooks/deploy/50-osekola-nginx-reload
+```
+
+The dry-run selects only this certificate and explicitly tests its new reload
+hook; unrelated directory hooks are excluded from this manual test. Inspect any
+pre/post hooks saved specifically for this certificate before running the test.
+The normal existing renewal schedule continues to discover the scoped hook in
+the deploy directory. Verify the timer's future trigger and the dry-run result;
+do not infer successful renewal from Certbot's scheduler message alone. Confirm
+RIRI/Emerald health using their established operational checks after changes.
 
 The upstream is `127.0.0.1:3020`. No new firewall opening for that port is needed.
 Keep API access logging off or use an explicitly redacted format; application
@@ -342,9 +398,10 @@ trading-service health. No SQL reversal is added by this deployment change.
 - [x] Selected Supabase endpoint configured; environment validation and basic database readiness passed.
 - [x] Isolated API installed and enabled; exact release, local health/readiness and loopback listener verified by the operator at 2026-09-10 14:27 UTC.
 - [x] Operator confirmed current public IPv4 `34.101.129.25`; selected Cloudflare DNS and Vercel team/project `albi-s-agentic/osekola`.
+- [x] Operator confirmed HTTP/ACME bootstrap, API DNS resolution from the VPS and successful public webroot certificate issuance (expires 2026-12-09).
 - [ ] Vercel project, production variables, DNS and web certificate verified.
 - [ ] Production Supabase migration/Auth/Storage configuration verified.
-- [ ] Public API DNS, TLS and certificate renewal tested.
+- [ ] HTTPS vhost activated; public API HTTPS health/readiness and certificate renewal tested.
 - [ ] RIRI/Emerald remain healthy after the shared-host change.
 - [ ] Deployment probe and browser regression pass on the paired release.
 - [ ] Operational monitoring, logging retention and recovery gates from Phase 55 pass.
