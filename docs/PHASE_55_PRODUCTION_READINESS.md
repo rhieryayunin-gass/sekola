@@ -193,7 +193,9 @@ CI additionally replays every migration through `0059`, checks Phase 50 upgrade
 fixtures and concurrent transactions, encrypts/restores the fixture and reruns
 SQL invariants, and builds/boots both production images. Container checks cover
 non-root/read-only execution, release identity, unavailable-database 503,
-anonymous API denial, login page assets and protected-page redirect. Caddy and
+anonymous denial across 12 API entry points, login page assets and protected-page
+redirect. Missing Auth/Authorization module imports uncovered during full API
+startup are repaired explicitly in their consuming feature modules. Caddy and
 Compose configuration are validated without contacting a production environment.
 
 These are hermetic regression checks. The following live gates remain unchecked:

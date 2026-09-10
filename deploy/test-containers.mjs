@@ -15,7 +15,9 @@ assert.equal(api.headers.get("cache-control"), "no-store");
 assert.equal((await api.json()).data.release, process.env.EXPECTED_RELEASE_SHA);
 const ready = await request("http://127.0.0.1:3101/api/v1/ready");
 assert.equal(ready.status, 503, "Unavailable Supabase must fail readiness, not liveness");
-assert.equal((await request("http://127.0.0.1:3101/api/v1/auth/me")).status, 401);
+for (const route of ["auth/me", "permissions", "notifications", "audit-logs", "academic-years", "teachers", "courses", "attendance", "finance/dashboard", "team/projects", "operations/rooms", "analytics/executive"]) {
+  assert.equal((await request(`http://127.0.0.1:3101/api/v1/${route}`)).status, 401, `${route} must require authentication`);
+}
 const web = await request("http://127.0.0.1:3100/healthz");
 assert.equal((await web.json()).release, process.env.EXPECTED_RELEASE_SHA);
 const login = await request("http://127.0.0.1:3100/login");

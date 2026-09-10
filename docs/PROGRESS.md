@@ -260,6 +260,7 @@ Validation scope and remaining release gates: [Phase 51–54 verification](PHASE
 - [x] Production environment validation and separate public/server configuration templates
 - [x] Non-root API and standalone web container definitions with Compose/TLS ingress configuration
 - [x] Independent liveness, bounded database readiness and release identity endpoints
+- [x] Explicit Auth/Authorization module imports for full API startup and guarded feature routes
 - [x] Structured request logs, request correlation, safe error output, body limits and no-store API responses
 - [x] Read-only deployment probe and manual staging/production verification workflow
 - [x] Encrypted logical backup and guarded local recovery rehearsal tooling
