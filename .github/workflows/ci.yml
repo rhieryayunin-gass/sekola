@@ -94,11 +94,20 @@ jobs:
         run: pnpm check
       - name: Verify Vercel web build with public fixtures
         env:
+          VERCEL: "1"
           VERCEL_GIT_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           NEXT_PUBLIC_API_URL: https://api.osekola.com
           NEXT_PUBLIC_SUPABASE_URL: https://database.invalid
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_fixture
-        run: node deploy/vercel-build.mjs
+        run: |
+          node deploy/vercel-build.mjs
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { existsSync, readFileSync } from 'node:fs';
+          const { config } = JSON.parse(readFileSync('apps/web/.next/required-server-files.json', 'utf8'));
+          assert.equal(config.output, undefined, 'Vercel must use the adapter output');
+          assert.equal(existsSync('apps/web/.next/standalone'), false, 'Vercel must not package a standalone server');
+          NODE
       - name: Verify native API release packaging
         run: bash ops/package-api.sh "$RUNNER_TEMP/osekola-api.tar.gz"
       - name: Verify API staging without starting a service
