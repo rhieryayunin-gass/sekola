@@ -1,0 +1,67 @@
+name: Trusted Integration Phase 51-54 Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Inspect or apply the reviewed integration migrations
+        required: true
+        default: inspect
+        type: choice
+        options: [inspect, apply]
+      confirmation:
+        description: Use APPLY_0056_0059 only after reviewing inspect and preflight
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sekola-staging-migrations
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+    steps:
+      - name: Validate operation and explicit confirmation
+        env:
+          OPERATION: ${{ inputs.operation }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          test "$OPERATION" = inspect || test "$OPERATION" = apply
+          if [ "$OPERATION" = apply ]; then test "$CONFIRMATION" = APPLY_0056_0059; fi
+
+      - name: Check out immutable Phase 51-54 implementation
+        uses: actions/checkout@v4
+        with:
+          repository: rhieryayunin-gass/sekola
+          ref: d6ff5204109dc34986c513bf28a217d1556f97d9
+          persist-credentials: false
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+
+      - name: Inspect or apply staging migrations
+        env:
+          OPERATION: ${{ inputs.operation }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          test -n "$SUPABASE_PROJECT_REF"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_DB_PASSWORD"
+          mkdir -p .staging-db/supabase/migrations
+          cp apps/api/database/migrations/*.sql .staging-db/supabase/migrations/
+          supabase init --workdir .staging-db
+          supabase link --workdir .staging-db --project-ref "$SUPABASE_PROJECT_REF"
+          supabase migration list --workdir .staging-db --linked
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+          if [ "$OPERATION" = apply ]; then
+            supabase db push --workdir .staging-db --linked --include-all
+            supabase migration list --workdir .staging-db --linked
+          fi

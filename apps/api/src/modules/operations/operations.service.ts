@@ -1,40 +1,96 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { AuthorizationService } from "../../common/authorization/authorization.service";
+import { databaseError } from "../../common/data/database-error";
+import { PageDto, pageRange } from "../../common/data/page.dto";
 import { SupabaseService } from "../../common/supabase/supabase.service";
 import { AuditService } from "../audit/audit.service";
 
-type DomainType="ROOM_BOOKING"|"LEAVE_REQUEST"|"SCHEDULE_CHANGE";
-
+type Resource = "rooms" | "room_bookings" | "leave_requests" | "schedule_change_requests";
 @Injectable()
 export class OperationsService {
-  constructor(private readonly supabase:SupabaseService,private readonly audit:AuditService){}
-  private get c(){return this.supabase.getClient();}
-  private async tenant(userId:string){const {data}=await this.c.from("users").select("tenant_id,is_active").eq("id",userId).single();if(!data?.tenant_id||!data.is_active)throw new NotFoundException("Active tenant user not found");return data.tenant_id as string;}
-  private async activeUser(tenantId:string,userId:string){const {data}=await this.c.from("users").select("id").eq("id",userId).eq("tenant_id",tenantId).eq("is_active",true).single();if(!data)throw new BadRequestException("Approver does not belong to the current tenant");}
-  private async notify(tenantId:string,userId:string,title:string,body:string,resourceType:string,resourceId:string,type="ACTION_REQUIRED"){await this.c.from("notifications").insert({tenant_id:tenantId,user_id:userId,type,title,body,resource_type:resourceType,resource_id:resourceId});}
-  private async calendar(tenantId:string,userId:string){const {data}=await this.c.from("calendars").select("id").eq("tenant_id",tenantId).eq("owner_user_id",userId).eq("is_active",true).limit(1).maybeSingle();if(data)return data.id as string;const {data:created,error}=await this.c.from("calendars").insert({tenant_id:tenantId,owner_user_id:userId,name:"Operational calendar",description:"Approved operational requests"}).select("id").single();if(error||!created)throw new InternalServerErrorException("Unable to initialize operational calendar");return created.id as string;}
-  private async createApproval(tenantId:string,requesterUserId:string,resourceType:string,resourceId:string,title:string,approvers:string[]){if(!approvers.length)throw new BadRequestException("At least one approver is required");for(const approver of approvers)await this.activeUser(tenantId,approver);if(new Set(approvers).size!==approvers.length)throw new BadRequestException("Approvers must be unique");const {data,error}=await this.c.from("approval_requests").insert({tenant_id:tenantId,requester_user_id:requesterUserId,resource_type:resourceType,resource_id:resourceId,title}).select("*").single();if(error||!data)throw new InternalServerErrorException("Unable to create approval request");const steps=approvers.map((approver_user_id,index)=>({tenant_id:tenantId,approval_request_id:data.id,approver_user_id,sequence:index+1}));const {error:stepError}=await this.c.from("approval_steps").insert(steps);if(stepError){await this.c.from("approval_requests").delete().eq("id",data.id);throw new InternalServerErrorException("Unable to create approval chain");}await this.notify(tenantId,approvers[0],"Approval required",title,"approval_request",data.id);return data;}
-  private async domainDecision(tenantId:string,request:{resource_type:string;resource_id:string;requester_user_id:string},decision:"APPROVED"|"REJECTED"){
-    const table:Record<DomainType,string>={ROOM_BOOKING:"room_bookings",LEAVE_REQUEST:"leave_requests",SCHEDULE_CHANGE:"schedule_change_requests"};
-    if(!(request.resource_type in table))return;
-    const resourceType=request.resource_type as DomainType;const targetTable=table[resourceType];
-    const {data:resource}=await this.c.from(targetTable).select("*").eq("id",request.resource_id).eq("tenant_id",tenantId).single();if(!resource)return;
-    await this.c.from(targetTable).update({status:decision,updated_at:new Date().toISOString()}).eq("id",request.resource_id).eq("tenant_id",tenantId);
-    if(decision==="APPROVED"){
-      if(resourceType==="SCHEDULE_CHANGE"){await this.c.from("calendar_events").update({starts_at:resource.proposed_starts_at,ends_at:resource.proposed_ends_at}).eq("id",resource.calendar_event_id);}
-      else {const calendarId=await this.calendar(tenantId,resource.requester_user_id);const startsAt=resourceType==="ROOM_BOOKING"?resource.starts_at:`${resource.starts_on}T00:00:00.000Z`;const endsAt=resourceType==="ROOM_BOOKING"?resource.ends_at:`${resource.ends_on}T23:59:59.999Z`;const title=resourceType==="ROOM_BOOKING"?resource.title:`Leave · ${resource.leave_type}`;const {data:event}=await this.c.from("calendar_events").insert({calendar_id:calendarId,title,description:resource.purpose??resource.reason??null,starts_at:startsAt,ends_at:endsAt,is_all_day:resourceType==="LEAVE_REQUEST",event_type:"GENERAL",requires_approval:false}).select("id").single();if(event)await this.c.from(targetTable).update({calendar_event_id:event.id}).eq("id",resource.id).eq("tenant_id",tenantId);}
-    }
-    await this.notify(tenantId,request.requester_user_id,`Request ${decision.toLowerCase()}`,`Your ${resourceType.toLowerCase().replaceAll("_"," ")} was ${decision.toLowerCase()}.`,resourceType.toLowerCase(),request.resource_id,decision==="APPROVED"?"SUCCESS":"WARNING");
+  constructor(private readonly supabase: SupabaseService, private readonly audit: AuditService, private readonly authorization: AuthorizationService) {}
+  private get client() { return this.supabase.getClient(); }
+  private async tenant(userId: string) {
+    const { data, error } = await this.client.from("users").select("tenant_id,is_active").eq("id", userId).single();
+    if (error || !data?.tenant_id || !data.is_active) throw new NotFoundException("Active tenant user not found");
+    return data.tenant_id as string;
   }
-
-  async list(userId:string,resource:"rooms"|"room_bookings"|"leave_requests"|"schedule_change_requests"){const tenantId=await this.tenant(userId);const {data,error}=await this.c.from(resource).select("*").eq("tenant_id",tenantId).order("created_at",{ascending:false});if(error)throw new InternalServerErrorException("Unable to fetch operational records");return data??[];}
-  async createRoom(userId:string,input:Record<string,unknown>){const tenantId=await this.tenant(userId);const {data,error}=await this.c.from("rooms").insert({...input,tenant_id:tenantId,name:String(input.name??"").trim()}).select("*").single();if(error?.code==="23505")throw new ConflictException("Room code already exists");if(error||!data)throw new InternalServerErrorException("Unable to create room");await this.audit.record({tenantId,actorUserId:userId,action:"CREATE",module:"OPERATIONS",resourceType:"rooms",resourceId:data.id,afterState:data});return data;}
-  async updateRoom(userId:string,id:string,input:Record<string,unknown>){const tenantId=await this.tenant(userId);const {data:before}=await this.c.from("rooms").select("*").eq("id",id).eq("tenant_id",tenantId).single();if(!before)throw new NotFoundException("Room not found");const {data,error}=await this.c.from("rooms").update(input).eq("id",id).eq("tenant_id",tenantId).select("*").single();if(error||!data)throw new InternalServerErrorException("Unable to update room");await this.audit.record({tenantId,actorUserId:userId,action:"UPDATE",module:"OPERATIONS",resourceType:"rooms",resourceId:id,beforeState:before,afterState:data});return data;}
-  async deleteRoom(userId:string,id:string){const tenantId=await this.tenant(userId);const {data:before}=await this.c.from("rooms").select("*").eq("id",id).eq("tenant_id",tenantId).single();if(!before)throw new NotFoundException("Room not found");const {error}=await this.c.from("rooms").delete().eq("id",id).eq("tenant_id",tenantId);if(error)throw new ConflictException("Room is in use");await this.audit.record({tenantId,actorUserId:userId,action:"DELETE",module:"OPERATIONS",resourceType:"rooms",resourceId:id,beforeState:before});return{success:true,id};}
-  async createBooking(userId:string,input:Record<string,unknown>){const tenantId=await this.tenant(userId);const {data:room}=await this.c.from("rooms").select("id").eq("id",String(input.room_id)).eq("tenant_id",tenantId).eq("is_active",true).single();if(!room)throw new BadRequestException("Active room not found");const starts=String(input.starts_at),ends=String(input.ends_at);if(new Date(ends)<=new Date(starts))throw new BadRequestException("Booking end must be after start");const {data:conflict}=await this.c.from("room_bookings").select("id").eq("room_id",room.id).in("status",["PENDING","APPROVED"]).lt("starts_at",ends).gt("ends_at",starts).limit(1).maybeSingle();if(conflict)throw new ConflictException("Room is unavailable for the selected time");const {approver_user_ids,...values}=input;const {data,error}=await this.c.from("room_bookings").insert({...values,tenant_id:tenantId,requester_user_id:userId}).select("*").single();if(error||!data)throw new InternalServerErrorException("Unable to create room booking");const approval=await this.createApproval(tenantId,userId,"ROOM_BOOKING",data.id,`Room booking: ${data.title}`,approver_user_ids as string[]);await this.c.from("room_bookings").update({approval_request_id:approval.id}).eq("id",data.id);const result={...data,approval_request_id:approval.id};await this.audit.record({tenantId,actorUserId:userId,action:"CREATE",module:"OPERATIONS",resourceType:"room_bookings",resourceId:data.id,afterState:result});return result;}
-  async createGenericApproval(userId:string,input:Record<string,unknown>){const tenantId=await this.tenant(userId);const approval=await this.createApproval(tenantId,userId,String(input.resource_type),String(input.resource_id),String(input.title),(input.approver_user_ids??[]) as string[]);await this.audit.record({tenantId,actorUserId:userId,action:"CREATE",module:"APPROVAL",resourceType:"approval_requests",resourceId:approval.id,afterState:approval});return approval;}
-  async approvals(userId:string){const tenantId=await this.tenant(userId);const {data,error}=await this.c.from("approval_requests").select("*,approval_steps(*)").eq("tenant_id",tenantId).order("created_at",{ascending:false});if(error)throw new InternalServerErrorException("Unable to fetch approvals");return data??[];}
-  async decide(userId:string,id:string,decision:"APPROVED"|"REJECTED",note?:string){const tenantId=await this.tenant(userId);const {data:request}=await this.c.from("approval_requests").select("*").eq("id",id).eq("tenant_id",tenantId).eq("status","PENDING").single();if(!request)throw new NotFoundException("Pending approval request not found");const {data:step}=await this.c.from("approval_steps").select("*").eq("approval_request_id",id).eq("sequence",request.current_step).eq("tenant_id",tenantId).single();if(!step||step.approver_user_id!==userId)throw new ForbiddenException("This approval step is assigned to another user");await this.c.from("approval_steps").update({status:decision,note:note??null,decided_at:new Date().toISOString()}).eq("id",step.id);const final=decision;if(decision==="APPROVED"){const {data:next}=await this.c.from("approval_steps").select("*").eq("approval_request_id",id).eq("sequence",request.current_step+1).maybeSingle();if(next){await this.c.from("approval_requests").update({current_step:request.current_step+1}).eq("id",id);await this.notify(tenantId,next.approver_user_id,"Approval required",request.title,"approval_request",id);return{...request,current_step:request.current_step+1,status:"PENDING"};}}await this.c.from("approval_requests").update({status:final,decided_at:new Date().toISOString()}).eq("id",id);await this.domainDecision(tenantId,request,final);await this.audit.record({tenantId,actorUserId:userId,action:final,module:"APPROVAL",resourceType:"approval_requests",resourceId:id,beforeState:request,afterState:{status:final}});return{...request,status:final};}
-  async createLeave(userId:string,input:Record<string,unknown>){const tenantId=await this.tenant(userId);if(new Date(String(input.ends_on))<new Date(String(input.starts_on)))throw new BadRequestException("Leave end must be on or after start");const {approver_user_ids,...values}=input;const {data,error}=await this.c.from("leave_requests").insert({...values,tenant_id:tenantId,requester_user_id:userId}).select("*").single();if(error||!data)throw new InternalServerErrorException("Unable to create leave request");const approval=await this.createApproval(tenantId,userId,"LEAVE_REQUEST",data.id,`Leave request: ${data.leave_type}`,approver_user_ids as string[]);await this.c.from("leave_requests").update({approval_request_id:approval.id}).eq("id",data.id);const result={...data,approval_request_id:approval.id};await this.audit.record({tenantId,actorUserId:userId,action:"CREATE",module:"OPERATIONS",resourceType:"leave_requests",resourceId:data.id,afterState:result});return result;}
-  async createScheduleChange(userId:string,input:Record<string,unknown>){const tenantId=await this.tenant(userId);const {data:event}=await this.c.from("calendar_events").select("id,calendars!inner(tenant_id)").eq("id",String(input.calendar_event_id)).eq("calendars.tenant_id",tenantId).single();if(!event)throw new BadRequestException("Calendar event not found in current tenant");if(new Date(String(input.proposed_ends_at))<=new Date(String(input.proposed_starts_at)))throw new BadRequestException("Proposed end must be after start");const {approver_user_ids,...values}=input;const {data,error}=await this.c.from("schedule_change_requests").insert({...values,tenant_id:tenantId,requester_user_id:userId}).select("*").single();if(error||!data)throw new InternalServerErrorException("Unable to create schedule change");const approval=await this.createApproval(tenantId,userId,"SCHEDULE_CHANGE",data.id,"Schedule change request",approver_user_ids as string[]);await this.c.from("schedule_change_requests").update({approval_request_id:approval.id}).eq("id",data.id);const result={...data,approval_request_id:approval.id};await this.audit.record({tenantId,actorUserId:userId,action:"CREATE",module:"OPERATIONS",resourceType:"schedule_change_requests",resourceId:data.id,afterState:result});return result;}
-  async cancel(userId:string,resource:"room_bookings"|"leave_requests"|"schedule_change_requests",id:string){const tenantId=await this.tenant(userId);const {data:before}=await this.c.from(resource).select("*").eq("id",id).eq("tenant_id",tenantId).single();if(!before)throw new NotFoundException("Request not found");if(before.requester_user_id!==userId)throw new ForbiddenException("Only the requester can cancel this request");if(before.status!=="PENDING")throw new ConflictException("Only pending requests can be cancelled");await this.c.from(resource).update({status:"CANCELLED",updated_at:new Date().toISOString()}).eq("id",id).eq("tenant_id",tenantId);if(before.approval_request_id)await this.c.from("approval_requests").update({status:"CANCELLED",decided_at:new Date().toISOString()}).eq("id",before.approval_request_id).eq("tenant_id",tenantId);await this.audit.record({tenantId,actorUserId:userId,action:"CANCEL",module:"OPERATIONS",resourceType:resource,resourceId:id,beforeState:before,afterState:{status:"CANCELLED"}});return{success:true,id};}
+  async list(userId: string, resource: Resource, page = new PageDto()) {
+    const tenantId = await this.tenant(userId);
+    let query = this.client.from(resource).select("*").eq("tenant_id", tenantId);
+    // Leave reasons and schedule requests are private to requester and administrators.
+    if (resource !== "rooms" && resource !== "room_bookings" && !await this.authorization.hasPermission(userId, "approvals.read_all")) query = query.eq("requester_user_id", userId);
+    const { data, error } = await query.order("created_at", { ascending: false }).order("id").range(...pageRange(page));
+    if (error) databaseError(error);
+    return data ?? [];
+  }
+  async createRoom(userId: string, input: Record<string, unknown>) {
+    const tenantId = await this.tenant(userId);
+    const { data, error } = await this.client.from("rooms").insert({ ...input, tenant_id: tenantId }).select("*").single();
+    if (error || !data) databaseError(error);
+    await this.audit.record({ tenantId, actorUserId: userId, action: "CREATE", module: "OPERATIONS", resourceType: "rooms", resourceId: data.id, afterState: data });
+    return data;
+  }
+  async updateRoom(userId: string, id: string, input: Record<string, unknown>) {
+    if (!Object.keys(input).length) throw new BadRequestException("At least one field is required");
+    const tenantId = await this.tenant(userId);
+    const { data, error } = await this.client.from("rooms").update({ ...input, updated_at: new Date().toISOString() }).eq("id", id).eq("tenant_id", tenantId).select("*").maybeSingle();
+    if (error) databaseError(error);
+    if (!data) throw new NotFoundException("Room not found");
+    await this.audit.record({ tenantId, actorUserId: userId, action: "UPDATE", module: "OPERATIONS", resourceType: "rooms", resourceId: id, afterState: data });
+    return data;
+  }
+  async deleteRoom(userId: string, id: string) {
+    const tenantId = await this.tenant(userId);
+    const { data, error } = await this.client.from("rooms").delete().eq("id", id).eq("tenant_id", tenantId).select("id").maybeSingle();
+    if (error) databaseError(error);
+    if (!data) throw new NotFoundException("Room not found");
+    await this.audit.record({ tenantId, actorUserId: userId, action: "DELETE", module: "OPERATIONS", resourceType: "rooms", resourceId: id });
+    return { success: true, id };
+  }
+  private async submit(userId: string, kind: string, input: Record<string, unknown>) {
+    const { approver_user_ids, ...payload } = input;
+    const { data, error } = await this.client.rpc("submit_operational_request", { actor_id: userId, kind, payload, approvers: approver_user_ids });
+    if (error || !data) databaseError(error);
+    return data;
+  }
+  createBooking(userId: string, input: Record<string, unknown>) { return this.submit(userId, "ROOM_BOOKING", input); }
+  createLeave(userId: string, input: Record<string, unknown>) { return this.submit(userId, "LEAVE_REQUEST", input); }
+  createScheduleChange(userId: string, input: Record<string, unknown>) { return this.submit(userId, "SCHEDULE_CHANGE", input); }
+  createGenericApproval(userId: string, input: Record<string, unknown>) {
+    if (["ROOM_BOOKING", "LEAVE_REQUEST", "SCHEDULE_CHANGE"].includes(String(input.resource_type))) throw new BadRequestException("Use the operational request endpoint for this resource");
+    return this.submit(userId, "GENERIC", input);
+  }
+  async approvals(userId: string, page = new PageDto()) {
+    const tenantId = await this.tenant(userId);
+    // Two bounded queries avoid assembling an unbounded IN list of approval IDs.
+    if (!await this.authorization.hasPermission(userId, "approvals.read_all")) {
+      const { data, error } = await this.client.rpc("list_my_approvals", { actor_id: userId, page_offset: pageRange(page)[0], page_limit: pageRange(page)[1] - pageRange(page)[0] + 1 });
+      if (error) databaseError(error);
+      return data ?? [];
+    }
+    const { data, error } = await this.client.from("approval_requests").select("*,approval_steps(*)").eq("tenant_id", tenantId).order("created_at", { ascending: false }).order("id").range(...pageRange(page));
+    if (error) databaseError(error);
+    return data ?? [];
+  }
+  async approvers(userId: string, page = new PageDto()) {
+    const range = pageRange(page);
+    const { data, error } = await this.client.rpc("list_operational_approvers", { actor_id: userId, page_offset: range[0], page_limit: range[1] - range[0] + 1 });
+    if (error) databaseError(error);
+    return data ?? [];
+  }
+  async decide(userId: string, id: string, decision: "APPROVED" | "REJECTED", note?: string) {
+    const { data, error } = await this.client.rpc("decide_operational_request", { actor_id: userId, request_id: id, decision, note: note ?? null });
+    if (error || !data) databaseError(error);
+    return data;
+  }
+  async cancel(userId: string, resource: Exclude<Resource, "rooms">, id: string) {
+    const tenantId = await this.tenant(userId);
+    const { data } = await this.client.from(resource).select("approval_request_id,requester_user_id").eq("id", id).eq("tenant_id", tenantId).single();
+    if (!data) throw new NotFoundException("Request not found");
+    if (data.requester_user_id !== userId) throw new ForbiddenException("Only the requester can cancel");
+    const result = await this.client.rpc("decide_operational_request", { actor_id: userId, request_id: data.approval_request_id, decision: "CANCELLED", note: null });
+    if (result.error) databaseError(result.error);
+    return { success: true, id };
+  }
 }

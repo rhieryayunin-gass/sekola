@@ -20,10 +20,11 @@ export class CalendarEventsService {
   private async ensureCalendarOwner(
     userId: string,
     calendarId: string,
+    mutation = false,
   ) {
     const { data, error } = await this.client
       .from("calendars")
-      .select("id, tenant_id")
+      .select("id, tenant_id, integration_managed")
       .eq("id", calendarId)
       .eq("owner_user_id", userId)
       .single();
@@ -32,6 +33,7 @@ export class CalendarEventsService {
       throw new NotFoundException("Calendar not found");
     }
 
+    if (mutation && data.integration_managed) throw new BadRequestException("Manage integrated events through their source module");
     return data;
   }
 
@@ -125,6 +127,7 @@ export class CalendarEventsService {
     await this.ensureCalendarOwner(
       userId,
       calendarId,
+      true,
     );
 
     this.validateEventTimes(
@@ -182,6 +185,7 @@ export class CalendarEventsService {
     await this.ensureCalendarOwner(
       userId,
       calendarId,
+      true,
     );
 
     const { data: existingEvent, error: existingError } =
@@ -260,6 +264,7 @@ export class CalendarEventsService {
     await this.ensureCalendarOwner(
       userId,
       calendarId,
+      true,
     );
 
     const { data, error } = await this.client

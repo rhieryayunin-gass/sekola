@@ -130,6 +130,7 @@ async update(
     })
     .eq("id", calendarId)
     .eq("owner_user_id", userId)
+    .eq("integration_managed", false)
     .select(`
       id,
       name,
@@ -160,6 +161,7 @@ async remove(
     .delete()
     .eq("id", calendarId)
     .eq("owner_user_id", userId)
+    .eq("integration_managed", false)
     .select("id")
     .single();
 

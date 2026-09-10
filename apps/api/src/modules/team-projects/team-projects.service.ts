@@ -1,3 +1,5 @@
+import { databaseError } from "../../common/data/database-error";
+import { PageDto, pageRange } from "../../common/data/page.dto";
 import {
   BadRequestException,
   ConflictException,
@@ -43,7 +45,7 @@ export class TeamProjectsService {
     if (!data) throw new BadRequestException("User does not belong to the current tenant");
   }
 
-  private async project(tenantId: string, projectId: string) {
+  private async project(tenantId: string, projectId: string, userId: string, mode: "read" | "write" | "manage" = "read") {
     const { data } = await this.client
       .from("team_projects")
       .select("*")
@@ -51,10 +53,22 @@ export class TeamProjectsService {
       .eq("tenant_id", tenantId)
       .single();
     if (!data) throw new NotFoundException("Team+ project not found");
+    const [settings, member] = await Promise.all([
+      this.client.from("team_project_settings").select("visibility").eq("tenant_id", tenantId).eq("project_id", projectId).maybeSingle(),
+      this.client.from("team_project_members").select("member_role").eq("tenant_id", tenantId).eq("project_id", projectId).eq("user_id", userId).maybeSingle(),
+    ]);
+    if (settings.error || member.error) throw new InternalServerErrorException("Unable to verify project access");
+    const owner = data.owner_user_id === userId;
+    const role = member.data?.member_role;
+    const allowed = mode === "manage" ? owner || role === "MANAGER"
+      : mode === "write" ? owner || role === "MANAGER" || role === "MEMBER"
+      : owner || Boolean(role) || settings.data?.visibility === "TENANT";
+    if (!allowed) throw new ForbiddenException("Project access is not permitted");
     return data;
   }
 
-  private async task(tenantId: string, projectId: string, taskId: string) {
+  private async task(tenantId: string, projectId: string, taskId: string, userId: string) {
+    await this.project(tenantId, projectId, userId);
     const { data } = await this.client
       .from("team_tasks")
       .select("*")
@@ -86,14 +100,11 @@ export class TeamProjectsService {
     });
   }
 
-  async list(userId: string) {
-    const tenantId = await this.tenant(userId);
-    const { data, error } = await this.client
-      .from("team_projects")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .order("created_at", { ascending: false });
-    if (error) throw new InternalServerErrorException("Unable to fetch Team+ projects");
+  async list(userId: string, page = new PageDto()) {
+    await this.tenant(userId);
+    const range = pageRange(page);
+    const { data, error } = await this.client.rpc("list_visible_projects", { actor_id: userId, page_offset: range[0], page_limit: range[1]-range[0]+1 });
+    if (error) throw new InternalServerErrorException("Unable to fetch projects");
     return data ?? [];
   }
 
@@ -140,7 +151,8 @@ export class TeamProjectsService {
 
   async update(userId: string, projectId: string, input: Record<string, unknown>) {
     const tenantId = await this.tenant(userId);
-    const before = await this.project(tenantId, projectId);
+    await this.project(tenantId, projectId, userId, "manage");
+    const before = await this.project(tenantId, projectId, userId);
     if (input.owner_user_id) await this.activeTenantUser(tenantId, String(input.owner_user_id));
     const changes = Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined));
     if (typeof changes.name === "string") changes.name = changes.name.trim();
@@ -164,7 +176,8 @@ export class TeamProjectsService {
 
   async remove(userId: string, projectId: string) {
     const tenantId = await this.tenant(userId);
-    const before = await this.project(tenantId, projectId);
+    await this.project(tenantId, projectId, userId, "manage");
+    const before = await this.project(tenantId, projectId, userId);
     const { error } = await this.client.from("team_projects").delete().eq("id", projectId).eq("tenant_id", tenantId);
     if (error) throw new ConflictException("Project cannot be deleted");
     await this.audit.record({ tenantId, actorUserId: userId, action: "DELETE", module: "TEAM", resourceType: "team_projects", resourceId: projectId, beforeState: before });
@@ -173,7 +186,7 @@ export class TeamProjectsService {
 
   async listMembers(userId: string, projectId: string) {
     const tenantId = await this.tenant(userId);
-    await this.project(tenantId, projectId);
+    await this.project(tenantId, projectId, userId);
     const { data, error } = await this.client
       .from("team_project_members")
       .select("*, user:user_id(id,full_name,email)")
@@ -186,7 +199,8 @@ export class TeamProjectsService {
 
   async addMember(userId: string, projectId: string, input: Record<string, unknown>) {
     const tenantId = await this.tenant(userId);
-    await this.project(tenantId, projectId);
+    await this.project(tenantId, projectId, userId, "manage");
+    await this.project(tenantId, projectId, userId);
     await this.activeTenantUser(tenantId, String(input.user_id ?? ""));
     const { data, error } = await this.client
       .from("team_project_members")
@@ -202,7 +216,8 @@ export class TeamProjectsService {
 
   async updateMember(userId: string, projectId: string, memberId: string, input: Record<string, unknown>) {
     const tenantId = await this.tenant(userId);
-    const project = await this.project(tenantId, projectId);
+    await this.project(tenantId, projectId, userId, "manage");
+    const project = await this.project(tenantId, projectId, userId);
     const { data: before } = await this.client.from("team_project_members").select("*").eq("id", memberId).eq("project_id", projectId).eq("tenant_id", tenantId).single();
     if (!before) throw new NotFoundException("Project member not found");
     if (before.user_id === project.owner_user_id) throw new ConflictException("Change the project owner from project settings");
@@ -215,7 +230,8 @@ export class TeamProjectsService {
 
   async removeMember(userId: string, projectId: string, memberId: string) {
     const tenantId = await this.tenant(userId);
-    const project = await this.project(tenantId, projectId);
+    await this.project(tenantId, projectId, userId, "manage");
+    const project = await this.project(tenantId, projectId, userId);
     const { data: before } = await this.client.from("team_project_members").select("*").eq("id", memberId).eq("project_id", projectId).eq("tenant_id", tenantId).single();
     if (!before) throw new NotFoundException("Project member not found");
     if (before.user_id === project.owner_user_id) throw new ConflictException("Project owner cannot be removed");
@@ -228,7 +244,7 @@ export class TeamProjectsService {
 
   async getSettings(userId: string, projectId: string) {
     const tenantId = await this.tenant(userId);
-    await this.project(tenantId, projectId);
+    await this.project(tenantId, projectId, userId);
     const { data, error } = await this.client.from("team_project_settings").select("*").eq("project_id", projectId).eq("tenant_id", tenantId).single();
     if (error || !data) throw new NotFoundException("Project settings not found");
     return data;
@@ -236,7 +252,8 @@ export class TeamProjectsService {
 
   async updateSettings(userId: string, projectId: string, input: Record<string, unknown>) {
     const tenantId = await this.tenant(userId);
-    await this.project(tenantId, projectId);
+    await this.project(tenantId, projectId, userId, "manage");
+    await this.project(tenantId, projectId, userId);
     if (!Object.keys(input).length) throw new BadRequestException("At least one setting is required");
     const { data: before } = await this.client.from("team_project_settings").select("*").eq("project_id", projectId).eq("tenant_id", tenantId).single();
     const { data, error } = await this.client.from("team_project_settings").update({ ...input, updated_at: new Date().toISOString() }).eq("project_id", projectId).eq("tenant_id", tenantId).select("*").single();
@@ -246,24 +263,25 @@ export class TeamProjectsService {
     return data;
   }
 
-  async listTasks(userId: string, projectId: string) {
+  async listTasks(userId: string, projectId: string, page = new PageDto()) {
     const tenantId = await this.tenant(userId);
-    await this.project(tenantId, projectId);
+    await this.project(tenantId, projectId, userId);
     const { data, error } = await this.client
       .from("team_tasks")
       .select("*, assignee:assignee_user_id(id,full_name,email)")
       .eq("tenant_id", tenantId)
       .eq("project_id", projectId)
       .order("sort_order")
-      .order("created_at");
+      .order("created_at").order("id").range(...pageRange(page));
     if (error) throw new InternalServerErrorException("Unable to fetch Team+ tasks");
     return data ?? [];
   }
 
   async createTask(userId: string, projectId: string, input: Record<string, unknown>) {
     const tenantId = await this.tenant(userId);
-    await this.project(tenantId, projectId);
-    if (input.assignee_user_id) await this.activeTenantUser(tenantId, String(input.assignee_user_id));
+    await this.project(tenantId, projectId, userId, "write");
+    await this.project(tenantId, projectId, userId);
+    if (input.assignee_user_id) { await this.activeTenantUser(tenantId, String(input.assignee_user_id)); await this.project(tenantId, projectId, String(input.assignee_user_id)); }
     const values = {
       ...input,
       title: String(input.title ?? "").trim(),
@@ -280,8 +298,9 @@ export class TeamProjectsService {
 
   async updateTask(userId: string, projectId: string, taskId: string, input: Record<string, unknown>) {
     const tenantId = await this.tenant(userId);
-    const before = await this.task(tenantId, projectId, taskId);
-    if (input.assignee_user_id) await this.activeTenantUser(tenantId, String(input.assignee_user_id));
+    await this.project(tenantId, projectId, userId, "write");
+    const before = await this.task(tenantId, projectId, taskId, userId);
+    if (input.assignee_user_id) { await this.activeTenantUser(tenantId, String(input.assignee_user_id)); await this.project(tenantId, projectId, String(input.assignee_user_id)); }
     const changes = Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined));
     if (typeof changes.title === "string") changes.title = changes.title.trim();
     if (!Object.keys(changes).length) throw new BadRequestException("At least one field is required");
@@ -301,7 +320,8 @@ export class TeamProjectsService {
 
   async removeTask(userId: string, projectId: string, taskId: string) {
     const tenantId = await this.tenant(userId);
-    const before = await this.task(tenantId, projectId, taskId);
+    await this.project(tenantId, projectId, userId, "write");
+    const before = await this.task(tenantId, projectId, taskId, userId);
     const { error } = await this.client.from("team_tasks").delete().eq("id", taskId).eq("project_id", projectId).eq("tenant_id", tenantId);
     if (error) throw new InternalServerErrorException("Unable to delete Team+ task");
     await this.activity(tenantId, projectId, userId, "TASK_DELETED", "team_tasks", taskId, { title: before.title });
@@ -311,7 +331,7 @@ export class TeamProjectsService {
 
   async listComments(userId: string, projectId: string, taskId: string) {
     const tenantId = await this.tenant(userId);
-    await this.task(tenantId, projectId, taskId);
+    await this.task(tenantId, projectId, taskId, userId);
     const { data, error } = await this.client.from("team_task_comments").select("*, author:author_user_id(id,full_name,email)").eq("tenant_id", tenantId).eq("project_id", projectId).eq("task_id", taskId).order("created_at");
     if (error) throw new InternalServerErrorException("Unable to fetch task comments");
     return data ?? [];
@@ -319,8 +339,9 @@ export class TeamProjectsService {
 
   async addComment(userId: string, projectId: string, taskId: string, input: Record<string, unknown>) {
     const tenantId = await this.tenant(userId);
-    const project = await this.project(tenantId, projectId);
-    await this.task(tenantId, projectId, taskId);
+    await this.project(tenantId, projectId, userId, "write");
+    const project = await this.project(tenantId, projectId, userId);
+    await this.task(tenantId, projectId, taskId, userId);
     const { data: settings } = await this.client.from("team_project_settings").select("allow_member_comments").eq("project_id", projectId).eq("tenant_id", tenantId).single();
     if (settings?.allow_member_comments === false && project.owner_user_id !== userId) {
       throw new ForbiddenException("Project member comments are disabled");
@@ -334,9 +355,11 @@ export class TeamProjectsService {
 
   async removeComment(userId: string, projectId: string, taskId: string, commentId: string) {
     const tenantId = await this.tenant(userId);
-    await this.task(tenantId, projectId, taskId);
+    await this.project(tenantId, projectId, userId, "write");
+    await this.task(tenantId, projectId, taskId, userId);
     const { data: before } = await this.client.from("team_task_comments").select("*").eq("id", commentId).eq("task_id", taskId).eq("tenant_id", tenantId).single();
     if (!before) throw new NotFoundException("Task comment not found");
+    if (before.author_user_id !== userId) await this.project(tenantId, projectId, userId, "manage");
     const { error } = await this.client.from("team_task_comments").delete().eq("id", commentId).eq("task_id", taskId).eq("tenant_id", tenantId);
     if (error) throw new InternalServerErrorException("Unable to delete task comment");
     await this.activity(tenantId, projectId, userId, "COMMENT_DELETED", "team_task_comments", commentId, { task_id: taskId });
@@ -346,7 +369,7 @@ export class TeamProjectsService {
 
   async listActivity(userId: string, projectId: string) {
     const tenantId = await this.tenant(userId);
-    await this.project(tenantId, projectId);
+    await this.project(tenantId, projectId, userId);
     const { data, error } = await this.client.from("team_project_activity").select("*, actor:actor_user_id(id,full_name,email)").eq("tenant_id", tenantId).eq("project_id", projectId).order("created_at", { ascending: false }).limit(100);
     if (error) throw new InternalServerErrorException("Unable to fetch project activity");
     return data ?? [];
@@ -354,7 +377,8 @@ export class TeamProjectsService {
 
   async projectFinance(userId: string, projectId: string) {
     const tenantId = await this.tenant(userId);
-    await this.project(tenantId, projectId);
+    await this.project(tenantId, projectId, userId, "manage");
+    await this.project(tenantId, projectId, userId);
     const [invoices, payments, summary] = await Promise.all([
       this.client.from("team_project_invoices").select("*").eq("tenant_id", tenantId).eq("project_id", projectId).order("created_at", { ascending: false }),
       this.client.from("team_project_payments").select("*").eq("tenant_id", tenantId).eq("project_id", projectId).order("paid_at", { ascending: false }),
@@ -366,7 +390,8 @@ export class TeamProjectsService {
 
   async createProjectInvoice(userId: string, projectId: string, input: Record<string, unknown>) {
     const tenantId = await this.tenant(userId);
-    await this.project(tenantId, projectId);
+    await this.project(tenantId, projectId, userId, "manage");
+    await this.project(tenantId, projectId, userId);
     if (input.finance_category_id) {
       const { data } = await this.client.from("finance_categories").select("id").eq("id", String(input.finance_category_id)).eq("tenant_id", tenantId).single();
       if (!data) throw new BadRequestException("Finance category does not belong to the current tenant");
@@ -381,7 +406,8 @@ export class TeamProjectsService {
 
   async createProjectPayment(userId: string, projectId: string, input: Record<string, unknown>) {
     const tenantId = await this.tenant(userId);
-    await this.project(tenantId, projectId);
+    await this.project(tenantId, projectId, userId, "manage");
+    await this.project(tenantId, projectId, userId);
     const { data: invoice } = await this.client.from("team_project_invoices").select("*").eq("id", String(input.project_invoice_id ?? "")).eq("project_id", projectId).eq("tenant_id", tenantId).single();
     if (!invoice) throw new BadRequestException("Project invoice does not belong to this project");
     if (input.finance_account_id) {
@@ -390,11 +416,7 @@ export class TeamProjectsService {
     }
     const { data, error } = await this.client.from("team_project_payments").insert({ ...input, tenant_id: tenantId, project_id: projectId }).select("*").single();
     if (error?.code === "23505") throw new ConflictException("Project receipt number already exists");
-    if (error || !data) throw new InternalServerErrorException("Unable to create project payment");
-    const { data: totals } = await this.client.from("team_project_payments").select("amount").eq("project_invoice_id", invoice.id).eq("tenant_id", tenantId).eq("status", "CONFIRMED");
-    const paid = (totals ?? []).reduce((sum, row) => sum + Number(row.amount), 0);
-    const status = paid >= Number(invoice.amount) ? "PAID" : paid > 0 ? "PARTIAL" : invoice.status;
-    await this.client.from("team_project_invoices").update({ status, updated_at: new Date().toISOString() }).eq("id", invoice.id).eq("tenant_id", tenantId);
+    if (error || !data) databaseError(error);
     await this.activity(tenantId, projectId, userId, "PAYMENT_RECORDED", "team_project_payments", data.id, { amount: data.amount, invoice_id: invoice.id });
     await this.audit.record({ tenantId, actorUserId: userId, action: "CREATE", module: "TEAM_FINANCE", resourceType: "team_project_payments", resourceId: data.id, afterState: data });
     return data;

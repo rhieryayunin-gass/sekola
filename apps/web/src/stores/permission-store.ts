@@ -20,13 +20,17 @@ function apiUrl() {
   return url.replace(/\/$/, "");
 }
 
+let requestVersion = 0;
+
 export const usePermissionStore = create<PermissionState>((set, get) => ({
   context: null,
   has: (code) => get().context?.permissions.some((item) => item.code === code) ?? false,
   async load() {
+    const version = ++requestVersion;
+    try {
     const { data, error } = await createClient().auth.getSession();
     if (error || !data.session?.access_token) {
-      set({ context: null });
+      if (version === requestVersion) set({ context: null });
       return;
     }
     const response = await fetch(`${apiUrl()}/auth/context`, {
@@ -34,7 +38,10 @@ export const usePermissionStore = create<PermissionState>((set, get) => ({
     });
     const payload = (await response.json()) as { data?: PermissionContext };
     if (!response.ok || !payload.data) throw new Error("Unable to load permission context");
-    set({ context: payload.data });
+    if (version === requestVersion && payload.data.userId === data.session.user.id) set({ context: payload.data });
+    } catch {
+      if (version === requestVersion) set({ context: null });
+    }
   },
-  reset: () => set({ context: null }),
+  reset: () => { requestVersion++; set({ context: null }); },
 }));
