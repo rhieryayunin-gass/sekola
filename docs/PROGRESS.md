@@ -7,7 +7,7 @@ after its implementation and quality gates pass on the current branch.
 
 ## Current phase
 
-**Level 10 — Phase 51–54 integration and readiness hardening (staging pending)**
+**Level 10 — Phase 51–54 integration and readiness hardening (staging applied; live verification pending)**
 
 Branch: `phase/51-54-integration-hardening`
 
@@ -122,8 +122,8 @@ Branch: `phase/51-54-integration-hardening`
 
 ## Next phase
 
-Phase 43–50 implementation, CI, and staging migrations `0048`–`0055` are complete.
-Live operations workflow verification remains pending.
+Phase 51–54 implementation, CI, and staging migrations `0056`–`0059` are complete.
+Live verification for Phase 43–50 operations and Phase 51–54 remains pending.
 
 ## Remaining roadmap levels
 
@@ -244,10 +244,13 @@ Live operations workflow verification remains pending.
 - [x] PostgreSQL migration replay with legacy prerequisite fixture and Phase 50 upgrade regression CI checkpoint
 - [x] GitHub CI implementation checkpoint (run 114)
 - [x] Commit-pinned trusted runner for migrations `0056`–`0059`
-- [ ] Inspect and apply migrations `0056`–`0059` to Supabase staging
+- [x] Inspect and apply migrations `0056`–`0059` to Supabase staging
 - [ ] Live cross-module, concurrent workflow, tenant-isolation, and representative performance verification
 
-Previous Phase 43–50 live workflow verification remains pending. This batch does
-not mark staging execution, production readiness, or Phase 55 complete.
+Staging inspect and apply succeeded on 2026-09-10, confirmed by the user and
+successful trusted runner executions: [inspect](https://github.com/rhieryayunin-gass/sekola/actions/runs/34474310165)
+and [apply](https://github.com/rhieryayunin-gass/sekola/actions/runs/34474416688).
+Previous Phase 43–50 live workflow verification remains pending. Staging migration
+success does not mark live verification, production readiness, or Phase 55 complete.
 
 Validation scope and remaining release gates: [Phase 51–54 verification](PHASE_51_54_VERIFICATION.md).

@@ -43,8 +43,11 @@ the pending migration list, then run `apply` with `APPLY_0056_0059` only after
 the preflight. The runner checks out an immutable implementation SHA. It does
 not execute the CI database fixture scripts against staging.
 
-No staging inspect/apply has been executed by this implementation PR. Do not
-mark the gate complete based only on lint, unit tests, or migration CI.
+Staging inspect and apply succeeded on 2026-09-10, confirmed by the user and
+successful trusted runner executions: [inspect](https://github.com/rhieryayunin-gass/sekola/actions/runs/34474310165)
+and [apply](https://github.com/rhieryayunin-gass/sekola/actions/runs/34474416688).
+Migrations `0056`–`0059` are applied. This completes the migration gate only;
+the live acceptance checks below remain pending.
 
 ## Live acceptance still required
 
