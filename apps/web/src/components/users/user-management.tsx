@@ -1,4 +1,5 @@
 "use client";
+import { useUiText } from "../i18n/ui-text";
 import { apiBaseUrl } from "../../lib/api/base-url";
 
 import {
@@ -130,7 +131,7 @@ export function UserManagement({
   currentUserId,
 }: {
   currentUserId: string;
-}) {
+}) {const copy=useUiText();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [page, setPage] = useState(1);
@@ -288,20 +289,17 @@ export function UserManagement({
     <>
       <section className="mt-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Badge tone="info">Tenant isolated</Badge>
+          <Badge tone="info">{copy("Tenant isolated")}</Badge>
           <h1 className="mt-3 text-4xl font-black tracking-tight">
-            User management
-          </h1>
+            {copy("User management")}</h1>
           <p className="mt-2 max-w-2xl text-muted">
-            Manage Auth accounts and Core user profiles inside your school.
-          </p>
+            {copy("Manage Auth accounts and Core user profiles inside your school.")}</p>
         </div>
         <Button
           disabled={levelsQuery.isLoading || Boolean(levelsQuery.error)}
           onClick={openCreate}
         >
-          Add user
-        </Button>
+          {copy("Add user")}</Button>
       </section>
 
       <Card className="mt-6">
@@ -310,7 +308,7 @@ export function UserManagement({
           onSubmit={applyFilters}
         >
           <Input
-            label="Search email"
+            label={copy("Search email")}
             name="email-filter"
             onChange={(event) => setEmailDraft(event.target.value)}
             placeholder="name@school.example"
@@ -318,7 +316,7 @@ export function UserManagement({
             value={emailDraft}
           />
           <Select
-            label="Status"
+            label={copy("Status")}
             name="status-filter"
             onChange={(event) => {
               setStatus(event.target.value);
@@ -326,42 +324,40 @@ export function UserManagement({
             }}
             value={status}
           >
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="">{copy("All statuses")}</option>
+            <option value="active">{copy("Active")}</option>
+            <option value="inactive">{copy("Inactive")}</option>
           </Select>
           <Button className="self-end" type="submit" variant="secondary">
-            Apply filters
-          </Button>
+            {copy("Apply filters")}</Button>
         </form>
       </Card>
 
       <section className="mt-4">
         {usersQuery.isLoading && (
-          <Card className="text-sm text-muted">Loading users…</Card>
+          <Card className="text-sm text-muted">{copy("Loading users…")}</Card>
         )}
 
         {usersQuery.error && (
           <EmptyState
             action={
               <Button onClick={() => usersQuery.refetch()}>
-                Try again
-              </Button>
+                {copy("Try again")}</Button>
             }
             description={
               usersQuery.error instanceof Error
                 ? usersQuery.error.message
                 : "Unable to load the tenant user master."
             }
-            title="Users unavailable"
+            title={copy("Users unavailable")}
           />
         )}
 
         {list && list.items.length === 0 && (
           <EmptyState
-            action={<Button onClick={openCreate}>Add first user</Button>}
-            description="No users match the current tenant filters."
-            title="No users found"
+            action={<Button onClick={openCreate}>{copy("Add first user")}</Button>}
+            description={copy("No users match the current tenant filters.")}
+            title={copy("No users found")}
           />
         )}
 
@@ -370,10 +366,10 @@ export function UserManagement({
             <Table>
               <TableHeader>
                 <tr>
-                  <TableHead>User</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{copy("User")}</TableHead>
+                  <TableHead>{copy("Level")}</TableHead>
+                  <TableHead>{copy("Status")}</TableHead>
+                  <TableHead className="text-right">{copy("Actions")}</TableHead>
                 </tr>
               </TableHeader>
               <TableBody>
@@ -388,8 +384,7 @@ export function UserManagement({
                           {user.full_name || "Unnamed user"}
                           {isCurrentUser && (
                             <span className="ml-2 text-xs text-muted">
-                              You
-                            </span>
+                              {copy("You")}</span>
                           )}
                         </p>
                         <p className="mt-1 text-xs text-muted">
@@ -405,12 +400,12 @@ export function UserManagement({
                             </p>
                           </div>
                         ) : (
-                          <span className="text-muted">Unassigned</span>
+                          <span className="text-muted">{copy("Unassigned")}</span>
                         )}
                       </TableCell>
                       <TableCell>
                         <Badge tone={user.is_active ? "success" : "danger"}>
-                          {user.is_active ? "Active" : "Inactive"}
+                          {user.is_active ? copy("Active") : copy("Inactive")}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -420,8 +415,7 @@ export function UserManagement({
                             size="sm"
                             variant="ghost"
                           >
-                            Edit
-                          </Button>
+                            {copy("Edit")}</Button>
                           <Button
                             disabled={
                               isCurrentUser ||
@@ -443,8 +437,7 @@ export function UserManagement({
             </Table>
             <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm">
               <p className="text-muted">
-                {list.pagination.total} user
-                {list.pagination.total === 1 ? "" : "s"}
+                {list.pagination.total} {copy("user")}{list.pagination.total === 1 ? "" : "s"}
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -453,10 +446,9 @@ export function UserManagement({
                   size="sm"
                   variant="ghost"
                 >
-                  Previous
-                </Button>
+                  {copy("Previous")}</Button>
                 <span>
-                  Page {list.pagination.page} of{" "}
+                  {copy("Page")}{list.pagination.page} {copy("of")}{" "}
                   {list.pagination.total_pages}
                 </span>
                 <Button
@@ -467,8 +459,7 @@ export function UserManagement({
                   size="sm"
                   variant="ghost"
                 >
-                  Next
-                </Button>
+                  {copy("Next")}</Button>
               </div>
             </footer>
           </Card>
@@ -476,14 +467,14 @@ export function UserManagement({
       </section>
 
       <Modal
-        description="The account stays inside the current tenant."
+        description={copy("The account stays inside the current tenant.")}
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingUser ? "Edit user" : "Add user"}
+        title={editingUser ? "Edit user" : copy("Add user")}
       >
         <form className="grid gap-4" onSubmit={submitForm}>
           <Input
-            label="Full name"
+            label={copy("Full name")}
             maxLength={160}
             minLength={2}
             name="full_name"
@@ -497,7 +488,7 @@ export function UserManagement({
             value={form.full_name}
           />
           <Input
-            label="Email"
+            label={copy("Email")}
             maxLength={320}
             name="email"
             onChange={(event) =>
@@ -511,7 +502,7 @@ export function UserManagement({
             value={form.email}
           />
           <Select
-            label="User level"
+            label={copy("User level")}
             name="user_level_id"
             onChange={(event) =>
               setForm((current) => ({
@@ -523,8 +514,7 @@ export function UserManagement({
             value={form.user_level_id}
           >
             <option disabled value="">
-              Select a user level
-            </option>
+              {copy("Select a user level")}</option>
             {levelsQuery.data?.map((level) => (
               <option key={level.id} value={level.id}>
                 {level.name} ({level.code})
@@ -541,8 +531,7 @@ export function UserManagement({
               onClick={() => setIsFormOpen(false)}
               variant="ghost"
             >
-              Cancel
-            </Button>
+              {copy("Cancel")}</Button>
             <Button disabled={saveMutation.isPending} type="submit">
               {saveMutation.isPending ? "Saving…" : "Save user"}
             </Button>
