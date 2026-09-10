@@ -27,6 +27,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: osekola-api-${{ github.sha }}
-          path: ${{ runner.temp }}/osekola-api.tar.gz
+          path: |
+            ${{ runner.temp }}/osekola-api.tar.gz
+            ${{ runner.temp }}/osekola-api.tar.gz.sha256
+            ${{ runner.temp }}/osekola-api-stage.sh
+            ${{ runner.temp }}/osekola-api-release.txt
           retention-days: 14
           if-no-files-found: error
