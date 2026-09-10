@@ -10,10 +10,12 @@ docker run --rm \
   -e SOURCE_SHA="$source_sha" -e ARCHIVE_SHA="$archive_sha" \
   ubuntu:24.04 bash -euo pipefail -c '
     apt-get update -qq
-    apt-get install -y --no-install-recommends python3-minimal
+    apt-get install -y --no-install-recommends python3
     mkdir -p /etc/systemd/system
-    if bash /stage.sh /input/api.tar.gz "$SOURCE_SHA" "$(printf %064d 0)"; then exit 1; fi
-    if bash /stage.sh /input/api.tar.gz "$(printf %040d 0)" "$ARCHIVE_SHA"; then exit 1; fi
+    if bash /stage.sh /input/api.tar.gz "$SOURCE_SHA" "$(printf %064d 0)" > /tmp/checksum.log 2>&1; then exit 1; fi
+    grep -q "Archive checksum mismatch" /tmp/checksum.log
+    if bash /stage.sh /input/api.tar.gz "$(printf %040d 0)" "$ARCHIVE_SHA" > /tmp/source.log 2>&1; then exit 1; fi
+    grep -q "Package source/platform/architecture mismatch" /tmp/source.log
     test ! -e /opt/osekola/current
     test ! -e /etc/osekola/api.env
     bash /stage.sh /input/api.tar.gz "$SOURCE_SHA" "$ARCHIVE_SHA"

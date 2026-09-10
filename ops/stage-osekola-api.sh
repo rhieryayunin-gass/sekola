@@ -11,6 +11,9 @@ archive_sha="${3:?Pass independently verified archive SHA-256}"
 for tool in python3 sha256sum flock stat getent useradd install; do
   command -v "$tool" >/dev/null || { echo "Missing prerequisite: $tool" >&2; exit 1; }
 done
+python3 -c 'import json, tarfile; assert hasattr(tarfile, "data_filter")' >/dev/null 2>&1 || {
+  echo 'Python 3 with the full standard library and tarfile data filter is required' >&2; exit 1;
+}
 archive="$(realpath "$archive")"
 node_binary=/opt/osekola/runtime/node/bin/node
 [[ -x "$node_binary" ]] || { echo 'Install the isolated osekola Node runtime first' >&2; exit 1; }
