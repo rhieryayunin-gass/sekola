@@ -120,6 +120,18 @@ export default async function DashboardPage() {
           </ButtonLink>
         </Card>
         </PermissionGate>
+        <PermissionGate permission="rooms.read">
+        <Card>
+          <CardHeader><CardTitle>Operations board</CardTitle><CardDescription>Coordinate room bookings, leave, schedule changes, and approvals in a Kanban workflow.</CardDescription></CardHeader>
+          <ButtonLink href="/dashboard/operations" variant="secondary">Open operations</ButtonLink>
+        </Card>
+        </PermissionGate>
+        <PermissionGate permission="academic_analytics.read">
+        <Card>
+          <CardHeader><CardTitle>Institution analytics</CardTitle><CardDescription>Track academic, attendance, finance, and executive performance indicators.</CardDescription></CardHeader>
+          <ButtonLink href="/dashboard/analytics" variant="secondary">Open analytics</ButtonLink>
+        </Card>
+        </PermissionGate>
       </section>
     </main>
   );
