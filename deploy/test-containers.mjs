@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 async function request(url, options = {}) {
-  return fetch(url, { ...options, signal: AbortSignal.timeout(5000) });
+  const controller = new AbortController();
+  // AbortSignal.timeout uses an unreferenced timer. Keep this probe's deadline
+  // referenced so Node cannot exit while containers are still starting.
+  const deadline = setTimeout(() => controller.abort(), 5000);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(deadline);
+  }
 }
 async function wait(url) {
   for (let attempt = 0; attempt < 40; attempt++) {
