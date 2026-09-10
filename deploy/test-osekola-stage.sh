@@ -10,7 +10,7 @@ docker run --rm \
   -e SOURCE_SHA="$source_sha" -e ARCHIVE_SHA="$archive_sha" \
   ubuntu:24.04 bash -euo pipefail -c '
     apt-get update -qq
-    apt-get install -y --no-install-recommends python3
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3
     mkdir -p /etc/systemd/system
     if bash /stage.sh /input/api.tar.gz "$SOURCE_SHA" "$(printf %064d 0)" > /tmp/checksum.log 2>&1; then exit 1; fi
     grep -q "Archive checksum mismatch" /tmp/checksum.log
