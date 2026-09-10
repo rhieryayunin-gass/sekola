@@ -1,6 +1,6 @@
-# SEKOLA AI
+# atsekola
 
-SEKOLA AI is a multi-tenant digital school platform built as a pnpm monorepo.
+atsekola is a multi-tenant digital school platform built as a pnpm monorepo.
 The project follows the locked architecture and sequential development roadmap:
 
 ```text
