@@ -199,3 +199,11 @@ applied to staging before Level 8 implementation starts.
 - [ ] GitHub CI checkpoint
 - [ ] Apply migrations `0043`–`0047` to Supabase staging
 - [ ] Run live tenant-isolation, workflow, collaboration, and project-finance verification
+
+## Finance+ and Team+ staging gate
+
+- [x] Confirm latest successful staging apply is Phase 27–33 through migration `0038`
+- [x] Confirm Finance+ migrations `0039`–`0042` have not yet been applied
+- [x] Add a commit-pinned trusted runner for migrations `0039`–`0047`
+- [ ] Run `inspect` and review the dry-run migration plan
+- [ ] Run `apply` with confirmation `APPLY_0039_0047`
