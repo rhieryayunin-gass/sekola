@@ -49,6 +49,20 @@ left join (
 ) b on b.tenant_id=t.id;
 
 -- Reuse one finance aggregation in the executive view.
+create or replace view public.finance_dashboard with(security_invoker=true) as
+select tenant_id,outstanding_invoices,outstanding_amount,revenue as payment_amount from public.finance_analytics;
+
+create or replace view public.team_project_finance_summary with(security_invoker=true) as
+select invoice.tenant_id,invoice.project_id,
+ count(*) filter(where invoice.amount>coalesce(payment.paid,0)) as outstanding_invoices,
+ coalesce(sum(invoice.amount),0) as invoiced_amount,
+ coalesce(sum(payment.paid),0) as paid_amount,
+ coalesce(sum(greatest(invoice.amount-coalesce(payment.paid,0),0)),0) as outstanding_amount
+from public.team_project_invoices invoice
+left join (select tenant_id,project_invoice_id,sum(amount) as paid from public.team_project_payments where status='CONFIRMED' group by tenant_id,project_invoice_id) payment
+ on payment.tenant_id=invoice.tenant_id and payment.project_invoice_id=invoice.id
+where invoice.status not in('DRAFT','VOID') group by invoice.tenant_id,invoice.project_id;
+
 create or replace view public.executive_dashboard with(security_invoker=true) as
 select t.id as tenant_id,
  (select count(*) from public.students s where s.tenant_id=t.id and s.enrollment_status='ACTIVE') as active_students,

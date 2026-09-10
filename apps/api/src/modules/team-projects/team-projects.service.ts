@@ -1,3 +1,4 @@
+import { databaseError } from "../../common/data/database-error";
 import { PageDto, pageRange } from "../../common/data/page.dto";
 import {
   BadRequestException,
@@ -262,7 +263,7 @@ export class TeamProjectsService {
     return data;
   }
 
-  async listTasks(userId: string, projectId: string) {
+  async listTasks(userId: string, projectId: string, page = new PageDto()) {
     const tenantId = await this.tenant(userId);
     await this.project(tenantId, projectId, userId);
     const { data, error } = await this.client
@@ -271,7 +272,7 @@ export class TeamProjectsService {
       .eq("tenant_id", tenantId)
       .eq("project_id", projectId)
       .order("sort_order")
-      .order("created_at");
+      .order("created_at").order("id").range(...pageRange(page));
     if (error) throw new InternalServerErrorException("Unable to fetch Team+ tasks");
     return data ?? [];
   }
@@ -358,6 +359,7 @@ export class TeamProjectsService {
     await this.task(tenantId, projectId, taskId, userId);
     const { data: before } = await this.client.from("team_task_comments").select("*").eq("id", commentId).eq("task_id", taskId).eq("tenant_id", tenantId).single();
     if (!before) throw new NotFoundException("Task comment not found");
+    if (before.author_user_id !== userId) await this.project(tenantId, projectId, userId, "manage");
     const { error } = await this.client.from("team_task_comments").delete().eq("id", commentId).eq("task_id", taskId).eq("tenant_id", tenantId);
     if (error) throw new InternalServerErrorException("Unable to delete task comment");
     await this.activity(tenantId, projectId, userId, "COMMENT_DELETED", "team_task_comments", commentId, { task_id: taskId });
@@ -414,7 +416,7 @@ export class TeamProjectsService {
     }
     const { data, error } = await this.client.from("team_project_payments").insert({ ...input, tenant_id: tenantId, project_id: projectId }).select("*").single();
     if (error?.code === "23505") throw new ConflictException("Project receipt number already exists");
-    if (error || !data) throw new InternalServerErrorException("Unable to create project payment");
+    if (error || !data) databaseError(error);
     await this.activity(tenantId, projectId, userId, "PAYMENT_RECORDED", "team_project_payments", data.id, { amount: data.amount, invoice_id: invoice.id });
     await this.audit.record({ tenantId, actorUserId: userId, action: "CREATE", module: "TEAM_FINANCE", resourceType: "team_project_payments", resourceId: data.id, afterState: data });
     return data;

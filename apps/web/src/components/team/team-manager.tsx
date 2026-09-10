@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type DragEvent, type FormEvent, useState } from "react";
 import { createClient } from "../../lib/supabase/client";
+import { Pagination } from "../ui/pagination";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -49,6 +50,8 @@ const person = (user?: User) => user?.full_name || user?.email || "Unassigned";
 const money = (value: number | string = 0) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(value));
 
 export function TeamManager() {
+  const [projectPage, setProjectPage] = useState(1);
+  const [taskPage, setTaskPage] = useState(1);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [selectedProjectId, setProjectId] = useState("");
@@ -58,11 +61,11 @@ export function TeamManager() {
   const [selectedTask, setSelectedTask] = useState<Task>();
   const [error, setError] = useState<string>();
 
-  const projects = useQuery({ queryKey: ["team", "projects"], queryFn: () => api<Project[]>("/team/projects") });
+  const projects = useQuery({ queryKey: ["team", "projects", projectPage], queryFn: () => api<Project[]>(`/team/projects?page=${projectPage}&page_size=50`) });
   const projectId = selectedProjectId || projects.data?.[0]?.id || "";
   const me = useQuery({ queryKey: ["users", "me"], queryFn: () => api<User>("/users/me") });
   const users = useQuery({ queryKey: ["team", "users"], queryFn: () => api<{ items: User[] }>("/users?page=1&page_size=100"), retry: false });
-  const tasks = useQuery({ queryKey: ["team", projectId, "tasks"], queryFn: () => api<Task[]>(`/team/projects/${projectId}/tasks`), enabled: Boolean(projectId) });
+  const tasks = useQuery({ queryKey: ["team", projectId, "tasks", taskPage], queryFn: () => api<Task[]>(`/team/projects/${projectId}/tasks?page=${taskPage}&page_size=50`), enabled: Boolean(projectId) && view === "board" });
   const members = useQuery({ queryKey: ["team", projectId, "members"], queryFn: () => api<Member[]>(`/team/projects/${projectId}/members`), enabled: Boolean(projectId) });
   const settings = useQuery({ queryKey: ["team", projectId, "settings"], queryFn: () => api<Settings>(`/team/projects/${projectId}/settings`), enabled: Boolean(projectId) });
   const activity = useQuery({ queryKey: ["team", projectId, "activity"], queryFn: () => api<Activity[]>(`/team/projects/${projectId}/activity`), enabled: Boolean(projectId) && view === "activity" });
@@ -118,7 +121,7 @@ export function TeamManager() {
   function drop(event: DragEvent<HTMLDivElement>, status: Status) {
     event.preventDefault();
     const taskId = event.dataTransfer.getData("text/task-id");
-    if (taskId) moveTask.mutate({ taskId, status });
+    if (taskId && !moveTask.isPending) moveTask.mutate({ taskId, status });
   }
 
   const activeProject = projects.data?.find((project) => project.id === projectId);
@@ -133,16 +136,19 @@ export function TeamManager() {
         </div>
         <div className="mt-4 space-y-2">
           {projects.data?.map((project) => (
-            <button key={project.id} className={`w-full rounded-xl p-3 text-left transition ${project.id === projectId ? "bg-secondary text-white" : "bg-white/60 hover:bg-white"}`} onClick={() => setProjectId(project.id)}>
+            <button key={project.id} className={`w-full rounded-xl p-3 text-left transition ${project.id === projectId ? "bg-secondary text-white" : "bg-white/60 hover:bg-white"}`} onClick={() => { setProjectId(project.id); setTaskPage(1); setSelectedTask(undefined); }}>
               <span className="block text-xs font-bold opacity-70">{project.code}</span>
               <span className="mt-1 block font-semibold">{project.name}</span>
             </button>
           ))}
           {!projects.isLoading && !projects.data?.length && <p className="text-sm text-muted">No projects yet.</p>}
         </div>
+        <Pagination page={projectPage} count={projects.data?.length ?? 0} pending={projects.isFetching} onPage={page => { setProjectPage(page); setProjectId(""); setTaskPage(1); setSelectedTask(undefined); }}/>
       </Card>
 
       <div className="min-w-0">
+        {[projects,tasks,members,settings,activity,finance,comments].some(query => query.isError) && <p role="alert" className="mb-3 text-danger">Some project data could not be loaded. Check permissions or retry.</p>}
+        {moveTask.isError && <p role="alert" className="text-danger">Task move failed. Refresh and try again.</p>}
         {activeProject ? (
           <>
             <div className="flex flex-wrap items-end justify-between gap-4">
@@ -155,12 +161,14 @@ export function TeamManager() {
 
             {view === "board" && (
               <div className="mt-5 overflow-x-auto pb-4">
+                <Pagination page={taskPage} count={tasks.data?.length ?? 0} pending={tasks.isFetching} onPage={setTaskPage}/>
+                <p className="my-2 text-xs text-muted">Lane counts show tasks on this page.</p>
                 <div className="grid min-w-[1180px] grid-cols-5 gap-3">
                   {columns.map((column) => {
                     const cards = tasks.data?.filter((task) => task.status === column.key) ?? [];
                     return <div key={column.key} className="min-h-[520px] rounded-2xl border border-border bg-white/35 p-3" onDragOver={(event) => event.preventDefault()} onDrop={(event) => drop(event, column.key)}>
                       <div className="mb-3 flex items-center justify-between"><Badge tone={column.tone}>{column.label}</Badge><span className="text-xs font-bold text-muted">{cards.length}</span></div>
-                      <div className="space-y-3">{cards.map((task) => <button key={task.id} draggable className="glass-panel w-full cursor-grab rounded-xl p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing" onDragStart={(event) => event.dataTransfer.setData("text/task-id", task.id)} onClick={() => setSelectedTask(task)}>
+                      <div className="space-y-3">{cards.map((task) => <button key={task.id} draggable={!moveTask.isPending} className="glass-panel w-full cursor-grab rounded-xl p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing" onDragStart={(event) => event.dataTransfer.setData("text/task-id", task.id)} onClick={() => setSelectedTask(task)}>
                         <div className="flex items-start justify-between gap-2"><span className="text-xs font-bold text-muted">{activeProject.code}-{task.task_number}</span><Priority value={task.priority} /></div>
                         <p className="mt-2 font-semibold">{task.title}</p>
                         <div className="mt-4 flex items-center justify-between gap-2 text-xs text-muted"><span>{person(task.assignee)}</span><span>{task.due_date || "No due date"}</span></div>

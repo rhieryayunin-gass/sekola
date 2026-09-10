@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
+import { PageDto } from "../../common/data/page.dto";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { Request } from "express";
 import { RequirePermission } from "../../common/authorization/decorators/require-permission.decorator";
 import { PermissionGuard } from "../../common/authorization/guards/permission.guard";
@@ -30,8 +31,8 @@ export class TeamProjectsController {
 
   @Get()
   @RequirePermission("team_projects.read")
-  list(@Req() request: Request) {
-    return this.service.list(this.userId(request));
+  list(@Req() request: Request, @Query() page: PageDto) {
+    return this.service.list(this.userId(request), page);
   }
 
   @Post()
@@ -90,8 +91,8 @@ export class TeamProjectsController {
 
   @Get(":projectId/tasks")
   @RequirePermission("team_tasks.read")
-  listTasks(@Req() request: Request, @Param("projectId") projectId: string) {
-    return this.service.listTasks(this.userId(request), projectId);
+  listTasks(@Req() request: Request, @Param("projectId") projectId: string, @Query() page: PageDto) {
+    return this.service.listTasks(this.userId(request), projectId, page);
   }
 
   @Post(":projectId/tasks")
