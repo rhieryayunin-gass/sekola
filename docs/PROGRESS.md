@@ -221,6 +221,13 @@ Phase 43–50 implementation is complete locally. Operations and analytics migra
 - [x] Finance analytics for revenue, receivable, payments, and outstanding balances
 - [x] Cross-domain executive dashboard covering Academic, Attendance, Finance, Learning, Exam, and Team+
 - [x] Role-aware API permissions, tenant isolation, migration tests, and UI/API contracts
-- [ ] GitHub CI checkpoint
+- [x] GitHub CI checkpoint
 - [ ] Inspect and apply migrations `0048`–`0055` to Supabase staging
 - [ ] Run live operations workflow, calendar, notification, and analytics verification
+
+## Operations and Analytics+ staging gate
+
+- [x] Merge the reviewed Phase 43–50 implementation
+- [x] Add a commit-pinned trusted runner for migrations `0048`–`0055`
+- [ ] Run `inspect` and review the dry-run migration plan
+- [ ] Run `apply` with confirmation `APPLY_0048_0055`

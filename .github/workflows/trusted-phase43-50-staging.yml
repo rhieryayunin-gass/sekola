@@ -1,0 +1,67 @@
+name: Trusted Operations and Analytics Phase 43-50 Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Inspect migration status or apply Operations and Analytics+
+        required: true
+        default: inspect
+        type: choice
+        options: [inspect, apply]
+      confirmation:
+        description: Use APPLY_0048_0055 only when applying migrations
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Validate explicit apply confirmation
+        if: inputs.operation == 'apply'
+        run: test "${{ inputs.confirmation }}" = APPLY_0048_0055
+
+      - name: Check out the reviewed Phase 43-50 checkpoint
+        uses: actions/checkout@v4
+        with:
+          repository: rhieryayunin-gass/sekola
+          ref: 0fc2c124aa6c901a6a0943cadeb04f2e493ea663
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+
+      - name: Inspect or apply staging migrations
+        env:
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          mkdir -p .staging-db/supabase/migrations
+          cp apps/api/database/migrations/*.sql .staging-db/supabase/migrations/
+          supabase init --workdir .staging-db
+          supabase link --workdir .staging-db --project-ref "$SUPABASE_PROJECT_REF"
+          supabase migration list --workdir .staging-db --linked
+          supabase db push --workdir .staging-db --linked --dry-run --include-all
+          if [ "${{ inputs.operation }}" = apply ]; then
+            supabase db push --workdir .staging-db --linked --include-all
+            pnpm check
+          fi
