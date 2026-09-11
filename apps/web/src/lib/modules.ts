@@ -15,7 +15,7 @@ export const modules: { key: string; title: MessageKey; detail: MessageKey; href
   {key:"tenant",title:"tenantSettings",detail:"tenantDesc",href:"/dashboard/tenant",permissions:["tenants.update_own"],mark:"Co"},
 ];
 export function availableModules(context: PermissionContext | null) {
-  return modules.filter(module => module.permissions.some(code => context?.permissions.some(p => p.code === code)));
+  return modules.filter(module => (module.key !== "tenant" || context?.roles.some(role => role.code === "OWNER")) && module.permissions.some(code => context?.permissions.some(p => p.code === code)));
 }
 export function primaryRole(context: PermissionContext | null) {
   return ["OWNER","PRINCIPAL","STAFF","TEACHER","STUDENT","PARENT"].find(role => context?.roles.some(r => r.code === role)) ?? "";
