@@ -21,20 +21,23 @@ The timestamped student-profile migration matches its applied Supabase history.
 It provides only the calling user's active student identifier for submissions.
 No browser access to the student master table is granted.
 
-Production role permissions remain unchanged. STUDENT and PARENT currently lack
-canonical shared-calendar/notification grants; PARENT has no operational modules.
-The interface reports unavailable access instead of inventing student relationships.
+### Approved role permissions
 
-### Pending permission review — not applied
-
-The proposed changes below were rejected by automatic approval review because
-they expand permissions for existing production users. They require explicit
-approval before implementation and are not part of an executable migration:
+After the initial production permission expansion was held for review, the user
+explicitly approved these additions on 2026-09-11. The follow-up migration adds
+only the approved mappings and preserves existing permissions and access scopes:
 
 - All six canonical roles: calendar.read and notifications.read.
 - OWNER: users.read, users.create, users.update, users.status, tenants.update_own.
 
-No parent access to student records, grades, bills, or attendance is proposed.
+STUDENT and PARENT can now open the calendar and their own notification center.
+OWNER can manage users and settings for their own school through the existing
+tenant-scoped API. No parent access to student records, grades, bills, or
+attendance is added. Browser table grants and RLS policies remain unchanged.
+
+The database regression verifies the exact permission delta, preserves unrelated
+permissions and role assignments, and checks idempotent replay. Live validation
+uses the existing six demo accounts without resetting their credentials.
 
 ## Requested test identities
 
