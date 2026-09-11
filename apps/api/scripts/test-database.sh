@@ -19,5 +19,9 @@ for migration in "$db_root"/migrations/*.sql; do
     psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/seed_phase50.sql"
   fi
 done
+permissions_migrations=("$db_root"/migrations/*_osekola_approved_role_permissions.sql)
+psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 \
+  -v role_permissions_migration="${permissions_migrations[0]}" \
+  -f "$db_root/tests/osekola_role_permissions.sql"
 psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/phase51_54.sql"
 bash "$repo_root/apps/api/scripts/test-database-concurrency.sh"
