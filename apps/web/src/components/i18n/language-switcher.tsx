@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { type ChangeEvent } from "react";
+import { Languages } from "lucide-react";
 import { useTranslations } from "./i18n-provider";
 export function LanguageSwitcher() {
   const router = useRouter(); const { locale, t } = useTranslations();
@@ -9,5 +10,5 @@ export function LanguageSwitcher() {
     document.cookie = `atsekola_locale=${event.target.value}; path=/; max-age=31536000; samesite=lax`;
     router.refresh();
   }
-  return <label><span className="sr-only">{t("language")}</span><select aria-label={t("language")} className="ose-control ose-language" onChange={change} value={locale}><option value="id-ID" aria-label="Bahasa Indonesia">ID</option><option value="en-US" aria-label="English">EN</option></select></label>;
+  return <label className="ose-language-pill"><Languages size={17} aria-hidden="true"/><span className="sr-only">{t("language")}</span><select aria-label={t("language")} className="ose-language" onChange={change} value={locale}><option value="id-ID" aria-label="Bahasa Indonesia">ID</option><option value="en-US" aria-label="English">EN</option></select></label>;
 }

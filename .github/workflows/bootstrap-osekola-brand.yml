@@ -1,0 +1,34 @@
+name: Initialize OSEKOLA platform logo
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/bootstrap-osekola-brand.yml, apps/api/scripts/bootstrap-osekola-brand.mjs]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: osekola-platform-brand-bootstrap
+  cancel-in-progress: false
+jobs:
+  initialize:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Initialize only the requested public brand object if absent
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node apps/api/scripts/bootstrap-osekola-brand.mjs
