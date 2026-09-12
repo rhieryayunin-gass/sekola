@@ -42,16 +42,36 @@ The embedded source SHA is GitHub's tested merge commit, not the PR branch SHA.
 These are review artifacts, not an instruction to install before approval.
 
 After the approved merge, use `osekola-api-<main-sha>` from that successful main
-CI run. It contains `osekola-api.tar.gz`, its `.sha256`, `-release.txt`, and the
-first-install `-stage.sh`. Retention is 14 days. Use the checksum printed by the
+CI run. It contains `osekola-api.tar.gz`, its `.sha256`, `-release.txt`, the
+first-install `-stage.sh`, and existing-installation `-upgrade.sh`. Retention is
+14 days. Use the checksum printed by the
 packaging job as the independent reference; ensure `-release.txt` matches the
 reviewed main commit.
 
 ## Existing VPS upgrade
 
-The session has no VPS deployment credential. An operator must carry out the
-existing deployment procedure in `OSEKOLA_DEPLOYMENT.md`, section 4. The bundled
-stage script is only for a first installation and refuses an active API.
+The session has no VPS deployment credential. The bundled upgrade script
+automates the existing deployment procedure in `OSEKOLA_DEPLOYMENT.md`, section
+4. The stage script is only for a first installation and refuses an active API.
+
+After downloading and copying the verified main artifact to the VPS, execute
+from the directory containing its files:
+
+```bash
+sudo bash osekola-api-upgrade.sh osekola-api.tar.gz <reviewed-main-sha> <CI-archive-sha256>
+```
+
+Replace both placeholders with the independently reviewed CI values. The script
+verifies the existing active installation, copies the archive into a root-only
+directory before checking its digest, validates and extracts the package, then
+atomically switches the release and restarts only OSEKOLA. It waits for local
+health/readiness with the exact release SHA and rolls back the symlink/service
+on failure. CI tests success, digest/source rejection, repeat refusal, rollback,
+and preservation of existing configuration and sibling application files in a
+disposable Ubuntu container. Service control and health probes are simulated in
+that installer test; application health has separate production-container tests.
+
+The equivalent operator review checklist is:
 
 1. Confirm the existing `osekola-api` unit, isolated Node 22 runtime, current
    symlink target and loopback port 3020. Record the previous release for rollback.
@@ -64,7 +84,7 @@ stage script is only for a first installation and refuses an active API.
 3. Switch `/opt/osekola/current` with a temporary symlink and atomic rename.
    Restart only `osekola-api`. Preserve `/etc/osekola/api.env`, the existing unit,
    Node runtime, Nginx configuration, and the sibling applications.
-4. Check local and public health/readiness return the reviewed release SHA,
+4. Check local and public health return the reviewed release SHA,
    readiness succeeds, and the listener remains loopback-only. With an OWNER
    session, `/api/v1/owner/users/capabilities` must return version 3. Confirm
    unauthorized accounts cannot use the owner API and disabled modules reject
