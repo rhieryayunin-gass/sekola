@@ -41,7 +41,7 @@ try{
  await ensure('school_settings',{tenant_id:tenant.id},{plan_code:school.prefix==='demo-a'?'ESSENTIAL':'ELEVATE'});
  await ensure('school_canteens',{tenant_id:tenant.id,name:'Kantin Demo'},{operator_name:'Pengelola Demo',location:'Area sekolah demo',opening_hours:'Senin–Jumat 07.00–15.00'});
  for(let c=0;c<5;c++){
- const teacher=teachers[c];const room=await ensure('rooms',{tenant_id:tenant.id,name:`Ruang Demo ${c+1}`},{capacity:20,is_active:true});
+ const teacher=teachers[c];const room=await ensure('rooms',{tenant_id:tenant.id,name:`Ruang Demo ${c+1}`},{code:`DEMO-R${c+1}`,capacity:20,is_active:true});
  const classroom=await ensure('classrooms',{tenant_id:tenant.id,academic_year_id:year.id,name:`Kelas Demo ${c+1}`},{capacity:20,is_active:true,homeroom_teacher_user_id:teacher.id});
  await ensure('school_assets',{tenant_id:tenant.id,name:room.name},{category:'CLASSROOM',capacity:20,room_id:room.id});
  await ensure('teacher_assignments',{tenant_id:tenant.id,teacher_id:teacher.teacher_id,classroom_id:classroom.id,subject_id:subject.id,semester_id:semester.id},{academic_year_id:year.id,is_active:true});

@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/provision-part2-schools.yml
+      - apps/api/scripts/provision-part2-schools.mjs
   workflow_dispatch:
 permissions:
   contents: read
