@@ -2,6 +2,7 @@ import type { MessageKey } from "./i18n";
 import type { PermissionContext } from "../stores/permission-store";
 
 export const modules: { key: string; title: MessageKey; detail: MessageKey; href: string; permissions: string[]; mark: string }[] = [
+  {key:"connect",title:"connect",detail:"connectDesc",href:"/dashboard/connect",permissions:["connect.read"],mark:"Cn"},
   {key:"academic",title:"academic",detail:"academicDesc",href:"/dashboard/academic",permissions:["academic_years.read","classrooms.read"],mark:"Ac"},
   {key:"people",title:"people",detail:"peopleDesc",href:"/dashboard/people",permissions:["students.read","teachers.read"],mark:"Pe"},
   {key:"learning",title:"learning",detail:"learningDesc",href:"/dashboard/learning",permissions:["courses.read","lessons.read","assignments.read"],mark:"Le"},

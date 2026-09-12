@@ -1,4 +1,5 @@
 "use client";
+import { ConnectLink } from "../connect/connect-link";
 import { useUiText } from "../i18n/ui-text";
 import { apiBaseUrl } from "../../lib/api/base-url";
 
@@ -155,7 +156,7 @@ export function TeamManager() {const copy=useUiText();
           <>
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div><p className="text-sm font-bold text-secondary">{activeProject.code}</p><h2 className="text-3xl font-black tracking-tight">{activeProject.name}</h2><p className="mt-1 text-sm text-muted">{activeProject.description || "Project planning and delivery workspace"}</p></div>
-              <Button onClick={() => setTaskModal(true)}>{copy("Create task")}</Button>
+              <div className="flex flex-wrap gap-2"><ConnectLink kind="project" sourceId={activeProject.id}/><Button onClick={() => setTaskModal(true)}>{copy("Create task")}</Button></div>
             </div>
             <nav className="mt-5 flex flex-wrap gap-2">
               {(["board", "activity", "settings", "finance"] as View[]).map((item) => <Button key={item} size="sm" variant={view === item ? "secondary" : "ghost"} onClick={() => setView(item)}>{item[0].toUpperCase() + item.slice(1)}</Button>)}

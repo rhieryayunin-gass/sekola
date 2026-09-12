@@ -140,5 +140,7 @@
   "classroom_id": "ID kelas",
   "academic_year_id": "ID tahun ajaran",
   "semester_id": "ID semester",
-  "student_id": "ID siswa"
+  "student_id": "ID siswa",
+  "connect": "O-Connect",
+  "connectDesc": "Chat sekolah, diskusi kelas, dan kolaborasi tim dalam satu ruang."
 }

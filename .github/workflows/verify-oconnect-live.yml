@@ -1,0 +1,37 @@
+name: O-Connect production integration verification
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/verify-oconnect-live.yml
+      - apps/web/scripts/verify-oconnect-live.mjs
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: oconnect-live-verification
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify production web, authenticated messaging, Realtime, files and cleanup
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EXPECTED_WEB_RELEASE: ${{ github.sha }}
+        run: node apps/web/scripts/verify-oconnect-live.mjs

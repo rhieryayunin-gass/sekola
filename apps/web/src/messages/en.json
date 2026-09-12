@@ -140,5 +140,7 @@
   "classroom_id": "Classroom ID",
   "academic_year_id": "Academic year ID",
   "semester_id": "Semester ID",
-  "student_id": "Student ID"
+  "student_id": "Student ID",
+  "connect": "O-Connect",
+  "connectDesc": "School messaging, class discussions, and team collaboration in one place."
 }
