@@ -38,6 +38,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BROWSER_MODULE: ${{ runner.temp }}/osekola-browser/node_modules/playwright/index.mjs
           VERIFY_OUTPUT_DIR: ${{ runner.temp }}/part2-browser-evidence
+          EXPECTED_WEB_RELEASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
         run: node apps/web/scripts/verify-part2-live.mjs
       - name: Preserve synthetic demo evidence
         if: always()

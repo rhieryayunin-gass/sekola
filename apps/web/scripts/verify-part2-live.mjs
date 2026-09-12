@@ -25,6 +25,14 @@ const admin=createClient(url,process.env.SUPABASE_SERVICE_ROLE_KEY,{global:{fetc
 const ok=(r,label='Request')=>{if(r.error)throw new Error(`${label}: ${r.error.message}`);return r.data;};
 const output=process.env.VERIFY_OUTPUT_DIR;
 assert.ok(output);await mkdir(output,{recursive:true});
+if(process.env.EXPECTED_WEB_RELEASE){
+ let ready=false;
+ for(let attempt=0;attempt<60;attempt++){
+  try{const r=await fetch('https://osekola.com/healthz',{signal:AbortSignal.timeout(10000)});const health=await r.json();if(r.ok&&health.release===process.env.EXPECTED_WEB_RELEASE){ready=true;console.log(`Verified production release ${health.release}`);break;}}catch{/* Deployment may be promoting. */}
+  await new Promise(resolve=>setTimeout(resolve,5000));
+ }
+ assert.ok(ready,'Expected production release did not become ready');
+}
 let tenants=[];
 for(let attempt=0;attempt<120;attempt++){
  tenants=ok(await admin.from('tenants').select('id,code').in('code',['OSEKOLA-PART2-DEMO-A','OSEKOLA-PART2-DEMO-B']).order('code'));
@@ -33,7 +41,7 @@ for(let attempt=0;attempt<120;attempt++){
  await new Promise(resolve=>setTimeout(resolve,5000));
 }
 assert.equal(tenants.length,2);
-const clients=[];let browser;let outsideSet;let outsideCourse;
+const clients=[];let browser;let activePage;let outsideSet;let outsideCourse;
 const featureFailures=[];
 try{
  browser=await chromium.launch({headless:true});
@@ -67,7 +75,7 @@ try{
    }
    const context=await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true});
    await context.addCookies([...cookies.values()].map(c=>({name:c.name,value:c.value,domain:'osekola.com',path:'/',secure:true,sameSite:'Lax'})));
-   const page=await context.newPage();page.setDefaultTimeout(30000);
+   const page=await context.newPage();activePage=page;page.setDefaultTimeout(30000);
    const errors=[];page.on('pageerror',e=>errors.push(e.message));
    const response=await page.goto('https://osekola.com/dashboard',{waitUntil:'domcontentloaded'});assert.equal(response.status(),200);
    await page.locator('.school-dashboard-overview').waitFor();
@@ -110,10 +118,13 @@ try{
     }
    }
    assert.deepEqual(errors,[],`${prefix} ${role} browser exceptions`);
-   await context.close();await client.auth.signOut({scope:'local'});
+   await context.close();activePage=undefined;await client.auth.signOut({scope:'local'});
    console.log(`PASS ${prefix} ${role}: authenticated dashboard, role scope and browser render`);
   }
  }
  assert.deepEqual(featureFailures,[]);
  console.log('PART2_LIVE_VERIFICATION_PASSED: 2 schools, 218 accounts, 10 role sessions, parent/tenant isolation, teacher create/review/PDF');
+}catch(error){
+ if(activePage){await activePage.screenshot({path:`${output}/failure.png`,fullPage:true}).catch(()=>{});console.error('Visible alerts:',await activePage.getByRole('alert').allTextContents().catch(()=>[]));}
+ throw error;
 }finally{for(const client of clients)await client.auth.signOut({scope:'local'});await browser?.close();}

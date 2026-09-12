@@ -14,7 +14,7 @@ Source: the four-page **Osekola Enhancement Part 2 (1).pdf** supplied on 12 Sept
 - [ ] Two-row navigation, unread badges, notification detail dialog and calendar views.
 - [ ] Landing assessment/pricing/partner journeys and a distinct O-Connect illustration.
 - [ ] Scenario-based maturity assessment, weighted score and package recommendation; referral-linked lead pipeline and recorded partner commissions.
-- [ ] Two persistent demo schools, each with 1 principal, 3 staff, 5 teachers, 50 students and 50 linked parents (218 accounts total).
+- [x] Two persistent demo schools, each with 1 principal, 3 staff, 5 teachers, 50 students and 50 linked parents (218 accounts total).
 - [ ] Database isolation checks, application tests, CI, production deployment and production smoke verification.
 
 ## Commercial and external configuration
@@ -43,6 +43,8 @@ The user explicitly approved the five reviewed production migrations after the i
 
 PR #63 merged as `e7a035231487ba0d62c78726429165e013242628`; production Vercel reached READY and `https://osekola.com/healthz` returned HTTP 200 with that exact release. PR #64 subsequently fixed the required demo room code after all three CI jobs passed.
 
-The first provisioning run created the first school's 109 accounts and preserved encrypted recovery before encountering the missing room code. The corrected script resumes existing accounts without resetting passwords. The next attempt encountered a transient gateway timeout on its initial read and was retried. Final demo counts and live browser evidence are pending below; do not infer completion from CI alone.
+[Provisioning run](https://github.com/rhieryayunin-gass/sekola/actions/runs/34697969097) completed successfully on its second attempt. Both schools have 109 active identities (1 principal, 3 staff, 5 teachers, 50 students and 50 parents), 50 guardian links, five classes and five library resources. Role counts were independently checked in production. The complete credential archive preserves the first school's original passwords.
+
+Live browser verification confirmed principal and staff dashboards, then exposed that the shared Button defaults to type="button". Twelve intended submit actions omitted type="submit". PR #66 fixes these actions and adds a real teacher-authoring interaction test; browser verification must be repeated after that fix deploys.
 
 Several new school workspace labels and assessment content remain Indonesian-only; complete English localization before claiming full EN/ID coverage. Physical face/RFID reader verification and realistic production HTTP load testing remain outstanding. Google Form/admissions details remain deferred by the brief.
