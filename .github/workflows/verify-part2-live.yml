@@ -1,0 +1,52 @@
+name: Enhancement Part 2 production browser verification
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/verify-part2-live.yml
+      - apps/web/scripts/verify-part2-live.mjs
+permissions:
+  contents: read
+concurrency:
+  group: osekola-part2-live-verification
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install isolated browser runtime
+        run: |
+          npm install --prefix "$RUNNER_TEMP/osekola-browser" playwright@1.62.1
+          node "$RUNNER_TEMP/osekola-browser/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Verify requested demo schools through authenticated browser sessions
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BROWSER_MODULE: ${{ runner.temp }}/osekola-browser/node_modules/playwright/index.mjs
+          VERIFY_OUTPUT_DIR: ${{ runner.temp }}/part2-browser-evidence
+        run: |
+          part2_release_sha="$(git ls-remote --exit-code origin refs/heads/main | cut -f1)"
+          test "${#part2_release_sha}" -eq 40
+          EXPECTED_WEB_RELEASE="$part2_release_sha" node apps/web/scripts/verify-part2-live.mjs
+      - name: Preserve synthetic demo evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: part2-browser-evidence
+          path: ${{ runner.temp }}/part2-browser-evidence
+          retention-days: 7
+          if-no-files-found: ignore

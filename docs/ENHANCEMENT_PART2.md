@@ -14,7 +14,7 @@ Source: the four-page **Osekola Enhancement Part 2 (1).pdf** supplied on 12 Sept
 - [ ] Two-row navigation, unread badges, notification detail dialog and calendar views.
 - [ ] Landing assessment/pricing/partner journeys and a distinct O-Connect illustration.
 - [ ] Scenario-based maturity assessment, weighted score and package recommendation; referral-linked lead pipeline and recorded partner commissions.
-- [ ] Two persistent demo schools, each with 1 principal, 3 staff, 5 teachers, 50 students and 50 linked parents (218 accounts total).
+- [x] Two persistent demo schools, each with 1 principal, 3 staff, 5 teachers, 50 students and 50 linked parents (218 accounts total).
 - [ ] Database isolation checks, application tests, CI, production deployment and production smoke verification.
 
 ## Commercial and external configuration
@@ -37,10 +37,14 @@ Recovered assessment weights are 6,5,4,7,4,5,6,5,5,5,7,6,5,4,4,4,7,4,4,2. They s
 - [Vercel preview](https://osekola-6osnawzko-albi-s-agentic.vercel.app) reached READY. `/healthz` returned HTTP 200 with release `e91894a2bb68aeaac6d8afd9961fb1ad7372bdee`.
 - Added downloadable finance/question PDF output, checked a rendered sample and extracted all 12 sample questions; teacher-only explanations were excluded. Fixed the library resource TypeScript error and preserved common mathematical operators in PDF output. Optimized the existing O-Connect artwork to WebP (94 KB).
 
-## Release blocker and remaining limits
+## Production release and remaining verification
 
-Automatic approval review rejected the first production Supabase migration because it creates tables, functions, triggers and access policies. **No Part 2 migration was applied.** Do not bypass this block through SQL execution, workflows or another deployment channel. Explicit user approval is required before retrying the five reviewed migrations on project `xrqjutbwnlkogpfhtuwr`.
+The user explicitly approved the five reviewed production migrations after the initial approval-review block. All five were then applied successfully to project `xrqjutbwnlkogpfhtuwr`. Verification found 22 Part 2 tables with RLS enabled and 20 maturity-assessment questions. Public school RPC entry points are security invokers.
 
-Keep PR #63 unmerged until migration approval and database verification. Then merge, verify production release identity, run the prepared two-school provisioning workflow and inspect its encrypted account output. The matching recovery key is outside the repository. No 218-account provisioning run has occurred in this continuation.
+PR #63 merged as `e7a035231487ba0d62c78726429165e013242628`; production Vercel reached READY and `https://osekola.com/healthz` returned HTTP 200 with that exact release. PR #64 subsequently fixed the required demo room code after all three CI jobs passed.
 
-End-to-end authenticated browser/role verification and live AI generation remain pending. Local browser verification could not start because Chromium is unavailable and its download timed out. Several new school workspace labels and assessment content remain Indonesian-only; complete the English localization before claiming full EN/ID coverage. Physical face/RFID reader verification and realistic production HTTP load testing remain outstanding. A READY preview alone does not establish that these features work against the live database.
+[Provisioning run](https://github.com/rhieryayunin-gass/sekola/actions/runs/34697969097) completed successfully on its second attempt. Both schools have 109 active identities (1 principal, 3 staff, 5 teachers, 50 students and 50 parents), 50 guardian links, five classes and five library resources. Role counts were independently checked in production. The complete credential archive preserves the first school's original passwords.
+
+Live browser verification confirmed principal and staff dashboards, then exposed that the shared Button defaults to type="button". Twelve intended submit actions omitted type="submit". PR #66 fixes these actions and adds a real teacher-authoring interaction test; browser verification must be repeated after that fix deploys.
+
+Several new school workspace labels and assessment content remain Indonesian-only; complete English localization before claiming full EN/ID coverage. Physical face/RFID reader verification and realistic production HTTP load testing remain outstanding. Google Form/admissions details remain deferred by the brief.
