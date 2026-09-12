@@ -11,7 +11,7 @@ type Item = { id: string; title: string; body: string | null; type: string; read
 function Detail({ item, close }: { item: Item; close: () => void }) {
  const ref = useRef<HTMLDialogElement>(null); const { locale } = useTranslations(); const id = locale === "id-ID";
  useEffect(() => { const dialog = ref.current; dialog?.showModal(); return () => dialog?.close(); }, []);
- const links: Record<string, string> = { oconnect: "/dashboard/connect", timetable: "/dashboard/academic", assignments: "/dashboard/learning", student_bills: "/dashboard/finance", approvals: "/dashboard/operations", team_tasks: "/dashboard/team", exam_sessions: "/dashboard/exams" };
+ const links: Record<string, string> = { owner_invoice: "/dashboard/subscription", oconnect: "/dashboard/connect", timetable: "/dashboard/academic", assignments: "/dashboard/learning", student_bills: "/dashboard/finance", approvals: "/dashboard/operations", team_tasks: "/dashboard/team", exam_sessions: "/dashboard/exams" };
  const target = item.resource_type && links[item.resource_type];
  return <dialog ref={ref} className="school-notification-dialog" aria-labelledby="notice-title" onClose={close}><div className="school-section-title"><span className="ose-eyebrow">{item.type.replaceAll("_", " ")}</span><Button variant="ghost" onClick={close} aria-label={id ? "Tutup" : "Close"}><X size={18}/></Button></div><h2 id="notice-title">{item.title}</h2><time>{new Date(item.created_at).toLocaleString(locale)}</time><p>{item.body}</p>{target && <Link className="ose-cta" href={item.resource_type === "oconnect" && item.resource_id ? target + "?conversation=" + encodeURIComponent(item.resource_id) : target} onClick={close}>{id ? "Buka detail" : "Open details"} →</Link>}</dialog>;
 }

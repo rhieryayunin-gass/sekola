@@ -27,4 +27,5 @@ psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/phase51_54.sq
 psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/osekola_media.sql"
 psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/oconnect.sql"
 psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/school_part2.sql"
+psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/owner_part3.sql"
 bash "$repo_root/apps/api/scripts/test-database-concurrency.sh"

@@ -9,12 +9,15 @@ insert into storage.objects(bucket_id,name) values('tenant-media','10000000-0000
 update storage.objects set metadata='{"mimetype":"image/png"}' where name='10000000-0000-4000-8000-000000000001/logos/logo';
 do $$ begin
   if not (public.media_context()->>'is_owner')::boolean then raise exception 'Owner context missing'; end if;
+  -- Part 3 grants platform OWNER access to fixed tenant logos only.
+  insert into storage.objects(bucket_id,name) values('tenant-media','10000000-0000-4000-8000-000000000002/logos/logo');
+  delete from storage.objects where name='10000000-0000-4000-8000-000000000002/logos/logo';
   begin
-    insert into storage.objects(bucket_id,name) values('tenant-media','10000000-0000-4000-8000-000000000002/logos/logo');
-    raise exception 'Cross-tenant insert allowed';
+    insert into storage.objects(bucket_id,name) values('tenant-media','10000000-0000-4000-8000-000000000002/gallery/private.png');
+    raise exception 'Cross-tenant private upload allowed';
   exception when insufficient_privilege then null; end;
   begin
-    update storage.objects set name='10000000-0000-4000-8000-000000000002/logos/logo' where bucket_id='tenant-media';
+    update storage.objects set name='10000000-0000-4000-8000-000000000002/avatars/20000000-0000-4000-8000-000000000003' where bucket_id='tenant-media';
     raise exception 'Cross-tenant move allowed';
   exception when insufficient_privilege then null; end;
   begin
@@ -24,7 +27,7 @@ do $$ begin
 end $$;
 select set_config('request.jwt.claim.sub','20000000-0000-4000-8000-000000000003',true);
 do $$ begin
-  if exists(select 1 from storage.objects) then raise exception 'Cross-tenant media visible'; end if;
+  if exists(select 1 from storage.objects where name not like '%/logos/logo') then raise exception 'Cross-tenant private media visible'; end if;
 end $$;
 select set_config('request.jwt.claim.sub','20000000-0000-4000-8000-000000000004',true);
 insert into storage.objects(bucket_id,name) values('tenant-media','10000000-0000-4000-8000-000000000001/avatars/20000000-0000-4000-8000-000000000004');

@@ -1,0 +1,8 @@
+import { Module } from "@nestjs/common";
+import { AuthModule } from "../auth/auth.module";
+import { AuthorizationModule } from "../../common/authorization/authorization.module";
+import { SupabaseModule } from "../../common/supabase/supabase.module";
+import { OwnerController } from "./owner.controller";
+import { OwnerService } from "./owner.service";
+@Module({ imports: [AuthModule, AuthorizationModule, SupabaseModule], controllers: [OwnerController], providers: [OwnerService] })
+export class OwnerModule {}

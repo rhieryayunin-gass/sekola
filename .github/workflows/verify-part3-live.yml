@@ -1,0 +1,51 @@
+name: Part 3 owner release verification
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/verify-part3-live.yml
+      - apps/web/scripts/verify-part3-live.mjs
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: owner-part3-verification
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @sekola/api build
+      - name: Prepare browser test runner
+        run: |
+          npm install --prefix "$RUNNER_TEMP/part3-browser" playwright@1.62.1
+          "$RUNNER_TEMP/part3-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify owner UI and new API with disposable Auth fixture
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EXPECTED_WEB_RELEASE: ${{ github.sha }}
+          BROWSER_MODULE: ${{ runner.temp }}/part3-browser/node_modules/playwright/index.mjs
+          VERIFY_OUTPUT_DIR: ${{ runner.temp }}/part3-evidence
+        run: node apps/web/scripts/verify-part3-live.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: part3-owner-verification
+          path: ${{ runner.temp }}/part3-evidence
+          if-no-files-found: ignore
+          retention-days: 14
