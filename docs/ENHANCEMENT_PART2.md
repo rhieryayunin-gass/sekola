@@ -37,10 +37,12 @@ Recovered assessment weights are 6,5,4,7,4,5,6,5,5,5,7,6,5,4,4,4,7,4,4,2. They s
 - [Vercel preview](https://osekola-6osnawzko-albi-s-agentic.vercel.app) reached READY. `/healthz` returned HTTP 200 with release `e91894a2bb68aeaac6d8afd9961fb1ad7372bdee`.
 - Added downloadable finance/question PDF output, checked a rendered sample and extracted all 12 sample questions; teacher-only explanations were excluded. Fixed the library resource TypeScript error and preserved common mathematical operators in PDF output. Optimized the existing O-Connect artwork to WebP (94 KB).
 
-## Release blocker and remaining limits
+## Production release and remaining verification
 
-Automatic approval review rejected the first production Supabase migration because it creates tables, functions, triggers and access policies. **No Part 2 migration was applied.** Do not bypass this block through SQL execution, workflows or another deployment channel. Explicit user approval is required before retrying the five reviewed migrations on project `xrqjutbwnlkogpfhtuwr`.
+The user explicitly approved the five reviewed production migrations after the initial approval-review block. All five were then applied successfully to project `xrqjutbwnlkogpfhtuwr`. Verification found 22 Part 2 tables with RLS enabled and 20 maturity-assessment questions. Public school RPC entry points are security invokers.
 
-Keep PR #63 unmerged until migration approval and database verification. Then merge, verify production release identity, run the prepared two-school provisioning workflow and inspect its encrypted account output. The matching recovery key is outside the repository. No 218-account provisioning run has occurred in this continuation.
+PR #63 merged as `e7a035231487ba0d62c78726429165e013242628`; production Vercel reached READY and `https://osekola.com/healthz` returned HTTP 200 with that exact release. PR #64 subsequently fixed the required demo room code after all three CI jobs passed.
 
-End-to-end authenticated browser/role verification and live AI generation remain pending. Local browser verification could not start because Chromium is unavailable and its download timed out. Several new school workspace labels and assessment content remain Indonesian-only; complete the English localization before claiming full EN/ID coverage. Physical face/RFID reader verification and realistic production HTTP load testing remain outstanding. A READY preview alone does not establish that these features work against the live database.
+The first provisioning run created the first school's 109 accounts and preserved encrypted recovery before encountering the missing room code. The corrected script resumes existing accounts without resetting passwords. The next attempt encountered a transient gateway timeout on its initial read and was retried. Final demo counts and live browser evidence are pending below; do not infer completion from CI alone.
+
+Several new school workspace labels and assessment content remain Indonesian-only; complete English localization before claiming full EN/ID coverage. Physical face/RFID reader verification and realistic production HTTP load testing remain outstanding. Google Form/admissions details remain deferred by the brief.

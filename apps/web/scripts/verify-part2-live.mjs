@@ -10,7 +10,18 @@ assert.equal(process.env.SUPABASE_URL?.replace(/\/$/,''),url);
 assert.ok(process.env.SUPABASE_SERVICE_ROLE_KEY);
 assert.ok(process.env.BROWSER_MODULE);
 const {chromium}=await import(process.env.BROWSER_MODULE);
-const admin=createClient(url,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+// Gateway errors are transient; retry reads only, never question or Auth writes.
+async function readResilientFetch(input,init){
+ const target=new URL(typeof input==='string'?input:input instanceof URL?input.href:input.url);
+ const method=(init?.method??(input instanceof Request?input.method:'GET')).toUpperCase();
+ const repeatable=method==='GET'||/^\/rest\/v1\/rpc\/school_(context|dashboard|catalog|question_bank|finance_report)$/.test(target.pathname);
+ for(let attempt=0;attempt<4;attempt++){
+  try{const response=await fetch(input,init);if(!repeatable||![502,503,504].includes(response.status)||attempt===3)return response;await response.arrayBuffer();}
+  catch(error){if(!repeatable||attempt===3)throw error;}
+  await new Promise(resolve=>setTimeout(resolve,1000*(attempt+1)));
+ }
+}
+const admin=createClient(url,process.env.SUPABASE_SERVICE_ROLE_KEY,{global:{fetch:readResilientFetch},auth:{persistSession:false,autoRefreshToken:false}});
 const ok=(r,label='Request')=>{if(r.error)throw new Error(`${label}: ${r.error.message}`);return r.data;};
 const output=process.env.VERIFY_OUTPUT_DIR;
 assert.ok(output);await mkdir(output,{recursive:true});
@@ -38,7 +49,7 @@ try{
    assert.equal(auth.app_metadata.osekola_demo,'part2-20260912');assert.equal(auth.app_metadata.tenant_id,tenant.id);
    const link=ok(await admin.auth.admin.generateLink({type:'magiclink',email}));
    const cookies=new Map();
-   const client=createServerClient(url,key,{cookies:{getAll:()=>[...cookies.values()],setAll:values=>values.forEach(c=>cookies.set(c.name,c))}});
+   const client=createServerClient(url,key,{global:{fetch:readResilientFetch},cookies:{getAll:()=>[...cookies.values()],setAll:values=>values.forEach(c=>cookies.set(c.name,c))}});
    clients.push(client);
    assert.equal(ok(await client.auth.verifyOtp({type:'magiclink',token_hash:link.properties.hashed_token})).user.id,profile.id);
    const school=ok(await client.rpc('school_context'));
