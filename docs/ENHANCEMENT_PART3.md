@@ -63,12 +63,16 @@ through the new logo policy. The legacy media test now asserts this distinction.
   the subsequent head only restores the database test script executable bit.
   Preview browser inspection encounters Vercel authentication. Owner pages have
   not yet been verified against the production database.
-- Automatic approval review rejected the first production migration because
-  OWNER cross-tenant administrative access requires explicit approval of that
-  live permission expansion. No Part 3 production migration was applied. A
-  subsequent read-only check found no owner contract/invoice tables and zero
-  OWNER `tenants.update_all` grants. PR 69 remains open; main and production
-  remain on the Part 2 release.
+- The user explicitly approved the three production migrations and OWNER
+  cross-tenant administration after the initial automatic approval rejection.
+  All three migrations were applied successfully on 2026-09-12, with recorded
+  versions `20260912174636`, `20260912174656`, and `20260912174715`; repository
+  filenames now match the production history. SQL content is unchanged.
+- Production verification confirms all four platform permissions belong only
+  to OWNER, all four new ledger tables have RLS and no direct anon/authenticated
+  access, owner browser RPCs reject anon execution, and Auth administration and
+  API module checks are service-role-only. Frontend deployment and live browser
+  verification are pending at this checkpoint.
 - This session has no VPS deploy credential. CI produces the portable API package
   and stage script for the operator. User mutation buttons check the deployed API
   capability and remain unavailable until it supports Part 3. Do not call the

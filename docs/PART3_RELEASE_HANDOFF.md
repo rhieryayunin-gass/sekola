@@ -1,34 +1,37 @@
 # Part 3 release handoff
 
-Status: implementation reviewed by automated CI; production activation blocked.
+Status: production migrations applied following explicit user approval;
+frontend activation and VPS upgrade remain pending at this checkpoint.
 Review the code in [PR 69](https://github.com/rhieryayunin-gass/sekola/pull/69).
-Automatic approval review rejected the first live migration. Nothing in this
-document authorizes executing the blocked migration through another channel.
+Automatic approval review initially rejected the live access expansion. The user
+subsequently explicitly approved all three migrations and OWNER cross-tenant
+administration. The approved migrations were then applied successfully through
+the normal migration tool on 2026-09-12.
 
 ## Exact production approval scope
 
 The target is the existing OSEKOLA Supabase project `xrqjutbwnlkogpfhtuwr`.
-Apply these reviewed migrations, in order, after explicit approval:
+These reviewed migrations are now applied, in order:
 
 | Migration | Persistent change |
 | --- | --- |
-| `20260912160000_owner_workspace_part3.sql` | Give the OWNER role `tenants.read_all`, `tenants.create`, `tenants.update_all`, and `tenants.deactivate`; add global owner tenant/profile/module/plan, contract, invoice, receipt, expense and partner operations; add transactional invoice notifications; permit cross-tenant access to the fixed school-logo path only. |
-| `20260912161000_owner_users_part3.sql` | Add service-role-only owner user administration with audit logging, role changes, archive/restore and self-removal protection. Passwords never enter the SQL payload or audit log. |
-| `20260912162000_module_access_part3.sql` | Enforce eight per-tenant module flags in database access and permission functions, reject archived/inactive identities, and expose the check used by the new API guard. |
+| `20260912174636_owner_workspace_part3.sql` | Give the OWNER role `tenants.read_all`, `tenants.create`, `tenants.update_all`, and `tenants.deactivate`; add global owner tenant/profile/module/plan, contract, invoice, receipt, expense and partner operations; add transactional invoice notifications; permit cross-tenant access to the fixed school-logo path only. |
+| `20260912174656_owner_users_part3.sql` | Add service-role-only owner user administration with audit logging, role changes, archive/restore and self-removal protection. Passwords never enter the SQL payload or audit log. |
+| `20260912174715_module_access_part3.sql` | Enforce eight per-tenant module flags in database access and permission functions, reject archived/inactive identities, and expose the check used by the new API guard. |
 
 All current and future accounts assigned OWNER receive platform access. Other
 roles retain tenant scope. The preflight found one active OWNER. This gives that
 role authority to view and administer other schools and their user directory;
 it also permits changing module availability and tenant status. Those are the
-specific access expansion and operational impact awaiting approval.
+specific access expansion and operational impact that the user approved.
 
 The migrations do not fabricate historical balances, invoices, payments or
 contracts. Partner payment links require the actual provider URL. Opening a link
 does not transfer money. No real-user password reset is part of deployment.
 
-After approval: apply migrations, verify role grants/RLS/RPC permissions, merge
-the verified PR, await the new Vercel release, install the matching API release,
-then run the Part 3 live verification workflow and verify production API access.
+Migration and role/RLS/RPC verification are complete. Next: merge the verified PR,
+await the new Vercel release, install the matching API release, then complete the
+Part 3 live verification workflow and production API access checks.
 
 ## Build artifacts
 
