@@ -1,0 +1,6 @@
+import type { QuestionContent } from "../../lib/question-schema";
+export function QuestionDiagram({ diagram }: { diagram: QuestionContent["diagram"] }) {
+ if (!diagram || diagram.type !== "bar" || !Array.isArray(diagram.values) || !Array.isArray(diagram.labels) || diagram.values.length !== diagram.labels.length || diagram.values.length > 8) return null;
+ const values = diagram.values.map(v => Number.isFinite(v) ? Math.max(0, v) : 0); const max = Math.max(1, ...values);
+ return <figure className="school-question-diagram"><figcaption>{diagram.title}</figcaption><svg viewBox="0 0 520 240" role="img" aria-label={diagram.labels.map((l, i) => `${l}: ${values[i]} ${diagram.unit}`).join(", ")}><line x1={35} y1={195} x2={505} y2={195} stroke="currentColor" opacity={.3}/>{values.map((value, i) => { const width = 440 / values.length; const x = 50 + i * width; const height = value / max * 145; return <g key={i}><rect x={x} y={195 - height} width={Math.max(12, width - 15)} height={height} rx={4} fill="#017eff"/><text x={x + (width - 15) / 2} y={185 - height} textAnchor="middle" fontSize={12} fill="currentColor">{value}</text><text x={x + (width - 15) / 2} y={215} textAnchor="middle" fontSize={11} fill="currentColor">{diagram.labels[i]}</text></g>; })}</svg><small>{diagram.unit}</small></figure>;
+}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
+import "./school.css";
 import { I18nProvider } from "../components/i18n/i18n-provider";
 import { SiteHeader } from "../components/layout/site-header";
 import { defaultLocale, isLocale } from "../lib/i18n";

@@ -1,0 +1,44 @@
+name: Provision Enhancement Part 2 demo schools
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/provision-part2-schools.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: osekola-part2-demo-schools
+  cancel-in-progress: false
+jobs:
+  provision:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Create exactly two requested demo schools with encrypted recovery
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DEMO_OUTPUT_FILE: ${{ runner.temp }}/osekola-part2-demo.encrypted.json
+        run: node apps/api/scripts/provision-part2-schools.mjs
+      - name: Preserve encrypted credentials even after a partial run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: osekola-part2-demo-encrypted
+          path: ${{ runner.temp }}/osekola-part2-demo.encrypted.json
+          retention-days: 7
+          if-no-files-found: ignore
