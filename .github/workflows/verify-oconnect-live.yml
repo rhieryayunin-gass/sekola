@@ -6,6 +6,10 @@ on:
       - .github/workflows/verify-oconnect-live.yml
       - apps/web/scripts/verify-oconnect-live.mjs
   workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/verify-oconnect-live.yml
+      - apps/web/scripts/verify-oconnect-live.mjs
 permissions:
   contents: read
 concurrency:
@@ -13,7 +17,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   verify:
-    if: github.ref == 'refs/heads/main'
+    # A same-repository verification-only PR can exercise the deployed base.
+    # Fork pull requests never receive the environment credentials.
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     environment: staging
     timeout-minutes: 15
@@ -33,5 +39,5 @@ jobs:
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          EXPECTED_WEB_RELEASE: ${{ github.sha }}
+          EXPECTED_WEB_RELEASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
         run: node apps/web/scripts/verify-oconnect-live.mjs

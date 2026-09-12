@@ -15,9 +15,23 @@ const admin = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: {
 const tag = `connect-e2e-${randomBytes(6).toString('hex')}`;
 const tenants = [], users = [], clients = [], files = [];
 let channel;
-function ok(result) { if (result.error) throw new Error(result.error.message); return result.data; }
-async function rpc(client, name, args) { return ok(await client.rpc(`oconnect_${name}`, args)); }
+function ok(result, action = 'Supabase request') { if (result.error) throw new Error(`${action}: ${result.error.message}`); return result.data; }
+async function rpc(client, name, args) {
+  const operation = () => client.rpc(`oconnect_${name}`, args);
+  const repeatable = ['context', 'thread', 'send', 'preferences', 'mark_read'].includes(name) || (name === 'create' && args.kind === 'DIRECT');
+  return ok(await (repeatable ? retry(operation) : operation()), `RPC ${name}`);
+}
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+// Only use for reads or writes identified by fixture IDs / idempotency keys.
+async function retry(operation) {
+  let result;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    result = await operation();
+    if (!result.error || !/timeout|fetch failed|temporar|gateway/i.test(result.error.message)) return result;
+    if (attempt < 2) await pause(1000 * (attempt + 1));
+  }
+  return result;
+}
 async function waitForWeb() {
   for (let attempt = 0; attempt < 72; attempt++) {
     try {
@@ -30,29 +44,45 @@ async function waitForWeb() {
   throw new Error('Production web release did not become ready in time');
 }
 async function identity(tenant, role, suffix) {
+  console.log(`Preparing isolated identity: ${suffix}`);
   const password = `Oc!${randomBytes(30).toString('base64url')}`;
   const email = `${tag}-${suffix}@osekola.test`;
-  const user = ok(await admin.auth.admin.createUser({ email, password, email_confirm: true,
-    app_metadata: { tenant_id: tenant }, user_metadata: { full_name: `O-Connect verification ${suffix}` } })).user;
-  users.push(user.id);
-  const assignedRole = ok(await admin.from('roles').select('id').eq('code', role).single());
-  ok(await admin.from('user_roles').insert({ user_id: user.id, role_id: assignedRole.id }));
+  const id = randomUUID();
+  users.push(id);
+  const user = ok(await retry(async () => {
+    const created = await admin.auth.admin.createUser({ id, email, password, email_confirm: true,
+      app_metadata: { tenant_id: tenant }, user_metadata: { full_name: `O-Connect verification ${suffix}` } });
+    // A timed-out response may follow a committed creation. Recover only the
+    // exact preallocated identity, never search/list existing school accounts.
+    if (created.error) {
+      const existing = await admin.auth.admin.getUserById(id);
+      if (!existing.error) return existing;
+    }
+    return created;
+  }), `Create ${suffix}`).user;
+  assert.equal(user.id, id);
+  assert.equal(user.email, email);
+  assert.equal(user.app_metadata.tenant_id, tenant);
+  const assignedRole = ok(await retry(() => admin.from('roles').select('id').eq('code', role).single()), `Read ${role} role`);
+  ok(await retry(() => admin.from('user_roles').upsert({ user_id: user.id, role_id: assignedRole.id }, { onConflict: 'user_id,role_id', ignoreDuplicates: true })), `Assign ${role} role`);
   const cookies = new Map();
   const client = createServerClient(url, key, { cookies: {
     getAll: () => [...cookies].map(([name, value]) => ({ name, value })),
     setAll: values => { for (const cookie of values) cookies.set(cookie.name, cookie.value); },
   } });
   clients.push(client);
-  const signedIn = ok(await client.auth.signInWithPassword({ email, password }));
+  const signedIn = ok(await retry(() => client.auth.signInWithPassword({ email, password })), `Sign in ${suffix}`);
   assert.equal(signedIn.user.id, user.id);
+  console.log(`Ready isolated identity: ${suffix}`);
   return { client, id: user.id, cookie: () => [...cookies].map(([name, value]) => `${name}=${value}`).join('; ') };
 }
 try {
   const release = await waitForWeb();
   console.log(`Production web release verified: ${release}`);
   for (const suffix of ['A', 'B']) {
-    const tenant = ok(await admin.from('tenants').insert({ name: `${tag}-${suffix}`, code: `${tag}-${suffix}` }).select('id').single());
-    tenants.push(tenant.id);
+    const id = randomUUID();
+    tenants.push(id); // Track before the request in case its response is lost.
+    ok(await retry(() => admin.from('tenants').upsert({ id, name: `${tag}-${suffix}`, code: `${tag}-${suffix}` }, { onConflict: 'id', ignoreDuplicates: true })), `Create isolated tenant ${suffix}`);
   }
   const a = await identity(tenants[0], 'TEACHER', 'teacher');
   const b = await identity(tenants[0], 'PARENT', 'parent');
@@ -64,7 +94,13 @@ try {
   const messageId = randomUUID();
   let received;
   const realtimeMessage = new Promise(resolve => { received = resolve; });
-  channel = b.client.channel(`${tag}:messages`).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'oconnect_messages', filter: `conversation_id=eq.${conversation}` }, payload => { if (payload.new.id === messageId) received(payload.new); });
+  await b.client.realtime.setAuth();
+  channel = b.client.channel(`${tag}:messages`)
+    .on('system', {}, event => console.log(`Realtime system: ${event.status} ${event.message}`))
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'oconnect_messages', filter: `conversation_id=eq.${conversation}` }, payload => {
+      if (payload.errors?.length) received({ error: payload.errors.join('; ') });
+      if (payload.new.id === messageId) received(payload.new);
+    });
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Realtime subscription timed out')), 15000);
     channel.subscribe(status => {
@@ -73,24 +109,21 @@ try {
     });
   });
   const first = await rpc(a.client, 'send', { conversation, message_id: messageId, body: 'O-Connect isolated live verification' });
-  let realtimeTimer;
-  const delivered = await Promise.race([realtimeMessage, new Promise((_, reject) => { realtimeTimer = setTimeout(() => reject(new Error('Realtime delivery timed out')), 15000); })]);
-  clearTimeout(realtimeTimer);
-  assert.equal(delivered.sender_id, a.id);
+  assert.equal(ok(await retry(() => b.client.from('oconnect_messages').select('id').eq('id', messageId).single())).id, messageId, 'Recipient can read the actual message through table RLS');
   assert.equal((await rpc(a.client, 'send', { conversation, message_id: messageId, body: first.body })).seq, first.seq);
   await rpc(b.client, 'send', { conversation, message_id: randomUUID(), body: 'Verified reply', reply_to: messageId });
   assert.equal((await rpc(a.client, 'thread', { conversation })).messages.length, 2);
   assert.equal((await rpc(b.client, 'thread', { conversation, search: 'isolated' })).messages.length, 1);
-  assert.ok((await outside.client.rpc('oconnect_thread', { conversation })).error);
-  assert.ok((await b.client.rpc('oconnect_create', { kind: 'GROUP', title: 'Forbidden', members: [a.id] })).error);
-  console.log('PASS: two-user send/reply, Realtime, idempotency, search and cross-tenant denial');
+  assert.equal((await retry(() => outside.client.rpc('oconnect_thread', { conversation }))).error?.code, '42501', 'Explicit cross-tenant authorization denial');
+  assert.equal((await b.client.rpc('oconnect_create', { kind: 'GROUP', title: 'Forbidden', members: [a.id] })).error?.code, '42501', 'Explicit parent group-creation denial');
+  console.log('PASS: two-user send/reply, table RLS, idempotency, search and cross-tenant denial');
   await rpc(b.client, 'preferences', { font_size: 20 });
   assert.equal((await rpc(b.client, 'context')).font_size, 20);
   assert.equal((await rpc(a.client, 'context')).font_size, 16);
   const path = `${tenants[0]}/${conversation}/${a.id}/${randomUUID()}-verification.txt`;
   const contents = 'O-Connect test attachment. No personal data.';
-  ok(await a.client.storage.from('oconnect-attachments').upload(path, Buffer.from(contents), { contentType: 'text/plain' }));
   files.push(path);
+  ok(await a.client.storage.from('oconnect-attachments').upload(path, Buffer.from(contents), { contentType: 'text/plain' }), 'Upload isolated attachment');
   const attachment = await rpc(a.client, 'send', { conversation, message_id: randomUUID(), attachment: { path, name: 'verification.txt' } });
   const fileUrl = `https://osekola.com/api/connect/attachment?message=${attachment.id}`;
   const read = await fetch(fileUrl, { headers: { Cookie: b.cookie() }, signal: AbortSignal.timeout(15000), redirect: 'manual' });
@@ -110,10 +143,16 @@ try {
   const notifications = ok(await b.client.from('notifications').select('resource_id').eq('resource_type', 'oconnect').eq('resource_id', group));
   assert.equal(notifications.length, 1);
   await rpc(a.client, 'manage_member', { conversation: group, member: b.id, remove: true });
-  assert.ok((await b.client.rpc('oconnect_thread', { conversation: group })).error);
+  assert.equal((await retry(() => b.client.rpc('oconnect_thread', { conversation: group }))).error?.code, '42501', 'Explicit removed-member authorization denial');
   await rpc(a.client, 'delete_message', { message: messageId });
   assert.ok((await rpc(a.client, 'thread', { conversation })).messages.find(m => m.id === messageId).deleted_at);
   console.log('PASS: group management, notification integration, removal revocation and message deletion');
+  let realtimeTimer;
+  const delivered = await Promise.race([realtimeMessage, new Promise(resolve => { realtimeTimer = setTimeout(() => resolve({ error: 'Realtime delivery timed out' }), 30000); })]);
+  clearTimeout(realtimeTimer);
+  assert.ok(!delivered.error, delivered.error);
+  assert.equal(delivered.sender_id, a.id);
+  console.log('PASS: authenticated Realtime message delivery');
   console.log('OCONNECT_LIVE_E2E_PASSED');
 } catch (error) {
   console.error(`OCONNECT_LIVE_E2E_FAILED: ${error.message}`);
@@ -123,21 +162,21 @@ try {
   if (channel) await clients[1]?.removeChannel(channel);
   let ownedFixtures = true;
   if (tenants.length) {
-    const inspection = await admin.from('tenants').select('id,code').in('id', tenants);
-    ownedFixtures = !inspection.error && inspection.data.length === tenants.length && inspection.data.every(t => [tag + '-A', tag + '-B'].includes(t.code));
+    const inspection = await retry(() => admin.from('tenants').select('id,code').in('id', tenants));
+    ownedFixtures = !inspection.error && inspection.data.every(t => [tag + '-A', tag + '-B'].includes(t.code));
     if (!ownedFixtures) cleanupErrors.push('Fixture ownership guard failed; no records will be deleted');
   }
   // Remove child messages first (reply FKs are contained in the deleted set).
   if (tenants.length && ownedFixtures) {
     for (const table of ['oconnect_messages', 'oconnect_conversations', 'notifications']) {
-      const result = await admin.from(table).delete().in('tenant_id', tenants);
+      const result = await retry(() => admin.from(table).delete().in('tenant_id', tenants));
       if (result.error) cleanupErrors.push(`${table}: ${result.error.message}`);
     }
   }
-  if (files.length && ownedFixtures) { const result = await admin.storage.from('oconnect-attachments').remove(files); if (result.error) cleanupErrors.push('Attachment cleanup failed'); }
-  for (const client of clients) await client.auth.signOut();
-  if (ownedFixtures) for (const user of users) { const result = await admin.auth.admin.deleteUser(user); if (result.error) cleanupErrors.push('Test identity cleanup failed'); }
-  if (tenants.length && ownedFixtures) { const result = await admin.from('tenants').delete().in('id', tenants); if (result.error) cleanupErrors.push('Test tenant cleanup failed'); }
+  if (files.length && ownedFixtures) { const result = await retry(() => admin.storage.from('oconnect-attachments').remove(files)); if (result.error) cleanupErrors.push('Attachment cleanup failed'); }
+  for (const client of clients) { await client.removeAllChannels(); await client.auth.signOut(); }
+  if (ownedFixtures) for (const user of users) { const result = await retry(() => admin.auth.admin.deleteUser(user)); if (result.error && result.error.status !== 404) cleanupErrors.push('Test identity cleanup failed'); }
+  if (tenants.length && ownedFixtures) { const result = await retry(() => admin.from('tenants').delete().in('id', tenants)); if (result.error) cleanupErrors.push('Test tenant cleanup failed'); }
   if (cleanupErrors.length) { console.error(`Cleanup requires attention for ${tag}: ${cleanupErrors.join('; ')}`); process.exitCode = 1; }
   else console.log('OCONNECT_TEST_FIXTURES_REMOVED');
 }

@@ -31,6 +31,7 @@ export function useConnectRealtime(enabled: boolean) {
   useEffect(() => {
     if (!user || !enabled) return;
     const client = createClient();
+    let stopped = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => {
       if (timer) clearTimeout(timer);
@@ -40,9 +41,18 @@ export function useConnectRealtime(enabled: boolean) {
     for (const table of ["oconnect_messages", "oconnect_conversations", "oconnect_members", "oconnect_preferences"]) {
       channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, refresh);
     }
-    channel.subscribe(status => { setConnected(status === "SUBSCRIBED"); if (status === "SUBSCRIBED") refresh(); });
+    // Auth initialization may still be settling after login. Use the current
+    // session before joining so the subscription receives authenticated RLS.
+    void client.realtime.setAuth().then(() => {
+      if (stopped) return;
+      channel.subscribe(status => {
+        if (stopped) return;
+        setConnected(status === "SUBSCRIBED");
+        if (status === "SUBSCRIBED") refresh();
+      });
+    }).catch(() => { if (!stopped) setConnected(false); });
     window.addEventListener("online", refresh);
-    return () => { if (timer) clearTimeout(timer); window.removeEventListener("online", refresh); void client.removeChannel(channel); };
+    return () => { stopped = true; if (timer) clearTimeout(timer); window.removeEventListener("online", refresh); void client.removeChannel(channel); };
   }, [user, enabled, cache]);
   return connected;
 }
