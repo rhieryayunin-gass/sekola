@@ -38,8 +38,10 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BROWSER_MODULE: ${{ runner.temp }}/osekola-browser/node_modules/playwright/index.mjs
           VERIFY_OUTPUT_DIR: ${{ runner.temp }}/part2-browser-evidence
-          EXPECTED_WEB_RELEASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
-        run: node apps/web/scripts/verify-part2-live.mjs
+        run: |
+          part2_release_sha="$(git ls-remote --exit-code origin refs/heads/main | cut -f1)"
+          test "${#part2_release_sha}" -eq 40
+          EXPECTED_WEB_RELEASE="$part2_release_sha" node apps/web/scripts/verify-part2-live.mjs
       - name: Preserve synthetic demo evidence
         if: always()
         uses: actions/upload-artifact@v4
