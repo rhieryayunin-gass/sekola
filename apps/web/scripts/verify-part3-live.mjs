@@ -67,8 +67,8 @@ try{
   assert.deepEqual(await page.locator('.school-module-nav>a').allTextContents(),['Dashboard','Tenant','Finance','Partner','User']);
   await page.getByRole('button',{name:'Account',exact:true}).click();await page.locator('#account-popover').waitFor();
   await page.locator('.owner-banner').click();assert.equal(await page.locator('#account-popover').count(),0);
-  if(!route)assert.equal(await page.locator('.owner-metric').count(),4);
-  else if(route!='/partners')await page.locator('.owner-table tbody tr').first().waitFor();
+  if(!route){await page.locator('.owner-metric').first().waitFor();assert.equal(await page.locator('.owner-metric').count(),4);}
+  else await page.locator('.owner-table tbody tr, .owner-table-panel > .owner-empty:not([role])').first().waitFor();
   await page.screenshot({path:`${output}/owner${route.replace('/','-')||'-dashboard'}.png`,fullPage:true,mask:[page.locator('.owner-banner h1'),page.locator('tbody')]});
   record('PASS: owner page '+(route||'/dashboard')+'; five navigation items, banner and outside-click menu.');
  }
