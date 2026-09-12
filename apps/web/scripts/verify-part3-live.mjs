@@ -72,9 +72,15 @@ try{
   await page.screenshot({path:`${output}/owner${route.replace('/','-')||'-dashboard'}.png`,fullPage:true,mask:[page.locator('.owner-banner h1'),page.locator('tbody')]});
   record('PASS: owner page '+(route||'/dashboard')+'; five navigation items, banner and outside-click menu.');
  }
- await page.setViewportSize({width:390,height:844});await page.goto('https://osekola.com/dashboard');await page.locator('.owner-banner').waitFor();
- assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Mobile page overflow');
- await page.screenshot({path:`${output}/owner-mobile.png`,fullPage:true,mask:[page.locator('.owner-banner h1')]});
+ await page.setViewportSize({width:390,height:844});
+ for(const route of ['','/tenant','/finance','/partners','/users']){
+  await page.goto('https://osekola.com/dashboard'+route);await page.locator('.owner-banner').waitFor();
+  if(!route){await page.locator('.owner-metric').first().waitFor();assert.equal(await page.locator('.owner-metric').count(),4);}
+  else await page.locator('.owner-table tbody tr').first().waitFor();
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Mobile page overflow: '+(route||'/dashboard'));
+  await page.screenshot({path:`${output}/owner-mobile${route.replace('/','-')}.png`,fullPage:true,mask:[page.locator('.owner-banner h1'),page.locator('tbody')]});
+  record('PASS: loaded mobile owner page '+(route||'/dashboard')+'; no document overflow.');
+ }
  const publicContext=await browser.newContext({viewport:{width:1440,height:1000}});await publicContext.addCookies([{name:'osekola_locale',value:'en-US',domain:'osekola.com',path:'/',secure:true,sameSite:'Lax'}]);const publicPage=await publicContext.newPage();
  await publicPage.goto('https://osekola.com/login');await publicPage.getByRole('link',{name:'Back to home'}).waitFor();
  await publicPage.getByRole('link',{name:'Back to home'}).click();await publicPage.locator('.school-hero-actions').waitFor();
@@ -82,7 +88,8 @@ try{
  assert.equal(await publicPage.locator('.ose-person-symbol').count(),3);
  assert.equal(errors.length,0,'Unexpected browser runtime error');
  const production=await fetch('https://api.osekola.com/api/v1/owner/users/capabilities',{headers:{Authorization:`Bearer ${token}`}});
- record(production.ok?'PASS: deployed API supports owner account management.':'PENDING: VPS API release is not deployed; account mutations are disabled in the UI.');
+ const productionBody=await production.json().catch(()=>null),capability=productionBody?.data??productionBody;
+ record(production.ok&&capability?.available===true&&capability?.version===3?'PASS: deployed API supports owner account management.':'PENDING: VPS API release is not deployed; account mutations are disabled in the UI.');
 }finally{
  if(fixtureId){const candidate=ok(await admin.auth.admin.getUserById(fixtureId)).user;assert.equal(candidate.email,email);assert.equal(candidate.app_metadata.tenant_id,tenant.id);ok(await admin.auth.admin.deleteUser(fixtureId),'Fixture cleanup');}
  else {const candidate=ok(await admin.from('users').select('id').eq('email',email).maybeSingle());if(candidate){const auth=ok(await admin.auth.admin.getUserById(candidate.id)).user;assert.equal(auth.email,email);assert.equal(auth.app_metadata.tenant_id,tenant.id);ok(await admin.auth.admin.deleteUser(candidate.id),'Partial fixture cleanup');}}
