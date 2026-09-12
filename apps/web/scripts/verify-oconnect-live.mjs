@@ -15,8 +15,12 @@ const admin = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: {
 const tag = `connect-e2e-${randomBytes(6).toString('hex')}`;
 const tenants = [], users = [], clients = [], files = [];
 let channel;
-function ok(result) { if (result.error) throw new Error(result.error.message); return result.data; }
-async function rpc(client, name, args) { return ok(await client.rpc(`oconnect_${name}`, args)); }
+function ok(result, action = 'Supabase request') { if (result.error) throw new Error(`${action}: ${result.error.message}`); return result.data; }
+async function rpc(client, name, args) {
+  const operation = () => client.rpc(`oconnect_${name}`, args);
+  const repeatable = ['context', 'thread', 'send', 'preferences', 'mark_read'].includes(name) || (name === 'create' && args.kind === 'DIRECT');
+  return ok(await (repeatable ? retry(operation) : operation()), `RPC ${name}`);
+}
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 // Only use for reads or writes identified by fixture IDs / idempotency keys.
 async function retry(operation) {
@@ -40,21 +44,36 @@ async function waitForWeb() {
   throw new Error('Production web release did not become ready in time');
 }
 async function identity(tenant, role, suffix) {
+  console.log(`Preparing isolated identity: ${suffix}`);
   const password = `Oc!${randomBytes(30).toString('base64url')}`;
   const email = `${tag}-${suffix}@osekola.test`;
-  const user = ok(await admin.auth.admin.createUser({ email, password, email_confirm: true,
-    app_metadata: { tenant_id: tenant }, user_metadata: { full_name: `O-Connect verification ${suffix}` } })).user;
-  users.push(user.id);
-  const assignedRole = ok(await admin.from('roles').select('id').eq('code', role).single());
-  ok(await admin.from('user_roles').insert({ user_id: user.id, role_id: assignedRole.id }));
+  const id = randomUUID();
+  users.push(id);
+  const user = ok(await retry(async () => {
+    const created = await admin.auth.admin.createUser({ id, email, password, email_confirm: true,
+      app_metadata: { tenant_id: tenant }, user_metadata: { full_name: `O-Connect verification ${suffix}` } });
+    // A timed-out response may follow a committed creation. Recover only the
+    // exact preallocated identity, never search/list existing school accounts.
+    if (created.error) {
+      const existing = await admin.auth.admin.getUserById(id);
+      if (!existing.error) return existing;
+    }
+    return created;
+  }), `Create ${suffix}`).user;
+  assert.equal(user.id, id);
+  assert.equal(user.email, email);
+  assert.equal(user.app_metadata.tenant_id, tenant);
+  const assignedRole = ok(await retry(() => admin.from('roles').select('id').eq('code', role).single()), `Read ${role} role`);
+  ok(await retry(() => admin.from('user_roles').upsert({ user_id: user.id, role_id: assignedRole.id }, { onConflict: 'user_id,role_id', ignoreDuplicates: true })), `Assign ${role} role`);
   const cookies = new Map();
   const client = createServerClient(url, key, { cookies: {
     getAll: () => [...cookies].map(([name, value]) => ({ name, value })),
     setAll: values => { for (const cookie of values) cookies.set(cookie.name, cookie.value); },
   } });
   clients.push(client);
-  const signedIn = ok(await client.auth.signInWithPassword({ email, password }));
+  const signedIn = ok(await retry(() => client.auth.signInWithPassword({ email, password })), `Sign in ${suffix}`);
   assert.equal(signedIn.user.id, user.id);
+  console.log(`Ready isolated identity: ${suffix}`);
   return { client, id: user.id, cookie: () => [...cookies].map(([name, value]) => `${name}=${value}`).join('; ') };
 }
 try {
@@ -63,7 +82,7 @@ try {
   for (const suffix of ['A', 'B']) {
     const id = randomUUID();
     tenants.push(id); // Track before the request in case its response is lost.
-    ok(await retry(() => admin.from('tenants').upsert({ id, name: `${tag}-${suffix}`, code: `${tag}-${suffix}` }, { onConflict: 'id', ignoreDuplicates: true })));
+    ok(await retry(() => admin.from('tenants').upsert({ id, name: `${tag}-${suffix}`, code: `${tag}-${suffix}` }, { onConflict: 'id', ignoreDuplicates: true })), `Create isolated tenant ${suffix}`);
   }
   const a = await identity(tenants[0], 'TEACHER', 'teacher');
   const b = await identity(tenants[0], 'PARENT', 'parent');
@@ -95,16 +114,16 @@ try {
   await rpc(b.client, 'send', { conversation, message_id: randomUUID(), body: 'Verified reply', reply_to: messageId });
   assert.equal((await rpc(a.client, 'thread', { conversation })).messages.length, 2);
   assert.equal((await rpc(b.client, 'thread', { conversation, search: 'isolated' })).messages.length, 1);
-  assert.ok((await outside.client.rpc('oconnect_thread', { conversation })).error);
-  assert.ok((await b.client.rpc('oconnect_create', { kind: 'GROUP', title: 'Forbidden', members: [a.id] })).error);
+  assert.equal((await retry(() => outside.client.rpc('oconnect_thread', { conversation }))).error?.code, '42501', 'Explicit cross-tenant authorization denial');
+  assert.equal((await b.client.rpc('oconnect_create', { kind: 'GROUP', title: 'Forbidden', members: [a.id] })).error?.code, '42501', 'Explicit parent group-creation denial');
   console.log('PASS: two-user send/reply, table RLS, idempotency, search and cross-tenant denial');
   await rpc(b.client, 'preferences', { font_size: 20 });
   assert.equal((await rpc(b.client, 'context')).font_size, 20);
   assert.equal((await rpc(a.client, 'context')).font_size, 16);
   const path = `${tenants[0]}/${conversation}/${a.id}/${randomUUID()}-verification.txt`;
   const contents = 'O-Connect test attachment. No personal data.';
-  ok(await a.client.storage.from('oconnect-attachments').upload(path, Buffer.from(contents), { contentType: 'text/plain' }));
   files.push(path);
+  ok(await a.client.storage.from('oconnect-attachments').upload(path, Buffer.from(contents), { contentType: 'text/plain' }), 'Upload isolated attachment');
   const attachment = await rpc(a.client, 'send', { conversation, message_id: randomUUID(), attachment: { path, name: 'verification.txt' } });
   const fileUrl = `https://osekola.com/api/connect/attachment?message=${attachment.id}`;
   const read = await fetch(fileUrl, { headers: { Cookie: b.cookie() }, signal: AbortSignal.timeout(15000), redirect: 'manual' });
@@ -124,7 +143,7 @@ try {
   const notifications = ok(await b.client.from('notifications').select('resource_id').eq('resource_type', 'oconnect').eq('resource_id', group));
   assert.equal(notifications.length, 1);
   await rpc(a.client, 'manage_member', { conversation: group, member: b.id, remove: true });
-  assert.ok((await b.client.rpc('oconnect_thread', { conversation: group })).error);
+  assert.equal((await retry(() => b.client.rpc('oconnect_thread', { conversation: group }))).error?.code, '42501', 'Explicit removed-member authorization denial');
   await rpc(a.client, 'delete_message', { message: messageId });
   assert.ok((await rpc(a.client, 'thread', { conversation })).messages.find(m => m.id === messageId).deleted_at);
   console.log('PASS: group management, notification integration, removal revocation and message deletion');
