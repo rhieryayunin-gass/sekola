@@ -1,4 +1,5 @@
 "use client";
+import { OwnerDashboard } from "../owner/owner-dashboard";
 import { DashboardOverview } from "../school/dashboard-overview";
 import { apiBaseUrl } from "../../lib/api/base-url";
 import Link from "next/link";
@@ -32,6 +33,7 @@ export function RoleDashboard() {
   const notices = useQuery({ queryKey:["dashboard-notifications",context?.userId], enabled:has("notifications.read"), queryFn:()=>load<Notice[]>("/notifications") });
   const calendars = useQuery({ queryKey:["dashboard-calendars",context?.userId], enabled:has("calendar.read"), queryFn:()=>load<Calendar[]>("/calendars") });
   if (!context) return <AccessState/>;
+  if (role === "OWNER" && has("tenants.update_all")) return <OwnerDashboard/>;
   const name = user?.user_metadata.full_name || user?.email?.split("@")[0] || t("account");
   return <section className="ose-dashboard">
     <div className="ose-page-heading"><div><p className="ose-eyebrow">{role || t("account")} / {t("dashboard")}</p><h1>{t("hello")}, {name}.</h1><p>{t(descriptions[role] ?? "workspaceIntro")}</p></div><Link href="/dashboard/profile" className="ose-link">{t("myProfile")} ↗</Link></div>

@@ -21,6 +21,7 @@ import { OperationsModule } from "./modules/operations/operations.module";
 import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { validateEnvironment } from "./config/environment";
 import { ReadinessService } from "./common/observability/readiness.service";
+import { OwnerModule } from "./modules/owner/owner.module";
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ReadinessService } from "./common/observability/readiness.service";
     }),
     SupabaseModule,
     AuthModule,
+    OwnerModule,
     AuthorizationModule,
     CalendarModule,
     CalendarEventsModule,

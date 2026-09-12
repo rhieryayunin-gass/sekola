@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { Request } from "express";
 import { AuthService } from "../auth.service";
+import { moduleForPath } from "../module-access";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -45,6 +46,9 @@ export class AuthGuard implements CanActivate {
       await this.authService.getUserFromToken(token);
 
     request.user = user;
+
+    const module = moduleForPath(request.originalUrl ?? request.url ?? "");
+    if (module) await this.authService.assertModuleAccess(user.id, module);
 
     return true;
   }

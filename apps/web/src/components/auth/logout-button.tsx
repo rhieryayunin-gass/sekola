@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 import { useToast } from "../ui/toast";
 import { useTranslations } from "../i18n/i18n-provider";
 
-export function LogoutButton() {
+export function LogoutButton({ danger = false }: { danger?: boolean }) {
   const { t } = useTranslations();
   const router = useRouter();
   const signOut = useAuthStore((state) => state.signOut);
@@ -32,7 +32,7 @@ export function LogoutButton() {
   }
 
   return (
-    <Button disabled={isPending} onClick={handleLogout} variant="ghost">
+    <Button disabled={isPending} onClick={handleLogout} variant={danger ? "danger" : "ghost"}>
       {isPending ? t("signingOut") : t("signOut")}
     </Button>
   );

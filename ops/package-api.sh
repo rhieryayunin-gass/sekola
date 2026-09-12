@@ -7,7 +7,7 @@ cd "$repo_root"
 release_sha="$(git rev-parse HEAD)"
 archive="${1:?Pass a new absolute .tar.gz output path outside the repository}"
 [[ "$archive" == /*.tar.gz && ! -e "$archive" && "$archive" != "$repo_root"/* ]] || { echo 'Use a new absolute archive path outside the repository' >&2; exit 1; }
-for output in "$archive.sha256" "${archive%.tar.gz}-stage.sh" "${archive%.tar.gz}-release.txt"; do
+for output in "$archive.sha256" "${archive%.tar.gz}-stage.sh" "${archive%.tar.gz}-upgrade.sh" "${archive%.tar.gz}-release.txt"; do
   [[ ! -e "$output" && ! -L "$output" ]] || { echo 'Use new companion file paths' >&2; exit 1; }
 done
 package_temp="$(mktemp -d)"
@@ -49,6 +49,7 @@ JS
 tar -czf "$archive" -C "$package_temp/api" .
 (cd "$(dirname "$archive")" && sha256sum "$(basename "$archive")") > "$archive.sha256"
 cp ops/stage-osekola-api.sh "${archive%.tar.gz}-stage.sh"
+cp ops/upgrade-osekola-api.sh "${archive%.tar.gz}-upgrade.sh"
 printf '%s\n' "$release_sha" > "${archive%.tar.gz}-release.txt"
 cat "$archive.sha256"
 echo "API release packaged: $release_sha"

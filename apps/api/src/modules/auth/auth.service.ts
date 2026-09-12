@@ -1,6 +1,7 @@
 import {
   Injectable,
   UnauthorizedException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { SupabaseService } from "../../common/supabase/supabase.service";
 
@@ -14,12 +15,18 @@ export class AuthService {
     return this.supabaseService.getClient();
   }
 
+  async assertModuleAccess(userId: string, moduleCode: string) {
+    const { data, error } = await this.client.rpc("app_module_enabled", { actor_id: userId, module_code: moduleCode });
+    if (error || data !== true) throw new ForbiddenException("This module is disabled for the school");
+  }
+
   private async ensureActiveProfile(userId: string) {
     const { data, error } = await this.client
       .from("users")
       .select(`
         id,
         is_active,
+        deleted_at,
         tenants (
           is_active
         )
@@ -33,7 +40,7 @@ export class AuthService {
       );
     }
 
-    if (!data.is_active) {
+    if (!data.is_active || data.deleted_at) {
       throw new UnauthorizedException("Account is inactive");
     }
 
