@@ -2,8 +2,8 @@
 import { beforeEach,describe,expect,it,vi } from "vitest";
 const {getClaims,rpc,generateText}=vi.hoisted(()=>({getClaims:vi.fn(),rpc:vi.fn(),generateText:vi.fn()}));
 vi.mock("../../../../../lib/supabase/server",()=>({createClient:async()=>({auth:{getClaims},rpc})}));
-vi.mock("ai",()=>({generateText,Output:{object:vi.fn()}}));
-vi.mock("@ai-sdk/gateway",()=>({gateway:vi.fn()}));
+vi.mock("ai",async importOriginal=>({...await importOriginal<typeof import("ai")>(),generateText,Output:{object:vi.fn()}}));
+vi.mock("@ai-sdk/gateway",async importOriginal=>({...await importOriginal<typeof import("@ai-sdk/gateway")>(),gateway:vi.fn()}));
 import { POST } from "./route";
 const body={request_id:"00000000-0000-4000-8000-000000000001",set_id:"00000000-0000-4000-8000-000000000002",count:1,question_type:"MULTIPLE_CHOICE",difficulty:"EASY",include_image:false,instructions:"Addition"};
 const request=(origin="https://osekola.com")=>new Request("https://osekola.com/api/school/questions/generate",{method:"POST",headers:{origin,"content-type":"application/json"},body:JSON.stringify(body)});
