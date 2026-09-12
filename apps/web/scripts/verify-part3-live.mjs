@@ -76,7 +76,7 @@ try{
  for(const route of ['','/tenant','/finance','/partners','/users']){
   await page.goto('https://osekola.com/dashboard'+route);await page.locator('.owner-banner').waitFor();
   if(!route){await page.locator('.owner-metric').first().waitFor();assert.equal(await page.locator('.owner-metric').count(),4);}
-  else await page.locator('.owner-table tbody tr').first().waitFor();
+  else await page.locator('.owner-table tbody tr, .owner-table-panel > .owner-empty:not([role])').first().waitFor();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Mobile page overflow: '+(route||'/dashboard'));
   await page.screenshot({path:`${output}/owner-mobile${route.replace('/','-')}.png`,fullPage:true,mask:[page.locator('.owner-banner h1'),page.locator('tbody')]});
   record('PASS: loaded mobile owner page '+(route||'/dashboard')+'; no document overflow.');
