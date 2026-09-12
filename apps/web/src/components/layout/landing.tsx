@@ -1,11 +1,11 @@
 "use client";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUpRight, BookOpen, CalendarCheck, Check, ClipboardCheck, GraduationCap, Layers3, Mail, MapPin, Phone, Users, Wallet, X } from "lucide-react";
+import { ArrowDown, ArrowUpRight, BookOpen, CalendarCheck, Check, ClipboardCheck, GraduationCap, Layers3, Mail, MapPin, MessageCircle, Phone, Users, Wallet, X } from "lucide-react";
 import { useTranslations } from "../i18n/i18n-provider";
 import { marketingCopy, marketingModules } from "../../lib/marketing";
 
-const icons = { core: Layers3, academic: GraduationCap, attendance: CalendarCheck, learning: BookOpen, exam: ClipboardCheck, finance: Wallet, team: Users };
+const icons = { core: Layers3, academic: GraduationCap, attendance: CalendarCheck, learning: BookOpen, exam: ClipboardCheck, finance: Wallet, team: Users, connect: MessageCircle };
 type MarketingModule = typeof marketingModules[number];
 function ModuleDetails({ module, close }: { module: MarketingModule; close: () => void }) {
   const { locale } = useTranslations();
@@ -21,7 +21,7 @@ function ModuleDetails({ module, close }: { module: MarketingModule; close: () =
   }, []);
   return <dialog ref={dialog} className="ose-module-dialog" aria-labelledby="module-title" aria-describedby="module-description" onClose={close} onClick={event => { if (event.target === dialog.current) { const rect = dialog.current.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close(); } }}>
     <button autoFocus className="ose-dialog-close ose-control" aria-label={copy.close} onClick={close}><X size={20}/></button>
-    <div className="ose-dialog-art"><Image src={`/illustrations/${module.id}.webp`} alt="" width={1536} height={1024} sizes="(max-width: 760px) 90vw, 400px"/></div>
+    <div className="ose-dialog-art"><Image src={`/illustrations/${module.id === "o-connect" ? "o-core" : module.id}.webp`} alt="" width={1536} height={1024} sizes="(max-width: 760px) 90vw, 400px"/></div>
     <div className="ose-dialog-content"><span className="ose-eyebrow">{module.name}</span><h2 id="module-title">{content[0]}</h2><p id="module-description">{content[1]}</p><h3>{copy.features}</h3><ul>{content.slice(2).map(feature => <li key={feature}><Check size={18} aria-hidden="true"/>{feature}</li>)}</ul></div>
   </dialog>;
 }
