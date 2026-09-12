@@ -1,4 +1,6 @@
 "use client";
+import { schoolRpc, useCatalog } from "../../lib/school";
+import { ProjectCommittee } from "../school/project-committee";
 import { ConnectLink } from "../connect/connect-link";
 import { useUiText } from "../i18n/ui-text";
 import { apiBaseUrl } from "../../lib/api/base-url";
@@ -67,7 +69,7 @@ export function TeamManager() {const copy=useUiText();
   const projects = useQuery({ queryKey: ["team", "projects", projectPage], queryFn: () => api<Project[]>(`/team/projects?page=${projectPage}&page_size=50`) });
   const projectId = selectedProjectId || projects.data?.[0]?.id || "";
   const me = useQuery({ queryKey: ["users", "me"], queryFn: () => api<User>("/users/me") });
-  const users = useQuery({ queryKey: ["team", "users"], queryFn: () => api<{ items: User[] }>("/users?page=1&page_size=100"), retry: false });
+  const users = useCatalog("users");
   const tasks = useQuery({ queryKey: ["team", projectId, "tasks", taskPage], queryFn: () => api<Task[]>(`/team/projects/${projectId}/tasks?page=${taskPage}&page_size=50`), enabled: Boolean(projectId) && view === "board" });
   const members = useQuery({ queryKey: ["team", projectId, "members"], queryFn: () => api<Member[]>(`/team/projects/${projectId}/members`), enabled: Boolean(projectId) });
   const settings = useQuery({ queryKey: ["team", projectId, "settings"], queryFn: () => api<Settings>(`/team/projects/${projectId}/settings`), enabled: Boolean(projectId) });
@@ -77,7 +79,7 @@ export function TeamManager() {const copy=useUiText();
 
   const refresh = (...keys: string[]) => Promise.all(keys.map((key) => queryClient.invalidateQueries({ queryKey: ["team", projectId, key] })));
   const createProject = useMutation({
-    mutationFn: (body: object) => api<Project>("/team/projects", { method: "POST", body: JSON.stringify(body) }),
+    mutationFn: (body: object) => schoolRpc<Project>("school_project_template", { payload: body }),
     onSuccess: async (project) => { await queryClient.invalidateQueries({ queryKey: ["team", "projects"] }); setProjectId(project.id); setProjectModal(false); toast({ title: "Team+ project created", tone: "success" }); },
   });
   const createTask = useMutation({
@@ -112,7 +114,7 @@ export function TeamManager() {const copy=useUiText();
   function submitProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(undefined);
     const form = new FormData(event.currentTarget);
-    createProject.mutate({ code: form.get("code"), name: form.get("name"), description: form.get("description") || undefined, owner_user_id: form.get("owner_user_id"), status: "PLANNING" }, { onError: (reason) => setError(reason instanceof Error ? reason.message : "Unable to create project") });
+    createProject.mutate({ code: form.get("code"), name: form.get("name"), description: form.get("description") || undefined, template: form.get("template"), committee: Object.fromEntries(["CHAIR","SECRETARY","TREASURER"].map(role=>[role,form.get(role)])) }, { onError: (reason) => setError(reason instanceof Error ? reason.message : "Unable to create project") });
   }
 
   function submitTask(event: FormEvent<HTMLFormElement>) {
@@ -128,7 +130,7 @@ export function TeamManager() {const copy=useUiText();
   }
 
   const activeProject = projects.data?.find((project) => project.id === projectId);
-  const availableUsers = users.data?.items ?? (me.data ? [me.data] : []);
+  const availableUsers = users.data?.map(u=>({id:u.id,full_name:String(u.name ?? u.full_name ?? "Pengguna")})) ?? (me.data ? [me.data] : []);
 
   return (
     <section className="mt-6 grid gap-5">
@@ -184,6 +186,7 @@ export function TeamManager() {const copy=useUiText();
 
             {view === "activity" && <Card className="mt-5"><h3 className="text-lg font-bold">{copy("Project activity")}</h3><div className="mt-4 space-y-3">{activity.data?.map((item) => <div key={item.id} className="border-b border-border pb-3"><p className="font-semibold">{item.activity_type.replaceAll("_", " ")}</p><p className="text-sm text-muted">{person(item.actor)} · {new Date(item.created_at).toLocaleString("id-ID")}</p></div>)}{!activity.data?.length && <EmptyState title={copy("No activity yet")} description={copy("Task, comment, and finance changes will appear here.")} />}</div></Card>}
 
+            {view === "settings" && <ProjectCommittee projectId={projectId}/>}
             {view === "settings" && <SettingsPanel settings={settings.data} members={members.data ?? []} users={availableUsers} onAddMember={(body) => addMember.mutate(body)} onSave={(body) => saveSettings.mutate(body)} />}
 
             {view === "finance" && <FinancePanel data={finance.data} onInvoice={(body) => createInvoice.mutate(body)} onPayment={(body) => createPayment.mutate(body)} />}
@@ -192,7 +195,7 @@ export function TeamManager() {const copy=useUiText();
       </div>
 
       <Modal isOpen={projectModal} onClose={() => setProjectModal(false)} title={copy("Create Team+ project")} description={copy("Start a Jira-style workspace for a school initiative.")}>
-        <form className="space-y-3" onSubmit={submitProject}><Input name="code" label={copy("Project key")} placeholder="DIGITAL" required /><Input name="name" label={copy("Project name")} required /><Input name="description" label={copy("Description")} /><Select name="owner_user_id" label={copy("Project owner")} defaultValue={me.data?.id} required><option value="">{copy("Select owner")}</option>{availableUsers.map((user) => <option key={user.id} value={user.id}>{person(user)}</option>)}</Select>{error && <p className="text-sm text-danger">{error}</p>}<Button type="submit" disabled={createProject.isPending}>{copy("Create project")}</Button></form>
+        <form className="space-y-3" onSubmit={submitProject}><Input name="code" label={copy("Project key")} placeholder="DIGITAL" required /><Input name="name" label={copy("Project name")} required /><Input name="description" label={copy("Description")} /><Select name="template" label="Template kegiatan" required><option value="GRADUATION">Kelulusan / wisuda</option><option value="OPEN_HOUSE">Open house</option><option value="SCHOOL_TRIP">Kunjungan belajar</option><option value="SPORTS_DAY">Pekan olahraga</option><option value="CUSTOM">Kegiatan lainnya</option></Select>{[["CHAIR","Ketua / PIC"],["SECRETARY","Sekretaris"],["TREASURER","Bendahara"]].map(([key,label])=><Select key={key} name={key} label={label} required><option value="">Pilih pengguna</option>{availableUsers.map(user=><option key={user.id} value={user.id}>{person(user)}</option>)}</Select>)}{error && <p className="text-sm text-danger">{error}</p>}<Button type="submit" disabled={createProject.isPending}>{copy("Create project")}</Button></form>
       </Modal>
 
       <Modal isOpen={taskModal} onClose={() => setTaskModal(false)} title={copy("Create task")} description={copy("The task starts in Backlog and can be dragged across the board.")}>
@@ -200,7 +203,7 @@ export function TeamManager() {const copy=useUiText();
       </Modal>
 
       <Modal isOpen={Boolean(selectedTask)} onClose={() => setSelectedTask(undefined)} title={selectedTask ? `${activeProject?.code}-${selectedTask.task_number} · ${selectedTask.title}` : "Task details"} description={selectedTask?.description || copy("No description")}>
-        {selectedTask && <div><div className="flex flex-wrap gap-2"><Priority value={selectedTask.priority} /><Badge tone="info">{selectedTask.status.replaceAll("_", " ")}</Badge><Badge>{person(selectedTask.assignee)}</Badge></div><h4 className="mt-6 font-bold">{copy("Comments")}</h4><div className="mt-3 max-h-52 space-y-3 overflow-y-auto">{comments.data?.map((comment) => <div key={comment.id} className="rounded-xl bg-surface p-3"><p className="text-sm">{comment.body}</p><p className="mt-1 text-xs text-muted">{person(comment.author)} · {new Date(comment.created_at).toLocaleString("id-ID")}</p></div>)}</div><form className="mt-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); const form = event.currentTarget; const body = String(new FormData(form).get("body") ?? "").trim(); if (body) addComment.mutate({ body }, { onSuccess: () => form.reset() }); }}><Input name="body" placeholder={copy("Add a comment")} required /><Button type="submit" disabled={addComment.isPending}>{copy("Comment")}</Button></form></div>}
+        {selectedTask && <div><div className="flex flex-wrap gap-2"><Priority value={selectedTask.priority} /><Badge tone="info">{selectedTask.status.replaceAll("_", " ")}</Badge><Badge>{person(selectedTask.assignee)}</Badge></div><Select label="Pindahkan status" value={selectedTask.status} disabled={moveTask.isPending} onChange={e=>{const status=e.target.value as Status;moveTask.mutate({taskId:selectedTask.id,status},{onSuccess:()=>setSelectedTask({...selectedTask,status})});}}>{columns.map(c=><option key={c.key} value={c.key}>{c.label}</option>)}</Select>{moveTask.isError&&<p role="alert">{moveTask.error.message}</p>}<h4 className="mt-6 font-bold">{copy("Comments")}</h4><div className="mt-3 max-h-52 space-y-3 overflow-y-auto">{comments.data?.map((comment) => <div key={comment.id} className="rounded-xl bg-surface p-3"><p className="text-sm">{comment.body}</p><p className="mt-1 text-xs text-muted">{person(comment.author)} · {new Date(comment.created_at).toLocaleString("id-ID")}</p></div>)}</div><form className="mt-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); const form = event.currentTarget; const body = String(new FormData(form).get("body") ?? "").trim(); if (body) addComment.mutate({ body }, { onSuccess: () => form.reset() }); }}><Input name="body" placeholder={copy("Add a comment")} required /><Button type="submit" disabled={addComment.isPending}>{copy("Comment")}</Button></form></div>}
       </Modal>
     </section>
   );

@@ -1,0 +1,4 @@
+"use client";
+import { useQuery } from "@tanstack/react-query";
+import { schoolRpc } from "../../lib/school";
+export function ProjectCommittee({projectId}:{projectId:string}){const q=useQuery({queryKey:["school-committee",projectId],queryFn:()=>schoolRpc<{id:string;position:string;name:string}[]>("school_committee",{project_uuid:projectId})});return <section className="school-editor mt-5"><h2>Panitia kegiatan</h2>{q.isError?<p role="alert">{q.error.message}</p>:q.isLoading?<p>Memuat panitia…</p>:q.data?.length?<div className="school-stat-strip">{q.data.map(c=><div key={c.id}><small>{{CHAIR:"Ketua / PIC",SECRETARY:"Sekretaris",TREASURER:"Bendahara"}[c.position]??c.position}</small><strong>{c.name}</strong></div>)}</div>:<p>Proyek ini dibuat sebelum template panitia tersedia. Anggota dan pengelola dapat dilihat di pengaturan proyek.</p>}</section>;}

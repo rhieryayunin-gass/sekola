@@ -1,0 +1,262 @@
+[
+  {
+    "id": "q1",
+    "category": "Data siswa",
+    "prompt": "Siswa pindahan mendaftar hari ini. Bagaimana tim menemukan dan memperbarui datanya?",
+    "options": [
+      "Mencari map kertas dan menyalin formulir",
+      "Mengubah file spreadsheet masing-masing petugas",
+      "Memperbarui satu data yang dipakai lintas bagian",
+      "Sistem memeriksa duplikasi dan memberi tahu bagian terkait",
+      "Data tervalidasi dan membantu merencanakan kebutuhan layanan"
+    ],
+    "weight": 6
+  },
+  {
+    "id": "q2",
+    "category": "Perencanaan akademik",
+    "prompt": "Saat tahun ajaran baru dimulai, bagaimana kelas dan pembagian guru disiapkan?",
+    "options": [
+      "Menyusun daftar di kertas",
+      "Menggabungkan banyak file dari tiap koordinator",
+      "Menyusun kelas, guru dan semester di sistem bersama",
+      "Sistem memeriksa benturan jadwal dan kapasitas",
+      "Sekolah memakai proyeksi kebutuhan untuk menyusun skenario"
+    ],
+    "weight": 5
+  },
+  {
+    "id": "q3",
+    "category": "Presensi",
+    "prompt": "Seorang siswa belum hadir pada pelajaran pertama. Apa yang terjadi?",
+    "options": [
+      "Guru mencatat dan menghubungi keluarga secara terpisah",
+      "Catatan dipindah ke spreadsheet setelah kelas",
+      "Presensi langsung dapat dilihat pihak yang berwenang",
+      "Pemberitahuan dan tindak lanjut berjalan sesuai aturan",
+      "Pola ketidakhadiran dipakai untuk intervensi yang dievaluasi"
+    ],
+    "weight": 4
+  },
+  {
+    "id": "q4",
+    "category": "Materi belajar",
+    "prompt": "Guru pengganti perlu melanjutkan materi kelas besok. Bagaimana ia mendapatkannya?",
+    "options": [
+      "Meminta buku atau catatan guru sebelumnya",
+      "Mencari file di chat atau folder pribadi",
+      "Membuka materi sesuai course dan lesson pada sistem",
+      "Materi, tugas dan progres kelas saling terhubung",
+      "Progres belajar membantu memilih materi lanjutan yang tepat"
+    ],
+    "weight": 7
+  },
+  {
+    "id": "q5",
+    "category": "Tugas",
+    "prompt": "Orang tua bertanya tugas apa yang belum dikumpulkan anaknya. Bagaimana menjawabnya?",
+    "options": [
+      "Menanyakan satu per satu kepada guru",
+      "Mencocokkan file tugas dan daftar nilai",
+      "Membuka daftar tugas dan pengumpulan anak tersebut",
+      "Sistem menampilkan tenggat dan mengirim pengingat",
+      "Sekolah menilai pola keterlambatan dan efektivitas bantuan"
+    ],
+    "weight": 4
+  },
+  {
+    "id": "q6",
+    "category": "Penilaian",
+    "prompt": "Tim guru ingin menggunakan kembali soal yang berkualitas. Bagaimana caranya?",
+    "options": [
+      "Membongkar berkas ujian cetak lama",
+      "Mencari file soal di komputer masing-masing",
+      "Memilih dari bank soal yang dikelompokkan menurut pelajaran",
+      "Soal melewati tinjauan dan analisis hasil pemakaian",
+      "Data kualitas soal mendukung perbaikan instrumen secara rutin"
+    ],
+    "weight": 5
+  },
+  {
+    "id": "q7",
+    "category": "Pelaksanaan ujian",
+    "prompt": "Banyak kelas memulai ujian secara bersamaan. Bagaimana sekolah menyiapkannya?",
+    "options": [
+      "Membagikan lembar soal dan mengoreksi manual",
+      "Menggunakan formulir daring tanpa latihan beban",
+      "Menjadwalkan sesi digital dengan akun dan penyimpanan jawaban",
+      "Menguji kapasitas serta pemulihan koneksi sebelum ujian",
+      "Memantau indikator layanan dan mengevaluasi ketahanan berkala"
+    ],
+    "weight": 6
+  },
+  {
+    "id": "q8",
+    "category": "Tagihan",
+    "prompt": "Orang tua ingin mengetahui rincian tagihan yang belum lunas. Bagaimana ia mendapatkannya?",
+    "options": [
+      "Menanyakan catatan di loket",
+      "Menerima file atau foto yang disusun petugas",
+      "Melihat tagihan dan pembayaran yang terhubung",
+      "Saldo direkonsiliasi otomatis dengan jejak perubahan",
+      "Tren pembayaran dipakai untuk perencanaan dan layanan yang adil"
+    ],
+    "weight": 5
+  },
+  {
+    "id": "q9",
+    "category": "Laporan keuangan",
+    "prompt": "Pimpinan meminta posisi keuangan sekolah sore ini. Bagaimana laporan disiapkan?",
+    "options": [
+      "Mengumpulkan buku catatan dari beberapa meja",
+      "Menggabungkan spreadsheet dan menghitung ulang",
+      "Menarik laporan dari pencatatan transaksi bersama",
+      "Memeriksa pengecualian lewat laporan dan persetujuan terintegrasi",
+      "Membandingkan proyeksi dengan realisasi untuk mengambil tindakan"
+    ],
+    "weight": 5
+  },
+  {
+    "id": "q10",
+    "category": "Komunikasi",
+    "prompt": "Guru perlu menghubungi orang tua yang berhak atas informasi seorang siswa. Apa alurnya?",
+    "options": [
+      "Mencari nomor di daftar cetak",
+      "Mencari kontak dari banyak grup chat",
+      "Menghubungi akun orang tua yang terhubung ke siswa",
+      "Percakapan terkait kelas atau tugas dengan akses yang jelas",
+      "Sekolah mengevaluasi keterjangkauan dan efektivitas komunikasi"
+    ],
+    "weight": 5
+  },
+  {
+    "id": "q11",
+    "category": "Kalender",
+    "prompt": "Jadwal acara sekolah berubah. Bagaimana semua pihak mengetahui perubahan tersebut?",
+    "options": [
+      "Mencetak pengumuman baru",
+      "Mengirim ulang pesan di beberapa grup",
+      "Mengubah satu kalender sekolah yang dapat diakses bersama",
+      "Kalender memberi notifikasi dan meminta respons peserta",
+      "Kehadiran dan benturan agenda dievaluasi untuk perencanaan"
+    ],
+    "weight": 7
+  },
+  {
+    "id": "q12",
+    "category": "Proyek sekolah",
+    "prompt": "Panitia kegiatan perlu tahu pekerjaan yang terlambat. Bagaimana memantaunya?",
+    "options": [
+      "Bertanya saat rapat",
+      "Mengirim daftar pekerjaan di spreadsheet atau chat",
+      "Melihat papan tugas dengan PIC dan tenggat",
+      "Ketergantungan, anggaran dan persetujuan mengikuti proyek",
+      "Data pelaksanaan dipakai memperbaiki template kegiatan"
+    ],
+    "weight": 6
+  },
+  {
+    "id": "q13",
+    "category": "Aset",
+    "prompt": "Dua guru ingin memakai laboratorium pada jam yang sama. Apa yang dilakukan?",
+    "options": [
+      "Memeriksa buku peminjaman lalu berkoordinasi",
+      "Memeriksa tabel jadwal yang dibagikan manual",
+      "Mencari ketersediaan pada sistem pemesanan bersama",
+      "Sistem menolak benturan dan memproses persetujuan",
+      "Pemakaian dan kapasitas membantu keputusan investasi aset"
+    ],
+    "weight": 5
+  },
+  {
+    "id": "q14",
+    "category": "Akses pengguna",
+    "prompt": "Seorang pegawai berhenti bekerja. Bagaimana aksesnya ditangani?",
+    "options": [
+      "Mengandalkan penggantian kata sandi bersama",
+      "Mencabut akses aplikasi satu per satu dari catatan",
+      "Menonaktifkan akun dengan peran yang terdaftar",
+      "Prosedur pencabutan dan audit lintas modul terintegrasi",
+      "Peninjauan akses berkala menguji dan memperbaiki pengendalian"
+    ],
+    "weight": 4
+  },
+  {
+    "id": "q15",
+    "category": "Keamanan data",
+    "prompt": "Sekolah perlu memulihkan informasi penting yang terhapus. Apa persiapannya?",
+    "options": [
+      "Tidak ada salinan yang teratur",
+      "Salinan dibuat sesekali pada perangkat lain",
+      "Cadangan terjadwal dan penanggung jawab sudah jelas",
+      "Pemulihan diuji dengan batas waktu dan jejak audit",
+      "Hasil latihan pemulihan dipakai mengurangi risiko secara berkala"
+    ],
+    "weight": 4
+  },
+  {
+    "id": "q16",
+    "category": "Layanan orang tua",
+    "prompt": "Orang tua mempunyai pertanyaan tentang perkembangan anak. Apa pengalaman layanannya?",
+    "options": [
+      "Harus datang dan menghubungi tiap bagian",
+      "Bertukar pesan di beberapa saluran terpisah",
+      "Satu akses menampilkan informasi anak yang relevan",
+      "Pertanyaan terhubung ke data dan tindak lanjut petugas",
+      "Umpan balik dan waktu penyelesaian memandu perbaikan layanan"
+    ],
+    "weight": 4
+  },
+  {
+    "id": "q17",
+    "category": "Pengambilan keputusan",
+    "prompt": "Pimpinan ingin mengetahui kelas yang perlu dukungan tambahan. Apa dasar keputusannya?",
+    "options": [
+      "Kesan rapat dan cerita informal",
+      "Laporan rekap yang disiapkan sesekali",
+      "Data akademik dan kehadiran tersedia pada dashboard",
+      "Indikator lintas data menghasilkan tindak lanjut terukur",
+      "Sekolah menguji dampak intervensi dan memperbaiki strateginya"
+    ],
+    "weight": 7
+  },
+  {
+    "id": "q18",
+    "category": "Pengembangan guru",
+    "prompt": "Fitur digital baru diluncurkan. Bagaimana guru didampingi?",
+    "options": [
+      "Belajar sendiri tanpa panduan",
+      "Mendapat satu sesi pengenalan",
+      "Mendapat panduan, pelatihan dan saluran bantuan",
+      "Pemakaian serta kendala dievaluasi dengan pendampingan",
+      "Komunitas guru berbagi praktik dan mengukur dampak pembelajaran"
+    ],
+    "weight": 4
+  },
+  {
+    "id": "q19",
+    "category": "Integrasi",
+    "prompt": "Nama seorang siswa dikoreksi. Di mana perubahan perlu dilakukan?",
+    "options": [
+      "Di setiap dokumen cetak",
+      "Di beberapa file dan aplikasi secara manual",
+      "Pada satu data induk yang dibaca modul lain",
+      "Validasi dan sinkronisasi mencegah perbedaan data",
+      "Kualitas data dipantau dan proses integrasi dievaluasi rutin"
+    ],
+    "weight": 4
+  },
+  {
+    "id": "q20",
+    "category": "Arah transformasi",
+    "prompt": "Sekolah merencanakan investasi digital tahun depan. Bagaimana prioritas dipilih?",
+    "options": [
+      "Mengikuti kebutuhan mendadak",
+      "Membeli alat yang sedang populer",
+      "Memakai peta kebutuhan dan target sekolah",
+      "Membandingkan manfaat, biaya dan kesiapan proses",
+      "Mengukur hasil investasi dan menyesuaikan peta jalan berdasarkan bukti"
+    ],
+    "weight": 2
+  }
+]

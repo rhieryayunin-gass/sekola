@@ -5,6 +5,7 @@ import { usePermissionStore } from "../../stores/permission-store";
 import { availableModules } from "../../lib/modules";
 import type { MessageKey } from "../../lib/i18n";
 import { Button } from "../ui/button";
+import { useSchoolContext } from "../../lib/school";
 
 export function AccessState() {
   const { t } = useTranslations();
@@ -15,7 +16,10 @@ export function AccessState() {
 export function ModulePage({ name, title, description, permission, children }: { name?: string; title: MessageKey; description: MessageKey; permission?: string; children: ReactNode }) {
   const { t } = useTranslations();
   const context = usePermissionStore(s => s.context);
+  const school = useSchoolContext();
   if (!context) return <AccessState/>;
-  const allowed = permission ? context.permissions.some(p => p.code === permission) : name ? availableModules(context).some(m => m.key === name) : true;
+  const moduleKey = name && ["people", "operations", "users", "tenant"].includes(name) ? "core" : name;
+  const enabled = !moduleKey || school.data?.settings.modules[moduleKey] !== false;
+  const allowed = enabled && (permission ? context.permissions.some(p => p.code === permission) : name ? (name === "core" || availableModules(context).some(m => m.key === name)) : true);
   return <div className="ose-module-page"><div className="ose-page-heading"><div><p className="ose-eyebrow">osekola workspace</p><h1>{t(title)}</h1><p>{t(description)}</p></div></div>{allowed ? children : <div className="ose-status glass-panel"><h2>{t("accessLimited")}</h2><p>{t("accessLimitedDesc")}</p></div>}</div>;
 }

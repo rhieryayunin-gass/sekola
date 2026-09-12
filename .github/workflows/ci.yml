@@ -17,7 +17,7 @@ jobs:
   database:
     name: Migration and PostgreSQL regression
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17
@@ -36,6 +36,18 @@ jobs:
         env:
           DATABASE_TEST_URL: postgres://postgres:ci-local-only@localhost:5432/sekola_test
         run: bash apps/api/scripts/test-database.sh
+      - name: Exercise 2000 exam attempts through a bounded concurrent database pool
+        env:
+          DATABASE_TEST_URL: postgres://postgres:ci-local-only@localhost:5432/sekola_test
+          POSTGRES_CONTAINER_ID: ${{ job.services.postgres.id }}
+        run: bash apps/api/scripts/test-school-exam-load.sh
+      - name: Preserve isolated exam latency measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isolated-exam-load
+          path: /tmp/osekola-exam-load.json
+          if-no-files-found: ignore
       - name: Build PostgreSQL 17 backup tools
         run: docker build -f ops/Dockerfile.backup -t atsekola-backup:ci .
       - name: Rehearse encrypted backup and restore with restored SQL invariants
