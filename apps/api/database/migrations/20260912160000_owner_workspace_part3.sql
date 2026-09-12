@@ -7,6 +7,7 @@ where r.code='OWNER' and r.is_active and p.code in ('tenants.read_all','tenants.
 on conflict do nothing;
 
 alter table public.users add column deleted_at timestamptz;
+alter table public.users add constraint archived_user_inactive check(deleted_at is null or not is_active);
 alter table public.school_partners
   add column domicile text not null default '',
   add column phone text not null default '',
@@ -195,7 +196,10 @@ declare result jsonb; previous jsonb; target text; allowed text[]; columns text;
   perform 1 from public.owner_contracts where tenant_id=tenant for update;
   if not found then raise exception 'Save the contract before creating an invoice' using errcode='22023'; end if;
   select to_jsonb(i) into result from public.owner_invoices i where request_id=(payload->>'request_id')::uuid;
-  if result is not null then return result; end if;
+  if result is not null then
+   if result->>'tenant_id' is distinct from tenant::text or result->>'period_start' is distinct from payload->>'period_start' or result->>'period_end' is distinct from payload->>'period_end' or (result->>'amount')::numeric is distinct from (payload->>'amount')::numeric then raise exception 'Invoice request key already used with different values' using errcode='22023'; end if;
+   return result;
+  end if;
   if not exists(select 1 from public.owner_contracts where tenant_id=tenant and (payload->>'period_start')::date>=onboarded_on and (payload->>'period_end')::date<=expires_on) then raise exception 'Invoice period must be within the contract' using errcode='22023'; end if;
   if exists(select 1 from public.owner_invoices where tenant_id=tenant and daterange(period_start,period_end,'[]') && daterange((payload->>'period_start')::date,(payload->>'period_end')::date,'[]')) then raise exception 'An invoice already covers this period' using errcode='23505'; end if;
   row_id:=gen_random_uuid();
@@ -210,7 +214,10 @@ declare result jsonb; previous jsonb; target text; allowed text[]; columns text;
   select * into invoice from school_private.owner_invoice_rows where id=record_id;
   if invoice.id is null then raise exception 'Invoice not found' using errcode='P0002'; end if;
   select to_jsonb(r) into result from public.owner_receipts r where invoice_id=record_id and reference=payload->>'reference';
-  if result is not null then return result; end if;
+  if result is not null then
+   if (result->>'amount')::numeric is distinct from (payload->>'amount')::numeric or result->>'paid_on' is distinct from payload->>'paid_on' then raise exception 'Payment reference already used with different values' using errcode='22023'; end if;
+   return result;
+  end if;
   if (payload->>'amount')::numeric>invoice.balance then raise exception 'Receipt exceeds the outstanding balance' using errcode='22023'; end if;
   insert into public.owner_receipts(invoice_id,amount,reference,paid_on,created_by) values(record_id,(payload->>'amount')::numeric,payload->>'reference',(payload->>'paid_on')::date,auth.uid()) returning to_jsonb(owner_receipts.*) into result;
  elsif kind='expense' then
@@ -242,7 +249,7 @@ end $$;
 create function school_private.owner_payment_link(partner_id uuid) returns text language plpgsql security definer set search_path='' as $$
 declare destination text; begin
  perform school_private.require_owner();
- select payment_url into destination from school_private.owner_partner_rows where id=partner_id and is_active and unpaid>0;
+ select payment_url into destination from school_private.owner_partner_rows where id=partner_id and unpaid>0;
  if destination is null then raise exception 'An unpaid fee and configured gateway URL are required' using errcode='22023'; end if;
  insert into public.audit_logs(tenant_id,actor_user_id,action,module,resource_type,resource_id) values(school_private.tenant(),auth.uid(),'OPEN_PAYMENT_GATEWAY','PLATFORM','partner',partner_id);
  -- Opening a provider page never marks a commission paid or transfers money.

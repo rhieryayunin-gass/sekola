@@ -20,6 +20,7 @@ do $$ declare created jsonb; invoice jsonb; repeated jsonb; receipt jsonb; summa
  perform set_config('test.owner.invoice',invoice->>'id',true);
  repeated:=public.school_owner_save('invoice','{"request_id":"e4000000-0000-4000-8000-000000000001","tenant_id":"e1000000-0000-4000-8000-000000000002","period_start":"2026-01-01","period_end":"2026-01-31","due_on":"2026-01-10","amount":1000000}');
  if invoice->>'id'<>repeated->>'id' then raise exception 'Invoice retry created a duplicate'; end if;
+ begin perform public.school_owner_save('invoice','{"request_id":"e4000000-0000-4000-8000-000000000001","tenant_id":"e1000000-0000-4000-8000-000000000002","period_start":"2026-01-01","period_end":"2026-01-31","due_on":"2026-01-10","amount":2000000}'); raise exception 'Conflicting request retry accepted'; exception when invalid_parameter_value then null; end;
  begin perform public.school_owner_save('invoice','{"request_id":"e4000000-0000-4000-8000-000000000002","tenant_id":"e1000000-0000-4000-8000-000000000002","period_start":"2026-01-15","period_end":"2026-02-15","due_on":"2026-01-20","amount":1000000}'); raise exception 'Overlapping invoice accepted'; exception when unique_violation then null; end;
  begin perform public.school_owner_save('receipt','{"amount":1000001,"reference":"too-much","paid_on":"2026-01-01"}',(invoice->>'id')::uuid); raise exception 'Overpayment accepted'; exception when invalid_parameter_value then null; end;
  receipt:=public.school_owner_save('receipt','{"amount":400000,"reference":"P3-PARTIAL","paid_on":"2026-01-05"}',(invoice->>'id')::uuid);
@@ -83,6 +84,7 @@ do $$ begin
  perform public.owner_user_action('e2000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000004','UPDATE','{"full_name":"Edited student","role":"PARENT"}');
  perform public.owner_user_action('e2000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000004','ARCHIVE');
  if public.app_module_enabled('e2000000-0000-4000-8000-000000000004','core') then raise exception 'Archived user retained access'; end if;
+ begin update public.users set is_active=true where id='e2000000-0000-4000-8000-000000000004'; raise exception 'Legacy status update bypassed archive'; exception when check_violation then null; end;
  perform public.owner_user_action('e2000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000004','RESTORE');
  if not public.app_module_enabled('e2000000-0000-4000-8000-000000000004','core') then raise exception 'Restore did not restore access'; end if;
 end $$;

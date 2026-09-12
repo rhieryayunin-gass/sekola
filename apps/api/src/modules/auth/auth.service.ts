@@ -26,6 +26,7 @@ export class AuthService {
       .select(`
         id,
         is_active,
+        deleted_at,
         tenants (
           is_active
         )
@@ -39,7 +40,7 @@ export class AuthService {
       );
     }
 
-    if (!data.is_active) {
+    if (!data.is_active || data.deleted_at) {
       throw new UnauthorizedException("Account is inactive");
     }
 

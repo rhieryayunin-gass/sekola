@@ -21,6 +21,13 @@ create or replace function public.current_tenant_id() returns uuid language sql 
  select u.tenant_id from public.users u join public.tenants t on t.id=u.tenant_id where u.id=auth.uid() and u.is_active and u.deleted_at is null and t.is_active
 $$;
 
+create or replace function public.app_tenant(actor_id uuid) returns uuid language plpgsql stable set search_path='' as $$
+declare result uuid; begin
+ select u.tenant_id into result from public.users u join public.tenants t on t.id=u.tenant_id where u.id=actor_id and u.is_active and u.deleted_at is null and t.is_active;
+ if result is null then raise exception 'Active tenant account required' using errcode='42501'; end if;
+ return result;
+end $$;
+
 create or replace function public.app_has_permission(actor_id uuid,permission_code text) returns boolean language sql stable set search_path='' as $$
  select public.app_module_enabled(actor_id,case
  when split_part(permission_code,'.',1) in ('academic_years','semesters','classrooms','subjects','teacher_assignments','student_assignments','academic_analytics') then 'academic'
