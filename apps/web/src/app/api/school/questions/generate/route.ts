@@ -4,6 +4,7 @@ import { gateway } from "@ai-sdk/gateway";
 import { z } from "zod";
 import { createClient } from "../../../../../lib/supabase/server";
 import { generationInput, questionSchema, validateQuestion } from "../../../../../lib/question-schema";
+import { schoolAIError } from "../../../../../lib/school-ai-error";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 const model = "openai/gpt-5.4-mini";
@@ -18,6 +19,7 @@ export async function POST(request: Request) {
  const reservation = await supabase.rpc("school_ai_reserve", { request_id: parsed.request_id, set_uuid: parsed.set_id, question_count: parsed.count });
  if (reservation.error) return NextResponse.json({ error: reservation.error.message }, { status: reservation.error.code === "42501" ? 403 : reservation.error.code === "23505" ? 409 : 429 });
  let inputTokens = 0; let outputTokens = 0;
+ let stage = "provider";
  try {
   const result = await generateText({
    model: gateway(model), maxOutputTokens: 10000, maxRetries: 0, abortSignal: AbortSignal.timeout(50_000),
@@ -26,13 +28,17 @@ export async function POST(request: Request) {
    prompt: JSON.stringify({ context: reservation.data, count: parsed.count, question_type: parsed.question_type, difficulty: parsed.difficulty, include_image: parsed.include_image, teacher_instructions: parsed.instructions }),
   });
   inputTokens = result.totalUsage.inputTokens ?? 0; outputTokens = result.totalUsage.outputTokens ?? 0;
+  stage = "validation";
   const questions = result.output.questions.map(validateQuestion);
   if (questions.some(q => q.question_type !== parsed.question_type || q.difficulty !== parsed.difficulty || (parsed.include_image && !q.diagram))) throw new Error("Generated questions did not match the request");
+  stage = "persistence";
   const saved = await supabase.rpc("school_ai_finish", { request_id: parsed.request_id, items: questions, usage_data: { model, input_tokens: inputTokens, output_tokens: outputTokens, replace_id: parsed.replace_id ?? null } });
   if (saved.error) throw new Error("Unable to persist generated questions");
   return NextResponse.json({ ...saved.data, review_required: true }, { headers: { "Cache-Control": "no-store" } });
- } catch {
+ } catch (error) {
+  const failure = schoolAIError(error);
+  console.error("school_question_generation_failed", { generation_id: parsed.request_id, stage, code: failure.code, provider_status: failure.status, provider_type: failure.type });
   await supabase.rpc("school_ai_finish", { request_id: parsed.request_id, items: null, usage_data: { model, input_tokens: inputTokens, output_tokens: outputTokens } });
-  return NextResponse.json({ error: "Pembuatan soal belum berhasil. Periksa koneksi atau ketersediaan AI Gateway; Anda tetap dapat menulis soal manual.", generation_id: parsed.request_id }, { status: 502, headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ error: failure.message, code: failure.code, generation_id: parsed.request_id }, { status: 502, headers: { "Cache-Control": "no-store" } });
  }
 }
