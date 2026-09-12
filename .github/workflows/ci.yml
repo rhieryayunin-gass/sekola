@@ -124,11 +124,11 @@ jobs:
         run: bash ops/package-api.sh "$RUNNER_TEMP/osekola-api.tar.gz"
       - name: Verify API staging without starting a service
         run: bash deploy/test-osekola-stage.sh "$RUNNER_TEMP/osekola-api.tar.gz"
-      - name: Store main API package for deployment after this CI run succeeds
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Store verified API package for release or review
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         uses: actions/upload-artifact@v4
         with:
-          name: osekola-api-${{ github.sha }}
+          name: ${{ github.event_name == 'pull_request' && 'osekola-api-review' || 'osekola-api' }}-${{ github.sha }}
           path: |
             ${{ runner.temp }}/osekola-api.tar.gz
             ${{ runner.temp }}/osekola-api.tar.gz.sha256

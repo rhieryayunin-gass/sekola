@@ -54,12 +54,27 @@ through the new logo policy. The legacy media test now asserts this distinction.
   generated, disposable Auth account to exercise the new NestJS API on the runner.
   It does not send email, alter real-user passwords, issue invoices, or transfer
   money. Screenshots mask account names and table data before upload.
-- Production migrations, CI, merge, web deployment, and live results are pending
-  at this implementation checkpoint. Update this section with observed outcomes.
+- All three CI jobs passed for implementation head
+  `020b5553c1f2c46d82c761875323abe0cd7e7dcd` in
+  [run 34708583446](https://github.com/rhieryayunin-gass/sekola/actions/runs/34708583446):
+  PostgreSQL 17 migrations/regression/load/restore, 200 application tests and
+  production builds, portable API packaging, and container/configuration checks.
+- Vercel preview for `5325346f0c704509d8c6637d9904786a80552e32` is READY;
+  the subsequent head only restores the database test script executable bit.
+  Preview browser inspection encounters Vercel authentication. Owner pages have
+  not yet been verified against the production database.
+- Automatic approval review rejected the first production migration because
+  OWNER cross-tenant administrative access requires explicit approval of that
+  live permission expansion. No Part 3 production migration was applied. A
+  subsequent read-only check found no owner contract/invoice tables and zero
+  OWNER `tenants.update_all` grants. PR 69 remains open; main and production
+  remain on the Part 2 release.
 - This session has no VPS deploy credential. CI produces the portable API package
   and stage script for the operator. User mutation buttons check the deployed API
   capability and remain unavailable until it supports Part 3. Do not call the
   paired release complete until the API is installed and publicly verified.
+  [Release handoff](PART3_RELEASE_HANDOFF.md) records the exact migration scope,
+  artifact identity, upgrade procedure, and outstanding verification.
 - Partner payment URLs must be supplied from the actual configured provider.
   No provider account or fee transaction was created by this enhancement.
 
