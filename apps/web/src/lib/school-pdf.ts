@@ -54,12 +54,14 @@ async function writer(title: string, subtitle: string) {
     return doc.save();
   }
   newPage(); text(title, 20, true); text(subtitle, 10);
-  return { text, diagram, finish };
+  return { text, diagram, finish, ensure };
 }
 
 export async function questionPdf(title: string, school: string, questions: (QuestionContent & { review_status?: string })[]) {
   const pdf = await writer(title, school);
   for (const [index, question] of questions.entries()) {
+    // Keep the question heading with its diagram/options where possible.
+    pdf.ensure(question.diagram ? 250 : 110);
     pdf.text(`${index + 1}. ${question.prompt}`, 12, true);
     if (question.review_status !== "APPROVED") pdf.text("DRAFT / DRAF - Teacher review required / Perlu tinjauan guru", 9);
     if (question.diagram) pdf.diagram(question.diagram);
