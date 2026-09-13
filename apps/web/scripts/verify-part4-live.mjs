@@ -107,6 +107,7 @@ try {
  const {context:teachingContext,page:teachingPage}=await open(teacher);
  await teachingPage.goto('https://osekola.com/dashboard/academic');await teachingPage.getByRole('heading',{name:'One school, multiple learning pathways'}).waitFor();
  await teachingPage.getByRole('button',{name:'Create programme from framework'}).click();await teachingPage.getByRole('button',{name:'Save programme',exact:true}).waitFor();
+ await teachingPage.locator('.curriculum-workspace .school-record').first().waitFor();
  await teachingPage.screenshot({path:output+'/academic-curriculum-desktop.png',fullPage:true});
  await teachingPage.goto('https://osekola.com/dashboard/learning');await teachingPage.getByRole('heading',{name:'Cambridge verification reasoning'}).waitFor();
  await teachingPage.getByRole('button',{name:'Progress & report',exact:true}).click();await teachingPage.getByText('Published verification evidence',{exact:true}).waitFor();
@@ -114,6 +115,7 @@ try {
  await teachingPage.setViewportSize({width:390,height:844});
  for(const route of ['academic','learning','exams']){
   await teachingPage.goto('https://osekola.com/dashboard/'+route);await teachingPage.locator('.curriculum-workspace').first().waitFor();
+  await teachingPage.locator('.curriculum-workspace .school-record').first().waitFor();
   await teachingPage.screenshot({path:output+'/curriculum-'+route+'-mobile.png',fullPage:true});
   const layout=await teachingPage.evaluate(()=>({viewport:window.innerWidth,width:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('body *')].map(e=>({tag:e.tagName,className:e.className,right:e.getBoundingClientRect().right,width:e.getBoundingClientRect().width})).filter(e=>e.right>window.innerWidth+1).slice(0,40)}));
   await writeFile(output+'/layout-'+route+'.json',JSON.stringify(layout,null,2));
@@ -125,8 +127,9 @@ try {
  assert.equal(await learnerPage.getByText('Private draft verification evidence',{exact:true}).count(),0);assert.equal(await learnerPage.getByRole('button',{name:'Save assessment'}).count(),0);
  await learnerPage.screenshot({path:output+'/student-curriculum-progress.png',fullPage:true});await learnerContext.close();
  const {context:receiverContext,page:receiverPage}=await open(foreignStudent);
- await receiverPage.goto('https://osekola.com/dashboard/connect?conversation='+cross);await receiverPage.getByText('Owner verification message',{exact:true}).waitFor();
- assert.equal(await receiverPage.getByRole('textbox',{name:'Write a message'}).count(),0);
+ await receiverPage.goto('https://osekola.com/dashboard/connect?conversation='+cross);await receiverPage.locator('.oc-thread').getByText('Owner verification message',{exact:true}).waitFor();
+ await receiverPage.getByText('You can read this conversation. Sending is restricted by recipient roles and school.',{exact:true}).waitFor();
+ assert.equal(await receiverPage.locator('.oc-thread textarea').count(),0);
  assert.equal((await receiverPage.request.get('https://osekola.com/api/connect/attachment?message='+message.id)).status(),200);
  await receiverPage.screenshot({path:output+'/owner-cross-tenant-received.png',fullPage:true});await receiverContext.close();
  record('PASS: desktop/mobile curriculum UI, student published report, read-only cross-tenant receipt and authenticated attachment route.');
