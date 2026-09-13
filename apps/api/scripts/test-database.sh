@@ -28,4 +28,6 @@ psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/osekola_media
 psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/oconnect.sql"
 psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/school_part2.sql"
 psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/owner_part3.sql"
+psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/role_connect_part4.sql"
+psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/curriculum_part4.sql"
 bash "$repo_root/apps/api/scripts/test-database-concurrency.sh"

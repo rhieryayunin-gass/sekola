@@ -22,6 +22,7 @@ do $$ declare result jsonb; bank uuid; question uuid; begin
  if not (public.school_context()->>'staff')::boolean then raise exception 'Owner context failed'; end if;
  perform public.school_save('school_guardians','{"parent_user_id":"d2000000-0000-4000-8000-000000000004","student_id":"d3000000-0000-4000-8000-000000000004"}');
  begin perform public.school_save('school_assets','{"name":"Spoof","category":"LAB","capacity":20,"tenant_id":"d1000000-0000-4000-8000-000000000002"}'); raise exception 'Protected tenant accepted'; exception when invalid_parameter_value then null; end;
+ perform set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000002',true); -- Part 4: teaching operations belong to Teacher.
  bank:=(public.school_question_save('set','{"course_id":"d3000000-0000-4000-8000-000000000007","title":"Arithmetic","grade_level":5}')->>'id')::uuid;
  perform set_config('test.part2.bank',bank::text,true);
  question:=(public.school_question_save('item',jsonb_build_object('set_id',bank,'question_type','MULTIPLE_CHOICE','prompt','What is 2 + 2?','options','["3","4","5","6"]'::jsonb,'answer','4','difficulty','EASY','explanation','Two pairs make four.','review_status','APPROVED'))->>'id')::uuid;
@@ -33,6 +34,7 @@ do $$ declare result jsonb; bank uuid; question uuid; begin
  perform public.school_ai_finish('d4000000-0000-4000-8000-000000000001','[{"question_type":"ESSAY","prompt":"Explain how addition works.","options":[],"answer":"Assess the explanation.","difficulty":"EASY"}]','{"model":"fixture","input_tokens":10,"output_tokens":10}');
  if jsonb_array_length(public.school_question_bank(bank)->'items')<>2 then raise exception 'AI draft not saved'; end if;
 end $$;
+select set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000001',true);
 do $$ declare report jsonb; project uuid; begin
  report:=public.school_dashboard();
  if (report->>'students')::integer<>2 then raise exception 'Dashboard student projection failed'; end if;
@@ -70,8 +72,7 @@ do $$ declare result jsonb; begin
  if jsonb_array_length(public.school_context()->'children')<>1 then raise exception 'Guardian link missing'; end if;
  if jsonb_array_length(public.school_catalog('students'))<>1 then raise exception 'Parent sees unrelated students'; end if;
  if (select count(*) from public.school_guardians)<>1 then raise exception 'Guardian RLS failed'; end if;
- result:=public.school_exam_state(current_setting('test.part2.attempt')::uuid);
- if (result->'questions'->0->'content') ?| array['answer','explanation'] then raise exception 'Parent answer key leaked'; end if;
+ begin perform public.school_exam_state(current_setting('test.part2.attempt')::uuid); raise exception 'Parent accessed Exam'; exception when insufficient_privilege then null; end;
  begin perform public.school_exam_start('d3000000-0000-4000-8000-000000000008'); raise exception 'Parent took child exam'; exception when insufficient_privilege then null; end;
 end $$;
 select set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000007',true);
@@ -81,7 +82,7 @@ do $$ begin
 end $$;
 select set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000005',true);
 do $$ begin
- if jsonb_array_length(public.school_question_bank(current_setting('test.part2.bank')::uuid)->'items')<>0 then raise exception 'Cross-tenant question leak'; end if;
+ begin perform public.school_question_bank(current_setting('test.part2.bank')::uuid); raise exception 'Owner accessed Learning'; exception when insufficient_privilege then null; end;
  begin perform public.school_exam_state(current_setting('test.part2.attempt')::uuid); raise exception 'Cross-tenant attempt leak'; exception when insufficient_privilege then null; end;
  begin perform public.school_attendance_close(current_setting('test.part2.session')::uuid); raise exception 'Cross-tenant session closed'; exception when insufficient_privilege then null; end;
 end $$;

@@ -22,7 +22,7 @@ describe("Teacher question authoring", () => {
   fireEvent.click(screen.getByRole("button", { name: "Bank baru" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Nama bank soal" }), { target: { value: "Latihan bilangan" } });
   fireEvent.change(screen.getByRole("combobox", { name: "Course" }), { target: { value: "course-a" } });
-  fireEvent.change(screen.getByRole("spinbutton", { name: "Tingkat kelas" }), { target: { value: "6" } });
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Tingkat kelas (0 untuk PAUD)" }), { target: { value: "6" } });
   fireEvent.click(screen.getByRole("button", { name: "Simpan bank" }));
   fireEvent.click(await screen.findByRole("button", { name: "Soal manual" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Pertanyaan" }), { target: { value: "Berapakah hasil 2 + 2?" } });

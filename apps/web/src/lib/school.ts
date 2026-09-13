@@ -21,7 +21,7 @@ export function useCatalog(resource: string) {
     const rows: SchoolRow[] = [];
     // Each request is bounded; include large school rosters without silently losing options.
     for (let offset = 0; offset < 10_000; offset += 500) {
-      const batch = await schoolRpc<SchoolRow[]>("school_catalog", { resource, page_offset: offset });
+      const batch = resource.startsWith("curriculum:") ? await schoolRpc<SchoolRow[]>("school_curriculum_catalog", { resource: resource.slice(11), page_offset: offset }) : await schoolRpc<SchoolRow[]>("school_catalog", { resource, page_offset: offset });
       rows.push(...batch); if (batch.length < 500) break;
     }
     return rows;
