@@ -96,9 +96,9 @@ try {
   for(const moduleKey of ['academic','learning','exams']){
    const allowed=(moduleKey==='academic'?['STAFF','TEACHER']:['TEACHER','STUDENT']).includes(actor.role);
    assert.equal((await page.goto('https://osekola.com/dashboard/'+moduleKey,{waitUntil:'domcontentloaded'})).status(),200);
-   await page.locator('.ose-moduleKey-page').waitFor();
-   if(allowed){await page.locator('.curriculum-workspace').first().waitFor();assert.equal(await page.locator('.ose-moduleKey-page > .ose-status').count(),0);}
-   else await page.locator('.ose-moduleKey-page > .ose-status').waitFor();
+   await page.locator('.ose-module-page').waitFor();
+   if(allowed){await page.locator('.curriculum-workspace').first().waitFor();assert.equal(await page.locator('.ose-module-page > .ose-status').count(),0);}
+   else await page.locator('.ose-module-page > .ose-status').waitFor();
   }
   if(actor===owner)assert.equal(await page.getByRole('link',{name:'O-Connect',exact:true}).count(),1);
   record('PASS: production route access for '+actor.role);
