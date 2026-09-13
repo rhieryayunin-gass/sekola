@@ -46,7 +46,7 @@ do $$ declare direct uuid; group_id uuid; class_id uuid; project_id uuid; first_
  perform public.oconnect_preferences(20);
  if public.oconnect_context()->>'font_size'<>'20' then raise exception 'Font preference not persisted'; end if;
  begin perform public.oconnect_preferences(99); raise exception 'Invalid font accepted'; exception when raise_exception then if sqlerrm<>'CONNECT_INVALID' then raise; end if; end;
- begin perform public.oconnect_create('DIRECT','',array['f2000000-0000-4000-8000-000000000005'::uuid]); raise exception 'Cross-tenant direct accepted'; exception when insufficient_privilege then null; end;
+ -- Owner cross-tenant creation is now covered by role_connect_part4.sql.
  begin insert into public.oconnect_messages(conversation_id,tenant_id,sender_id,body) values(direct,'f1000000-0000-4000-8000-000000000001','f2000000-0000-4000-8000-000000000002','Forged'); raise exception 'Direct insert accepted'; exception when insufficient_privilege then null; end;
  begin perform public.oconnect_send(direct,gen_random_uuid(),'Wrong reply','f4000000-0000-4000-8000-000000000005'); raise exception 'Cross-thread reply accepted'; exception when raise_exception then if sqlerrm<>'CONNECT_INVALID' then raise; end if; end;
 end $$;
@@ -79,7 +79,7 @@ do $$ begin
  if jsonb_array_length(public.oconnect_thread(current_setting('test.connect.class')::uuid)->'messages')<>1 then raise exception 'Student class integration missing'; end if;
  begin perform public.oconnect_thread(current_setting('test.connect.direct')::uuid); raise exception 'Non-member read direct'; exception when insufficient_privilege then null; end;
  begin perform public.oconnect_send(current_setting('test.connect.direct')::uuid,gen_random_uuid(),'Forbidden'); raise exception 'Non-member sent direct'; exception when insufficient_privilege then null; end;
- begin perform public.oconnect_create('DIRECT','',array['f2000000-0000-4000-8000-000000000006'::uuid]); raise exception 'Student contacted arbitrary student'; exception when insufficient_privilege then null; end;
+ perform public.oconnect_create('DIRECT','',array['f2000000-0000-4000-8000-000000000006'::uuid]); -- Part 4 permits same-tenant Student peers.
  begin perform public.oconnect_create('GROUP','Student group',array['f2000000-0000-4000-8000-000000000002'::uuid]); raise exception 'Student created group'; exception when insufficient_privilege then null; end;
  if exists(select 1 from storage.objects where bucket_id='oconnect-attachments') then raise exception 'Non-member saw attachment'; end if;
 end $$;

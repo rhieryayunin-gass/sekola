@@ -19,6 +19,7 @@ export function ChatThread({ conversation, context, fontSize, onBack }: { conver
   const cache = useQueryClient();
   const pane = useRef<HTMLDivElement>(null); const end = useRef<HTMLDivElement>(null); const sticky = useRef(true); const lastRead = useRef(0);
   const messages = thread.data?.pages.toReversed().flatMap(p => p.messages) ?? [];
+  const canSend = thread.data?.pages[0]?.can_send === true;
   const members = thread.data?.pages[0]?.members ?? [];
   const latest = thread.data?.pages[0]?.messages.at(-1)?.seq ?? 0;
   const remove = useMutation({ mutationFn: (message: string) => connectRpc("delete_message", { message }), onSuccess: async () => { setDeleting(null); await cache.invalidateQueries({ queryKey: ["connect"] }); } });
@@ -66,12 +67,12 @@ export function ChatThread({ conversation, context, fontSize, onBack }: { conver
               {message.resource_id && <button className="oc-shared" type="button" onClick={() => setShared(message.id)}><Link2 size={18}/>{message.resource_type === "calendar" ? (id ? "Acara kalender" : "Calendar event") : message.resource_type === "course" ? "O-Learning" : "O-Team"}<span>↗</span></button>}
             </>}
             <footer className="oc-message-meta"><time dateTime={message.created_at}>{new Date(message.created_at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}</time>{own && (readByOthers(message, members) ? <span className="oc-read" aria-label={id ? "Dibaca anggota lain" : "Read by another member"}><CheckCheck size={17}/></span> : <span aria-label={id ? "Terkirim" : "Sent"}><Check size={16}/></span>)}</footer>
-            {!message.deleted_at && <div className="oc-message-actions"><button type="button" aria-label={`${id ? "Balas pesan dari" : "Reply to"} ${message.sender_name}`} onClick={() => setReply(message)}><Reply size={15}/></button>{own && openedAt - new Date(message.created_at).getTime() < 86400000 && <button type="button" aria-label={id ? "Hapus pesan" : "Delete message"} onClick={() => { remove.reset(); setDeleting(message.id); }}><Trash2 size={14}/></button>}</div>}
+            {!message.deleted_at && <div className="oc-message-actions">{canSend && <button type="button" aria-label={`${id ? "Balas pesan dari" : "Reply to"} ${message.sender_name}`} onClick={() => setReply(message)}><Reply size={15}/></button>}{own && openedAt - new Date(message.created_at).getTime() < 86400000 && <button type="button" aria-label={id ? "Hapus pesan" : "Delete message"} onClick={() => { remove.reset(); setDeleting(message.id); }}><Trash2 size={14}/></button>}</div>}
           </article></div>;
         })}<div ref={end}/>
       </>}
     </div>
-    {!thread.isError && !thread.isLoading && <ChatComposer context={context} conversation={conversation.id} reply={reply} clearReply={() => setReply(null)} fontSize={fontSize}/>}
+    {!thread.isError && !thread.isLoading && (canSend ? <ChatComposer context={{ ...context, tenant_id: thread.data?.pages[0]?.tenant_id ?? context.tenant_id }} conversation={conversation.id} reply={reply} clearReply={() => setReply(null)} fontSize={fontSize}/> : <p className="oc-thread-note" role="status">{id ? "Anda dapat membaca percakapan ini. Pengiriman dibatasi oleh peran dan tenant penerima." : "You can read this conversation. Sending is restricted by recipient roles and school."}</p>)}
     {info && <MemberInfo conversation={conversation} members={members} canManage={context.can_manage} onClose={() => setInfo(false)}/>}
     {deleting && <ConnectDialog title={id ? "Hapus pesan untuk semua anggota?" : "Delete this message for everyone?"} onClose={() => setDeleting(null)}><p className="oc-hint">{id ? "Pesan akan ditandai sebagai dihapus." : "The message will be marked as deleted."}</p>{remove.isError && <p role="alert">{connectError(remove.error, id)}</p>}<button className="oc-primary" disabled={remove.isPending} onClick={() => remove.mutate(deleting)}>{id ? "Hapus pesan" : "Delete message"}</button></ConnectDialog>}
     {shared && <SharedResource message={shared} onClose={() => setShared(null)}/>}
@@ -82,7 +83,7 @@ function MemberInfo({ conversation, members, canManage, onClose }: { conversatio
   const { locale } = useTranslations(); const id = locale === "id-ID"; const cache = useQueryClient();
   const [search, setSearch] = useState(""); const deferred = useDeferredValue(search);
   const allow = canManage && conversation.is_manager && conversation.kind === "GROUP";
-  const contacts = useQuery({ queryKey: ["connect", "contacts", deferred], queryFn: () => connectRpc<Contact[]>("contacts", { search: deferred }), enabled: allow && !!deferred });
+  const contacts = useQuery({ queryKey: ["connect", "contacts", "GROUP", deferred], queryFn: () => connectRpc<Contact[]>("contacts", { search: deferred, for_group: true }), enabled: allow && !!deferred });
   const update = useMutation({ mutationFn: ({ member, remove }: { member: string; remove: boolean }) => connectRpc("manage_member", { conversation: conversation.id, member, remove }), onSuccess: async () => { setSearch(""); await cache.invalidateQueries({ queryKey: ["connect"] }); } });
   return <ConnectDialog title={id ? "Informasi percakapan" : "Conversation information"} onClose={onClose}>
     <h3>{conversation.title}</h3>{["CLASS", "PROJECT"].includes(conversation.kind) && <p className="oc-hint">{id ? "Anggota mengikuti data kelas atau proyek. Perbarui keanggotaan di modul asal." : "Members follow the class or project roster. Update membership in the source module."}</p>}

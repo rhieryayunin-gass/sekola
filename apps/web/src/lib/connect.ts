@@ -1,11 +1,11 @@
 import { createClient } from "./supabase/client";
 
-export type ConnectContext = { user_id: string; tenant_id: string; full_name: string; can_manage: boolean; font_size: number };
-export type Conversation = { id: string; kind: "DIRECT" | "GROUP" | "CLASS" | "PROJECT"; title: string; updated_at: string; muted: boolean; archived: boolean; is_manager: boolean; unread_count: number; preview: string | null; classroom_id: string | null; project_id: string | null };
+export type ConnectContext = { user_id: string; tenant_id: string; full_name: string; can_manage: boolean; font_size: number; platform_owner?: boolean; roles?: string[] };
+export type Conversation = { id: string; tenant_id?: string; can_send?: boolean; kind: "DIRECT" | "GROUP" | "CLASS" | "PROJECT"; title: string; updated_at: string; muted: boolean; archived: boolean; is_manager: boolean; unread_count: number; preview: string | null; classroom_id: string | null; project_id: string | null };
 export type ConnectMember = { id: string; full_name: string; last_read_seq: number; is_manager: boolean };
 export type ConnectMessage = { id: string; seq: number; conversation_id: string; sender_id: string; sender_name: string; body: string; created_at: string; deleted_at: string | null; reply_to: string | null; reply_body: string | null; attachment_path: string | null; attachment_name: string | null; attachment_type: string | null; attachment_size: number | null; resource_type: ResourceKind | null; resource_id: string | null };
-export type Thread = { messages: ConnectMessage[]; members: ConnectMember[] };
-export type Contact = { id: string; full_name: string; is_staff: boolean };
+export type Thread = { messages: ConnectMessage[]; members: ConnectMember[]; can_send?: boolean; tenant_id?: string };
+export type Contact = { id: string; full_name: string; is_staff: boolean; roles?: string[]; tenant_name?: string; tenant_id?: string };
 export type Source = { id: string; name: string };
 export type Sources = { classes: Source[]; projects: Source[] };
 export type ResourceKind = "calendar" | "course" | "task";

@@ -1,5 +1,10 @@
 \set ON_ERROR_STOP on
 begin;
+-- This integration actor performs academic and teaching operations. Pure-role
+-- denials are covered separately by role_connect_part4.sql.
+insert into public.user_roles(user_id,role_id)
+ select '20000000-0000-4000-8000-000000000001',id from public.roles where code in ('STAFF','TEACHER') on conflict do nothing;
+insert into public.user_roles(user_id,role_id) select u.id,r.id from public.users u cross join public.roles r where u.id in ('20000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000003') and r.code='STUDENT' on conflict do nothing;
 create function pg_temp.assert_true(ok boolean, message text) returns void language plpgsql as $$ begin
   if ok is distinct from true then raise exception 'Assertion failed: %',message; end if;
 end $$;

@@ -11,7 +11,7 @@ import { usePermissionStore } from "../../stores/permission-store";
 import { availableModules, primaryRole } from "../../lib/modules";
 import { demoUrl, marketingCopy } from "../../lib/marketing";
 import { AccountAvatar, SchoolIdentity } from "../media/media-identity";
-import { Bell, CalendarDays } from "lucide-react";
+import { Bell, CalendarDays, MessageCircle } from "lucide-react";
 import { schoolModules, useSchoolContext } from "../../lib/school";
 import { UnreadIndicator } from "../school/unread-indicator";
 import { ownerNavigation, useIsOwner } from "../../lib/owner";
@@ -45,7 +45,7 @@ export function SiteHeader({ theme }: { theme: "light" | "dark" }) {
       {app && !owner && <SchoolIdentity/>}
       {!app && <div className="ose-preferences"><LanguageSwitcher/><ThemeSwitcher initial={theme}/></div>}
       {!app && <nav className="ose-main-nav" aria-label={t("navigation")}><Link href="/#ecosystem">{t("ecosystem")}</Link><Link href="/#pricing">{locale === "id-ID" ? "Paket" : "Plans"}</Link><Link href="/partners">Partner</Link><Link className="ose-sign-in" href="/login">{t("signIn")}</Link><a className="ose-demo-link" href={demoUrl} target="_blank" rel="noreferrer">{marketingCopy[locale].demo}</a></nav>}
-      {app && <div className="ose-preferences"><LanguageSwitcher /><ThemeSwitcher initial={theme}/>{has("calendar.read") && <Link className="school-icon-link" href="/dashboard/calendar" aria-label={t("calendar")} title={t("calendar")}><CalendarDays size={20}/></Link>}{has("notifications.read") && <Link className="school-icon-link" href="/dashboard/notifications" aria-label={t("notifications")} title={t("notifications")}><Bell size={20}/><UnreadIndicator/></Link>}<AccountMenu key={path} owner={owner} role={role}/></div>}
+      {app && <div className="ose-preferences"><LanguageSwitcher /><ThemeSwitcher initial={theme}/>{owner && has("connect.read") && school.data?.settings.modules.connect !== false && <Link className="school-icon-link" href="/dashboard/connect" aria-label="O-Connect" title="O-Connect"><MessageCircle size={20}/><UnreadIndicator connect/></Link>}{has("calendar.read") && <Link className="school-icon-link" href="/dashboard/calendar" aria-label={t("calendar")} title={t("calendar")}><CalendarDays size={20}/></Link>}{has("notifications.read") && <Link className="school-icon-link" href="/dashboard/notifications" aria-label={t("notifications")} title={t("notifications")}><Bell size={20}/><UnreadIndicator/></Link>}<AccountMenu key={path} owner={owner} role={role}/></div>}
     </div>
     {app && <nav className="ose-module-nav school-module-nav" aria-label={t("modules")}>{owner ? ownerNavigation.map(item => <Link key={item.href} href={item.href} aria-current={path === item.href ? "page" : undefined}>{t(item.label)}</Link>) : <><Link href="/dashboard" aria-current={path === "/dashboard" ? "page" : undefined}>{t("dashboard")}</Link>{schoolModules.filter(([key]) => (key === "core" || allowed.some(m => m.key === key)) && school.data?.settings.modules[key] !== false).map(([key, title, href]) => <Link key={key} href={href} aria-current={path === href ? "page" : undefined}>{title}{key === "connect" && <UnreadIndicator connect/>}</Link>)}</>}</nav>}
   </header>;

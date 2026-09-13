@@ -7,7 +7,7 @@ export const modules: { key: string; title: MessageKey; detail: MessageKey; href
   {key:"people",title:"people",detail:"peopleDesc",href:"/dashboard/people",permissions:["students.read","teachers.read"],mark:"Pe"},
   {key:"learning",title:"learning",detail:"learningDesc",href:"/dashboard/learning",permissions:["courses.read","lessons.read","assignments.read"],mark:"Le"},
   {key:"attendance",title:"attendance",detail:"attendanceDesc",href:"/dashboard/attendance",permissions:["attendance.read","attendance_qr.read"],mark:"At"},
-  {key:"exams",title:"exams",detail:"examsDesc",href:"/dashboard/exams",permissions:["exams.read","exam_results.read"],mark:"Ex"},
+  {key:"exams",title:"exams",detail:"examsDesc",href:"/dashboard/exams",permissions:["exams.read","exam_results.read","exams.participate"],mark:"Ex"},
   {key:"finance",title:"finance",detail:"financeDesc",href:"/dashboard/finance",permissions:["finance_reports.read","billing.read","payments.read"],mark:"Fi"},
   {key:"team",title:"team",detail:"teamDesc",href:"/dashboard/team",permissions:["team_projects.read"],mark:"Te"},
   {key:"operations",title:"operations",detail:"operationsDesc",href:"/dashboard/operations",permissions:["rooms.read","approvals.read","leave_requests.read"],mark:"Op"},
@@ -15,8 +15,12 @@ export const modules: { key: string; title: MessageKey; detail: MessageKey; href
   {key:"users",title:"users",detail:"usersDesc",href:"/dashboard/users",permissions:["users.read"],mark:"Us"},
   {key:"tenant",title:"tenantSettings",detail:"tenantDesc",href:"/dashboard/tenant",permissions:["tenants.update_own"],mark:"Co"},
 ];
+export function moduleRoleAllowed(key: string, context: PermissionContext | null) {
+  const roles = key === "academic" ? ["STAFF", "TEACHER"] : ["learning", "exams"].includes(key) ? ["TEACHER", "STUDENT"] : null;
+  return !!context && (!roles || context.roles.some(role => roles.includes(role.code)));
+}
 export function availableModules(context: PermissionContext | null) {
-  return modules.filter(module => (module.key !== "tenant" || context?.roles.some(role => role.code === "OWNER")) && (module.permissions.some(code => context?.permissions.some(p => p.code === code)) || (module.key === "finance" && context?.roles.some(r => ["PARENT","STUDENT"].includes(r.code)))));
+  return modules.filter(module => moduleRoleAllowed(module.key, context) && (module.key !== "tenant" || context?.roles.some(role => role.code === "OWNER")) && (module.permissions.some(code => context?.permissions.some(p => p.code === code)) || (module.key === "finance" && context?.roles.some(r => ["PARENT","STUDENT"].includes(r.code)))));
 }
 export function primaryRole(context: PermissionContext | null) {
   return ["OWNER","PRINCIPAL","STAFF","TEACHER","STUDENT","PARENT"].find(role => context?.roles.some(r => r.code === role)) ?? "";
