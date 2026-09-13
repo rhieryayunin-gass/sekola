@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function Page(){return <main id="ose-main" className="ose-workspace"><div className="glass-panel ose-panel"><h1>Periksa status pembayaran / Check payment status</h1><p>Kembali ke tab OSEKOLA tempat Anda memulai pembayaran, lalu pilih “Bayar / periksa status”.</p><p>Return to your original OSEKOLA tab and select “Pay / check status”. Payment confirmation comes from the provider.</p><Link href="/dashboard/finance" className="ose-link">Finance →</Link></div></main>;}

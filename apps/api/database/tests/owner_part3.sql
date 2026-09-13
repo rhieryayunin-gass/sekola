@@ -72,7 +72,7 @@ do $$ declare module text; begin
   if module='connect' then begin perform public.oconnect_context(); raise exception 'Disabled Connect allowed'; exception when insufficient_privilege then null; end; end if;
   if module='learning' then begin perform public.school_catalog('courses'); raise exception 'Disabled learning catalog allowed'; exception when insufficient_privilege then null; end; end if;
   perform set_config('request.jwt.claim.sub','e2000000-0000-4000-8000-000000000001',true);
-  if module not in ('academic','learning','exams') and not school_private.module_enabled(module) then raise exception 'Other tenant module was disabled: %',module; end if;
+  if module not in ('academic','learning','exams','finance') and not school_private.module_enabled(module) then raise exception 'Other tenant module was disabled: %',module; end if;
   if public.school_context()->'settings'->'modules'->module='false'::jsonb then raise exception 'Other tenant switch changed: %',module; end if;
   perform public.school_owner_save('module',jsonb_build_object('module',module,'enabled',true),'e1000000-0000-4000-8000-000000000002');
  end loop;

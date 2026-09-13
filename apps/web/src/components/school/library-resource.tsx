@@ -1,4 +1,5 @@
 "use client";
+import {useUiText} from "../i18n/ui-text";
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, Download, X } from "lucide-react";
 import { useTranslations } from "../i18n/i18n-provider";
@@ -20,8 +21,9 @@ export function LibraryResource({ row }: { row: SchoolRow }) {
 }
 
 function ResourceDialog({ title, close, children }: { title: string; close: () => void; children: React.ReactNode }) {
+ const ui = useUiText();
   const ref = useRef<HTMLDialogElement>(null);
   const { locale } = useTranslations();
   useEffect(() => { const dialog = ref.current; dialog?.showModal(); return () => dialog?.close(); }, []);
-  return <dialog ref={ref} className="school-notification-dialog school-library-dialog" aria-labelledby="resource-title" onClose={close}><div className="school-section-title"><h2 id="resource-title">{title}</h2><button onClick={close} aria-label={locale === "id-ID" ? "Tutup" : "Close"}><X/></button></div>{children}</dialog>;
+  return <dialog ref={ref} className="school-notification-dialog school-library-dialog" aria-labelledby="resource-title" onClose={close}><div className="school-section-title"><h2 id="resource-title">{title}</h2><button onClick={close} aria-label={locale === "id-ID" ? ui("Tutup") : "Close"}><X/></button></div>{children}</dialog>;
 }

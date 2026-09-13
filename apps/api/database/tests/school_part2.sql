@@ -5,7 +5,7 @@ insert into public.tenants(id,name,code) values
  ('d1000000-0000-4000-8000-000000000002','Part 2 school B','PART2-TEST-B');
 insert into auth.users(id,email,raw_app_meta_data,raw_user_meta_data)
 select ('d2000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,'part2-test-'||n||'@school.invalid',jsonb_build_object('tenant_id',case when n=5 then 'd1000000-0000-4000-8000-000000000002' else 'd1000000-0000-4000-8000-000000000001' end),jsonb_build_object('full_name','Part2 Person '||n) from generate_series(1,8)n;
-insert into public.user_roles(user_id,role_id) select ('d2000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,r.id from generate_series(1,8)n join public.roles r on r.code=case n when 1 then 'OWNER' when 2 then 'TEACHER' when 3 then 'STUDENT' when 4 then 'PARENT' when 5 then 'OWNER' when 6 then 'STUDENT' when 7 then 'PARENT' else 'TEACHER' end;
+insert into public.user_roles(user_id,role_id) select ('d2000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,r.id from generate_series(1,8)n join public.roles r on r.code=case n when 1 then 'OWNER' when 2 then 'TEACHER' when 3 then 'STUDENT' when 4 then 'PARENT' when 5 then 'OWNER' when 6 then 'STUDENT' when 7 then 'PARENT' else 'STAFF' end;
 insert into public.academic_years(id,tenant_id,name,starts_on,ends_on,is_active) values('d3000000-0000-4000-8000-000000000001','d1000000-0000-4000-8000-000000000001','Part2 year','2026-07-01','2027-06-30',true);
 insert into public.semesters(id,tenant_id,academic_year_id,name,starts_on,ends_on,is_active) values('d3000000-0000-4000-8000-000000000002','d1000000-0000-4000-8000-000000000001','d3000000-0000-4000-8000-000000000001','Semester','2026-07-01','2026-12-31',true);
 insert into public.classrooms(id,tenant_id,academic_year_id,name,homeroom_teacher_user_id) values('d3000000-0000-4000-8000-000000000003','d1000000-0000-4000-8000-000000000001','d3000000-0000-4000-8000-000000000001','Part2 class','d2000000-0000-4000-8000-000000000002');
@@ -40,10 +40,12 @@ do $$ declare report jsonb; project uuid; begin
  if (report->>'students')::integer<>2 then raise exception 'Dashboard student projection failed'; end if;
  if jsonb_typeof(report->'pending_approvals')<>'array' then raise exception 'Approval projection must be an array'; end if;
  perform public.school_calendar_context(now()-interval '1 day',now()+interval '40 days');
+ perform set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000008',true); -- Part 5 school finance belongs to Staff.
  perform public.school_finance_options('finance_accounts');
  report:=public.school_finance_report('bills','2026-01-01','2026-12-31');
  if (report->>'count')::integer<>0 then raise exception 'Fresh school has unexpected bills'; end if;
  report:=public.school_finance_report('payments','2026-01-01','2026-12-31');
+ perform set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000001',true);
  project:=(public.school_project_template(jsonb_build_object('code','P2-GRAD','name','Graduation committee','template','GRADUATION','committee',jsonb_build_object('CHAIR',auth.uid(),'SECRETARY','d2000000-0000-4000-8000-000000000002','TREASURER','d2000000-0000-4000-8000-000000000008')))->>'id')::uuid;
  perform set_config('test.part2.project',project::text,true);
  if jsonb_array_length(public.school_committee(project))<>3 then raise exception 'Required committee not created'; end if;

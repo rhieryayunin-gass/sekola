@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import "./school.css";
+import "./part5.css";
+import { FloatingConnect } from "../components/connect/floating-connect";
 import { I18nProvider } from "../components/i18n/i18n-provider";
 import { SiteHeader } from "../components/layout/site-header";
 import { defaultLocale, isLocale } from "../lib/i18n";
@@ -27,7 +29,7 @@ export default async function RootLayout({
         <AppProviders>
           <I18nProvider locale={locale}>
             <SiteHeader theme={theme}/>
-            {children}
+            {children}<FloatingConnect/>
           </I18nProvider>
         </AppProviders>
       </body>

@@ -8,6 +8,7 @@ export default defineConfig([
   globalIgnores([
     ".next/**",
     "coverage/**",
+    "public/vendor/**",
     "next-env.d.ts",
   ]),
 ]);

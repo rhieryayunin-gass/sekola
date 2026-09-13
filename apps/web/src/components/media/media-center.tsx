@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { usePermissionStore } from "../../stores/permission-store";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download, FileText, Copy } from "lucide-react";
@@ -26,6 +27,7 @@ function OwnerAvatars() {
   return <section className="mb-6"><label className="grid gap-2 text-sm"><span>{locale === "id-ID" ? "Kelola foto pengguna sekolah" : "Manage school user photos"}</span><select className="ose-control" value={userId} onChange={e => setUserId(e.target.value)}><option value="">{locale === "id-ID" ? "Pilih pengguna" : "Choose user"}</option>{data?.map(user => <option key={user.id} value={user.id}>{user.full_name}</option>)}</select></label>{error && <p role="alert">{locale === "id-ID" ? "Daftar pengguna gagal dimuat." : "Unable to load users."}</p>}{userId && <FixedMedia key={userId} kind="avatar" userId={userId}/>}</section>;
 }
 function MediaLibrary({ category }: { category: "gallery" | "learning" }) {
+  const galleryStaff=usePermissionStore(s=>s.context?.roles.some(r=>r.code==="STAFF"));
   const { data: ctx } = useMediaContext();
   const { locale } = useTranslations(); const id = locale === "id-ID";
   const [copied, setCopied] = useState("");
@@ -47,7 +49,7 @@ function MediaLibrary({ category }: { category: "gallery" | "learning" }) {
     return results.flat();
   } });
   if (!ctx?.tenant_id || !root) return null;
-  const upload = category === "gallery" ? ctx.can_manage_media : ctx.can_upload_learning;
+  const upload = category === "gallery" ? galleryStaff : ctx.can_upload_learning;
   const prefix = category === "gallery" ? root : `${root}/${ctx.user_id}`;
   const files = category === "gallery" ? rootQuery.data?.filter(f => f.id).map(f => ({ ...f, path: `${root}/${f.name}`, author: "" })) : nested.data;
   const error = rootQuery.error || nested.error;
@@ -56,7 +58,7 @@ function MediaLibrary({ category }: { category: "gallery" | "learning" }) {
     try { await navigator.clipboard.writeText(`${location.origin}${mediaUrl(bucket, path)}`); setCopied(path); }
     catch { setCopied("error"); }
   }
-  return <section className="glass-panel rounded-3xl p-6"><h2 className="text-xl font-semibold">{category === "gallery" ? (id ? "Galeri sekolah" : "School gallery") : (id ? "Berkas pembelajaran" : "Learning files")}</h2><p className="text-sm text-muted-foreground mt-2">{id ? "Berkas di sini hanya tersedia bagi pengguna aktif sekolah Anda. Tautan berkas tetap memerlukan login." : "Files are available only to active users of your school. File links still require sign-in."}</p>{upload && <MediaUpload bucket={bucket} prefix={prefix}/>}<div role="status" className="my-5 text-sm">{error ? (id ? "Gagal memuat berkas. Silakan muat ulang." : "Unable to load files. Please reload.") : loading ? (id ? "Memuat berkas…" : "Loading files…") : !files?.length ? (id ? "Belum ada berkas." : "No files yet.") : `${files.length} ${id ? "berkas" : "files"}`}{copied === "error" && (id ? " Tautan gagal disalin." : " Unable to copy link.")}</div><div className="ose-media-grid">{files?.map(file => <article className="ose-media-card" key={file.path}>{imageTypes.includes(file.metadata?.mimetype ?? "") ? <Image unoptimized src={mediaUrl(bucket, file.path, file.updated_at)} alt={file.name.replace(/^[a-f0-9-]{36}-/, "")} width={300} height={200}/> : <FileText size={44} className="text-secondary"/>}<p>{file.name.replace(/^[a-f0-9-]{36}-/, "")}</p><div className="ose-media-actions"><a href={mediaUrl(bucket, file.path)} download><Download size={15}/>{id ? "Unduh" : "Download"}</a><button onClick={() => void copyLink(file.path)}><Copy size={15}/>{copied === file.path ? (id ? "Tersalin" : "Copied") : (id ? "Salin tautan" : "Copy link")}</button></div>{(ctx.can_manage_media || (category === "learning" && ctx.can_upload_learning && file.author === ctx.user_id)) && <DeleteMedia bucket={bucket} path={file.path}/>}</article>)}</div></section>;
+  return <section className="glass-panel rounded-3xl p-6"><h2 className="text-xl font-semibold">{category === "gallery" ? (id ? "Galeri sekolah" : "School gallery") : (id ? "Berkas pembelajaran" : "Learning files")}</h2><p className="text-sm text-muted-foreground mt-2">{id ? "Berkas di sini hanya tersedia bagi pengguna aktif sekolah Anda. Tautan berkas tetap memerlukan login." : "Files are available only to active users of your school. File links still require sign-in."}</p>{upload && <MediaUpload bucket={bucket} prefix={prefix}/>}<div role="status" className="my-5 text-sm">{error ? (id ? "Gagal memuat berkas. Silakan muat ulang." : "Unable to load files. Please reload.") : loading ? (id ? "Memuat berkas…" : "Loading files…") : !files?.length ? (id ? "Belum ada berkas." : "No files yet.") : `${files.length} ${id ? "berkas" : "files"}`}{copied === "error" && (id ? " Tautan gagal disalin." : " Unable to copy link.")}</div><div className="ose-media-grid">{files?.map(file => <article className="ose-media-card" key={file.path}>{imageTypes.includes(file.metadata?.mimetype ?? "") ? <Image unoptimized src={mediaUrl(bucket, file.path, file.updated_at)} alt={file.name.replace(/^[a-f0-9-]{36}-/, "")} width={300} height={200}/> : <FileText size={44} className="text-secondary"/>}<p>{file.name.replace(/^[a-f0-9-]{36}-/, "")}</p><div className="ose-media-actions"><a href={mediaUrl(bucket, file.path)} download><Download size={15}/>{id ? "Unduh" : "Download"}</a><button onClick={() => void copyLink(file.path)}><Copy size={15}/>{copied === file.path ? (id ? "Tersalin" : "Copied") : (id ? "Salin tautan" : "Copy link")}</button></div>{((category === "gallery" ? galleryStaff : ctx.can_manage_media) || (category === "learning" && ctx.can_upload_learning && file.author === ctx.user_id)) && <DeleteMedia bucket={bucket} path={file.path}/>}</article>)}</div></section>;
 }
 export function MediaCenter({ initialCategory = "gallery" }: { initialCategory?: "gallery" | "learning" }) {
   const { data: ctx, isLoading, error } = useMediaContext();
