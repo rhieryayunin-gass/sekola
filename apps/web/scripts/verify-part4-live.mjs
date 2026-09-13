@@ -100,7 +100,12 @@ try {
    if(allowed){await page.locator('.curriculum-workspace').first().waitFor();assert.equal(await page.locator('.ose-module-page > .ose-status').count(),0);}
    else await page.locator('.ose-module-page > .ose-status').waitFor();
   }
-  if(actor===owner)assert.equal(await page.getByRole('link',{name:'O-Connect',exact:true}).count(),1);
+  if(actor===owner){
+   assert.equal(await page.getByRole('link',{name:'O-Connect',exact:true}).count(),1);
+   await page.setViewportSize({width:390,height:844});
+   await page.screenshot({path:output+'/owner-navigation-mobile.png',fullPage:true});
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Mobile Owner navigation overflow');
+  }
   record('PASS: production route access for '+actor.role);
   await context.close();
  }
