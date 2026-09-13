@@ -114,8 +114,10 @@ try {
  await teachingPage.setViewportSize({width:390,height:844});
  for(const route of ['academic','learning','exams']){
   await teachingPage.goto('https://osekola.com/dashboard/'+route);await teachingPage.locator('.curriculum-workspace').first().waitFor();
-  assert.ok(await teachingPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Mobile overflow in '+route);
   await teachingPage.screenshot({path:output+'/curriculum-'+route+'-mobile.png',fullPage:true});
+  const layout=await teachingPage.evaluate(()=>({viewport:window.innerWidth,width:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('body *')].map(e=>({tag:e.tagName,className:e.className,right:e.getBoundingClientRect().right,width:e.getBoundingClientRect().width})).filter(e=>e.right>window.innerWidth+1).slice(0,40)}));
+  await writeFile(output+'/layout-'+route+'.json',JSON.stringify(layout,null,2));
+  assert.ok(layout.width<=layout.viewport+1,'Mobile overflow in '+route);
  }
  await teachingContext.close();
  const {context:learnerContext,page:learnerPage}=await open(student);
