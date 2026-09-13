@@ -66,11 +66,12 @@ declare c public.school_face_challenges; f public.school_face_enrollments; saved
  end if;
  if f.user_id is null or (c.purpose='CHECKIN' and f.verified_at is null) then raise exception 'Enroll and verify this user first';end if;
  select decrypted_secret::jsonb into saved from vault.decrypted_secrets where id=f.secret_id;
+ if saved is null or jsonb_typeof(saved) is distinct from 'array' or jsonb_array_length(saved)<>3 then raise exception 'Enrollment template unavailable. Enroll this user again.';end if;
  -- Average of three best cosine similarities; no template is returned to clients.
  for vec in select value from jsonb_array_elements(samples) loop
  select max(school_private.face_similarity(vec,v)) into temp from jsonb_array_elements(saved)v;score:=score+temp/3;
  end loop;
- if score<0.85 then update public.school_face_challenges set matched=false where id=c.id;return jsonb_build_object('matched',false,'reason','FACE_NOT_MATCHED');end if;
+ if score is null or score<0.85 then update public.school_face_challenges set matched=false where id=c.id;return jsonb_build_object('matched',false,'reason','FACE_NOT_MATCHED');end if;
  update public.school_face_challenges set matched=true where id=c.id;
  if c.purpose='VERIFY' then update public.school_face_enrollments set verified_at=now() where user_id=c.target_id;
  else
@@ -88,6 +89,7 @@ end $$;
 create function school_private.face_delete(target uuid) returns boolean language plpgsql security definer set search_path='' as $$
 declare keyid uuid;begin
  if not school_private.face_target(target) then raise exception 'Access denied' using errcode='42501';end if;
+ perform pg_advisory_xact_lock(hashtextextended(target::text,728));
  delete from public.school_face_enrollments where user_id=target and tenant_id=school_private.tenant() returning secret_id into keyid;
  if keyid is not null then delete from vault.secrets where id=keyid;end if;
  insert into public.audit_logs(tenant_id,actor_user_id,action,module,resource_type,resource_id) values(school_private.tenant(),auth.uid(),'FACE_DELETE','attendance','users',target);return true;
