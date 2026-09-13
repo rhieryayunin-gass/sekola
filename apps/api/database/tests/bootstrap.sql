@@ -22,3 +22,11 @@ create table storage.objects(id uuid primary key default gen_random_uuid(),bucke
 alter table storage.objects enable row level security;
 grant usage on schema storage to authenticated,service_role;
 grant select,insert,update,delete on storage.objects to authenticated,service_role;
+
+-- Supabase Vault test double. Production uses installed supabase_vault encryption.
+create schema if not exists vault;
+create table vault.secrets(id uuid primary key default gen_random_uuid(),secret text not null);
+create view vault.decrypted_secrets as select id,secret as decrypted_secret from vault.secrets;
+create function vault.create_secret(value text) returns uuid language plpgsql as $$ declare key uuid;begin insert into vault.secrets(secret) values(value) returning id into key;return key;end $$;
+create function vault.update_secret(key uuid,value text) returns void language sql as $$ update vault.secrets set secret=value where id=key $$;
+revoke all on schema vault from public;

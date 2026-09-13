@@ -273,5 +273,9 @@
   "ownerInvoice": "Invoice",
   "ownerPeriod": "Period",
   "ownerBackHome": "Back to home",
-  "ownerAccountServiceUnavailable": "Account changes are temporarily unavailable. You can still browse and filter users."
+  "ownerAccountServiceUnavailable": "Account changes are temporarily unavailable. You can still browse and filter users.",
+  "gallery": "Gallery",
+  "approval": "Approval",
+  "chat": "Chat",
+  "ownerProduct": "Product"
 }

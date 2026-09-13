@@ -273,5 +273,9 @@
   "ownerInvoice": "Invoice",
   "ownerPeriod": "Periode",
   "ownerBackHome": "Kembali ke beranda",
-  "ownerAccountServiceUnavailable": "Perubahan akun belum tersedia sementara. Anda tetap dapat melihat dan memfilter pengguna."
+  "ownerAccountServiceUnavailable": "Perubahan akun belum tersedia sementara. Anda tetap dapat melihat dan memfilter pengguna.",
+  "gallery": "Galeri",
+  "approval": "Persetujuan",
+  "chat": "Chat",
+  "ownerProduct": "Produk"
 }

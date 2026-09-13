@@ -1,4 +1,6 @@
 "use client";
+import {useCallback} from "react";
+import en from "./ui-translations-en.json";
 import { useTranslations } from "./i18n-provider";
 const id: Record<string,string> = {
   "AI question drafts remain teacher-reviewed before publication.": "Draf soal AI ditinjau guru sebelum diterbitkan.",
@@ -187,4 +189,4 @@ const id: Record<string,string> = {
   "No due date": "Tanpa batas waktu",
   "No description": "Tanpa deskripsi"
 };
-export function useUiText() { const { locale } = useTranslations(); return (text: string) => locale === "id-ID" ? id[text] ?? text : text; }
+export function useUiText() { const { locale } = useTranslations(); return useCallback((text: string) => locale === "id-ID" ? id[text] ?? text : (en as Record<string,string>)[text] ?? text, [locale]); }

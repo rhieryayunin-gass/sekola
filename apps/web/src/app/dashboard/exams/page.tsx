@@ -1,7 +1,9 @@
+import {AdmissionsLink} from "../../../components/admissions/admissions";
+import { FamilyRoute } from "../../../components/school/family-workspace";
 import { CurriculumLearning } from "../../../components/curriculum/curriculum-learning";
 import { ExamWorkspace } from "../../../components/school/exam-workspace";
 import { ModulePage } from "../../../components/layout/module-page";
 export const metadata = { title: "Exams" };
 export default function Page() {
-  return <ModulePage name="exams" title="exams" description="examsDesc"><ExamWorkspace/><CurriculumLearning examMode/></ModulePage>;
+  return <ModulePage name="exams" title="exams" description="examsDesc"><AdmissionsLink/><FamilyRoute kind="exams"><ExamWorkspace/><CurriculumLearning examMode/></FamilyRoute></ModulePage>;
 }
