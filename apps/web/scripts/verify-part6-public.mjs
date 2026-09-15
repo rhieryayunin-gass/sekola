@@ -100,8 +100,10 @@ try {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "Landing page must not overflow horizontally");
 
     for (const route of ["/assessment", "/login", "/partners"]) {
-      const result = await page.goto(`${base}${route}`, { waitUntil: "networkidle" });
+      // Live pages may keep background requests open after their content is ready.
+      const result = await page.goto(`${base}${route}`, { waitUntil: "domcontentloaded" });
       assert.equal(result.status(), 200);
+      await page.locator(".p6-floating-nav").waitFor();
       assert.equal(await page.locator(".p6-floating-nav a").count(), 3);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${route} must not overflow horizontally`);
       if (route === "/assessment") {
@@ -111,8 +113,15 @@ try {
         await page.getByRole("button", { name: "Mulai perjalanan", exact: true }).waitFor();
       }
       if (route === "/login") {
+        await page.locator('input[type="password"]').waitFor();
         assert.equal(await page.locator(".owner-back-home").count(), 0);
         assert.equal(await page.locator('input[type="password"]').count(), 1);
+      }
+      if (route === "/partners") {
+        await page.getByRole("heading", { name: "Hubungkan sekolah. Bangun dampak bersama.", exact: true }).waitFor();
+        assert.equal(await page.locator(".school-partner-steps article").count(), 3);
+        assert.match(await page.getByRole("link", { name: "Bicarakan kemitraan", exact: true }).getAttribute("href"), /^https:\/\/wa\.me\/\d+\?text=/);
+        assert.equal(await page.getByRole("link", { name: "Login partner →", exact: true }).getAttribute("href"), "/dashboard/partners");
       }
       await page.screenshot({ path: path.join(output, `${route.slice(1)}-${width}.png`) });
     }
