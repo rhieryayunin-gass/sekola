@@ -13,7 +13,18 @@ const evidence = [];
 const modules = ["o-core", "o-academic", "o-attendance", "o-learning", "o-exam", "o-finance", "o-team", "o-connect"];
 
 async function loadedImages(page, selector) {
-  await page.waitForFunction(selector => [...document.querySelectorAll(selector)].every(image => image.complete && image.naturalWidth > 0), selector);
+  const images = page.locator(selector);
+  const count = await images.count();
+  assert.ok(count > 0, `Expected images matching ${selector}`);
+  for (let index = 0; index < count; index++) {
+    // Mobile cards extend below the viewport; trigger native lazy loading first.
+    await images.nth(index).scrollIntoViewIfNeeded();
+    await page.waitForFunction(({ selector, index }) => {
+      const image = document.querySelectorAll(selector)[index];
+      return image?.complete && image.naturalWidth > 0;
+    }, { selector, index });
+  }
+  await images.first().scrollIntoViewIfNeeded();
 }
 
 try {
