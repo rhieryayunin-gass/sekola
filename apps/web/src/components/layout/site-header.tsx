@@ -41,15 +41,15 @@ export function SiteHeader({ theme }: { theme: "light" | "dark" }) {
   const role = primaryRole(context);
   const owner = useIsOwner();
   const has = (permission: string) => context?.permissions.some(p => p.code === permission);
-  return <header className={`ose-header ${app ? "ose-app-header" : ""}`}>
+  return <><header className={`ose-header ${app ? "ose-app-header" : "p6-public-header"}`}>
     <a href="#ose-main" className="ose-skip">{t("skipContent")}</a>
     <div className={`ose-nav ${app ? owner ? "owner-nav" : "" : "ose-public-nav"}`}>
       <Brand />
       {app && !owner && <SchoolIdentity/>}
       {!app && <div className="ose-preferences"><LanguageSwitcher/><ThemeSwitcher initial={theme}/></div>}
-      {!app && <nav className="ose-main-nav" aria-label={t("navigation")}><Link href="/#ecosystem">{t("ecosystem")}</Link><Link href="/#pricing">{locale === "id-ID" ? "Paket" : "Plans"}</Link><Link href="/partners">Partner</Link><Link className="ose-sign-in" href="/login">{t("signIn")}</Link><a className="ose-demo-link" href={demoUrl} target="_blank" rel="noreferrer">{marketingCopy[locale].demo}</a></nav>}
+      {!app && <div className="ose-main-nav p6-public-actions"><Link className="ose-sign-in" href="/login">{t("signIn")}</Link><a className="ose-demo-link" href={demoUrl} target="_blank" rel="noreferrer">{marketingCopy[locale].demo}</a></div>}
       {app && <div className="ose-preferences"><LanguageSwitcher /><ThemeSwitcher initial={theme}/>{owner && has("connect.read") && school.data?.settings.modules.connect !== false && <Link className="school-icon-link" href="/dashboard/connect" aria-label="O-Connect" title="O-Connect"><MessageCircle size={20}/><UnreadIndicator connect/></Link>}{has("calendar.read") && <Link className="school-icon-link" href="/dashboard/calendar" aria-label={t("calendar")} title={t("calendar")}><CalendarDays size={20}/></Link>}{has("notifications.read") && <Link className="school-icon-link" href="/dashboard/notifications" aria-label={t("notifications")} title={t("notifications")}><Bell size={20}/><UnreadIndicator/></Link>}<AccountMenu key={path} owner={owner} role={role}/></div>}
     </div>
     {app && <nav className="ose-module-nav school-module-nav" aria-label={t("modules")}>{(owner ? ownerNavigation : navigation).map(item => <Link key={item.href} href={item.href} aria-current={path === item.href ? "page" : undefined}>{t(item.label)}{item.href === "/dashboard/connect" && <UnreadIndicator connect/>}</Link>)}</nav>}
-  </header>;
+  </header>{!app && <div className="p6-floating-nav-wrap"><nav className="p6-floating-nav" aria-label={t("navigation")}><Link href="/#ecosystem">{t("ecosystem")}</Link><Link href="/#pricing">{locale === "id-ID" ? "Paket" : "Plans"}</Link><Link href="/partners" aria-current={path === "/partners" ? "page" : undefined}>{locale === "id-ID" ? "Mitra" : "Partners"}</Link></nav></div>}</>;
 }
