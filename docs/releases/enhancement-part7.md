@@ -59,3 +59,26 @@ remedial/retake and parent isolation. Desktop/mobile screenshots and a JSON repo
 are retained as Actions artifacts. Cleanup is scoped to this run's generated UUIDs
 and must leave zero fixture accounts and schools. Production success must be read
 from that workflow; this document is not a claim that a pending run has passed.
+
+## Production checkpoint — 15 September 2026
+
+PRs #78 and #79 deployed the four module workflows and responsive refinements.
+The production run at
+https://github.com/rhieryayunin-gass/sekola/actions/runs/34994662827 verified the
+exact release `e59b318534299a087ecce0e454c09b2f39d0b499` and passed canonical setup,
+import preview, role gates, curriculum readiness/launch, browser learning
+submission/review/release, targeted audience privacy, exam blueprint/publication,
+private accommodations, browser autosave/resume/receipt, grade publication,
+delayed discussion, remedial/retake and own-child reports. Desktop/mobile
+screenshots were inspected. Cleanup left zero fixture users and schools.
+
+The aggregate production gate correctly remains failed: the real Olla request
+was rejected by AI Gateway at the provider stage with HTTP 403, safe code
+`AI_AUTH_REQUIRED`, generation `e2323561-4349-46c0-8195-a461591b2add`.
+This is the same external access/activation blocker documented in
+`docs/ENHANCEMENT_PART2.md`; changing the reasoning budget does not resolve access.
+The connected Vercel toolset provides project/deployment/log inspection but no
+AI Gateway configuration mutation, and no local Vercel credential is available.
+Do not claim Olla generation works, disable the gate, substitute generated content,
+or work around the provider's denial. Resolve the project's authorized Gateway
+access and rerun the retained production verifier.

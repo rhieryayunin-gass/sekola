@@ -882,3 +882,12 @@ dialog.p7-detail::backdrop {
   .p7-insights { display: block; }
   .p7-insights > * + * { margin-top: 14px; }
 }
+
+.p7-setup-link { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 26px; border: 1px solid var(--border); border-radius: 20px; margin-block: 20px; background: linear-gradient(115deg, var(--background), #1685ff12); }
+.p7-setup-link span { display: grid; gap: 6px; }
+.p7-setup-link small { color: var(--secondary); font-size: .72rem; }
+.p7-setup-link strong { color: var(--foreground); }
+.p7-setup-link svg { flex-shrink: 0; color: var(--secondary); }
+
+/* Keep the floating chat control off the active assessment paper. */
+body:has(.school-exam-player) .ose-floating-connect { display: none; }
