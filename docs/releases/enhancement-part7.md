@@ -35,9 +35,9 @@ Apply the following migrations in order to the existing OSEKOLA Supabase project
 project `osekola`. This change uses existing API endpoints and needs no API binary
 or VPS service replacement.
 
-1. `20260915144049_school_onboarding_part7.sql`
-2. `20260915144054_class_studio_part7.sql`
-3. `20260915144057_assessment_studio_part7.sql`
+1. `20260915160706_school_onboarding_part7.sql`
+2. `20260915160729_class_studio_part7.sql`
+3. `20260915160759_assessment_studio_part7.sql`
 
 Migrations preserve existing records and previously published assessment results.
 Do not undo them with destructive table drops. If a rollout problem occurs, pause

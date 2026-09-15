@@ -47,7 +47,7 @@ try {
   for (const path of ['health', 'ready']) assert.equal((await fetch('https://api.osekola.com/api/v1/' + path)).status, 200);
   record('Exact frontend release and existing API health/readiness');
   await insert('tenants', tenants.map((id, i) => ({ id, name: `Part 7 verification ${run} ${i}`, code: `P7-VERIFY-${run}-${i}` })));
-  const roles = ['OWNER', 'STAFF', 'TEACHER', 'STUDENT', 'PARENT', 'STUDENT', 'PARENT', 'OWNER'];
+  const roles = ['OWNER', 'STAFF', 'TEACHER', 'STUDENT', 'PARENT', 'STUDENT', 'PARENT', 'OWNER', 'PRINCIPAL'];
   const roleIds = new Map(ok(await admin.from('roles').select('id,code').in('code', [...new Set(roles)])).map(r => [r.code, r.id]));
   for (const [i, role] of roles.entries()) {
     const tenant = tenants[i === 7 ? 1 : 0], email = `part7-${run}-${i}@demo.osekola.test`, password = randomBytes(24).toString('base64url');
@@ -103,7 +103,7 @@ try {
 
   const unit = await studio(teacher, 'unit', { title: 'Reasoning with numbers', description: 'A focused learning journey', published: true, outcome_ids: [goal.id], student_ids: [ids.student] });
   const lesson = await studio(teacher, 'lesson', { unit_id: unit.id, title: 'Read, reason and reflect', material: 'Explain why two pairs make four.', blocks: [{ type: 'REFLECTION', text: 'How can you show your thinking?' }], scheduled_at: new Date(Date.now() + 86400000).toISOString(), is_published: true });
-  const assignment = await studio(teacher, 'assignment', { unit_id: unit.id, title: 'Part7 reasoning task', description: 'Explain your answer', rubric: 'A clear mathematical explanation', max_score: 100, is_published: true });
+  const assignment = await studio(teacher, 'assignment', { unit_id: unit.id, title: 'Part7 reasoning task', instructions: 'Explain your answer', rubric: 'A clear mathematical explanation', max_score: 100, is_published: true });
   await studio(teacher, 'space', { status: 'LIVE', is_template: true });
   assert.equal((await studio(peer, 'state')).assignments.length, 0);
   assert.equal((await rpc(peer, 'school_catalog', { resource: 'lessons' })).length, 0);
