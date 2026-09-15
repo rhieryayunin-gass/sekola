@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
-vi.mock("../../lib/school", async original => ({ ...await original<typeof import("../../lib/school")>(), schoolRpc: rpc, useSchoolContext: () => ({ data: { tenant: { id: "owner-tenant" } } }) }));
+vi.mock("../../lib/school", async original => ({ ...await original<typeof import("../../lib/school")>(), schoolRpc: rpc, useSchoolContext: () => ({ data: { tenant: { id: "owner-tenant" }, settings: { modules: { core: true } } } }) }));
 vi.mock("../../stores/permission-store", () => ({ usePermissionStore: (select: (s: unknown) => unknown) => select({ context: { userId: "owner", roles: [{ code: "OWNER" }], permissions: [{ code: "tenants.update_all" }] } }) }));
 vi.mock("../../stores/auth-store", () => ({ useAuthStore: (select: (s: unknown) => unknown) => select({ user: { user_metadata: { full_name: "Owner" } } }) }));
 vi.mock("../media/media-uploader", () => ({ MediaUpload: () => <span>Logo upload</span> }));
@@ -16,7 +16,8 @@ describe("Owner workspace interactions", () => {
     rpc.mockResolvedValue({ tenants: 3, active_tenants: 2, users: 120, active_users: 100, partners: 4, active_partners: 3, income: 2000000, expenses: 200000, receivables: 500000 });
     wrap(<OwnerDashboard/>);
     await screen.findByRole("link", { name: /Tenant/ });
-    expect(screen.getAllByRole("link").map(a => a.getAttribute("href"))).toEqual(["/dashboard/tenant", "/dashboard/finance", "/dashboard/partners", "/dashboard/users"]);
+    expect(screen.getAllByRole("link").filter(a => a.classList.contains("owner-metric")).map(a => a.getAttribute("href"))).toEqual(["/dashboard/tenant", "/dashboard/finance", "/dashboard/partners", "/dashboard/users"]);
+    expect(screen.getByRole("link", { name: "Bangun sekolah digital Anda" })).toHaveAttribute("href", "/dashboard/core");
     expect(screen.queryByText("Your school, its operations and the decisions ahead.")).not.toBeInTheDocument();
   });
   it("saves a single module flag without replacing other tenant settings", async () => {
