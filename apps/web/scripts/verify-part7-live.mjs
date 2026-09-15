@@ -153,6 +153,7 @@ try {
   await denied(peer.client.rpc('school_exam_start', { exam_uuid: exam.id }));
   await teacherPage.goto(`https://osekola.com/dashboard/exams?exam=${exam.id}&course=${ids.course}`);
   await teacherPage.locator('[data-testid="assessment-builder"]').waitFor();
+  await teacherPage.getByText('Part7 fixture STUDENT 3', { exact: true }).waitFor();
   await picture(teacherPage, 'assessment-studio-desktop'); await picture(teacherPage, 'assessment-studio-mobile', true);
   await studentPage.goto('https://osekola.com/dashboard/exams');
   await studentPage.getByRole('button', { name: 'Check readiness', exact: true }).click();
