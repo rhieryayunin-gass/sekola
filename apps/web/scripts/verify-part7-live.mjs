@@ -91,7 +91,7 @@ try {
   record('Academic allocation provisions a private draft class; import preview, canonical role gates, curriculum setup and real readiness launch');
 
   const { chromium } = await import(process.env.BROWSER_MODULE); browser = await chromium.launch({ headless: true });
-  const staffPage = await open(staff, '/dashboard/core'); await staffPage.locator('[data-testid="school-setup"]').waitFor();
+  const staffPage = await open(staff, '/dashboard'); await staffPage.getByRole('link', { name: 'Build your digital school', exact: true }).click(); await staffPage.locator('[data-testid="school-setup"]').waitFor();
   await picture(staffPage, 'setup-desktop'); await picture(staffPage, 'setup-mobile', true);
   const suggestionId = randomUUID();
   const ai = await staffPage.request.post('https://osekola.com/api/school/setup/suggest', { headers: { Origin: 'https://osekola.com' }, data: { request_id: suggestionId, locale: 'en-US' }, timeout: 70000 });
@@ -153,6 +153,7 @@ try {
   await denied(peer.client.rpc('school_exam_start', { exam_uuid: exam.id }));
   await teacherPage.goto(`https://osekola.com/dashboard/exams?exam=${exam.id}&course=${ids.course}`);
   await teacherPage.locator('[data-testid="assessment-builder"]').waitFor();
+  await teacherPage.getByText('Part7 fixture STUDENT 3', { exact: true }).waitFor();
   await picture(teacherPage, 'assessment-studio-desktop'); await picture(teacherPage, 'assessment-studio-mobile', true);
   await studentPage.goto('https://osekola.com/dashboard/exams');
   await studentPage.getByRole('button', { name: 'Check readiness', exact: true }).click();
@@ -169,6 +170,7 @@ try {
   assert.equal(state.attempt.answers[state.questions[0].id], '4'); assert.ok(!('answer' in state.questions[0].content));
   const minutes = (Date.parse(state.ends_at) - Date.parse(state.server_time)) / 60000; assert.ok(minutes > 28 && minutes <= 30);
   assert.equal((await rpc(student, 'school_exam_start', { exam_uuid: exam.id })).attempt.id, attempt.id);
+  assert.equal(await studentPage.locator('.ose-floating-connect').isVisible(), false);
   await picture(studentPage, 'exam-focus-mobile', true);
   await studentPage.reload(); await studentPage.getByRole('button', { name: 'Open attempt / result', exact: true }).click();
   await studentPage.getByLabel('I have read the instructions and am ready.', { exact: true }).check();
