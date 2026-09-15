@@ -5,6 +5,7 @@ import "./globals.css";
 import "./school.css";
 import "./part5.css";
 import "./part6.css";
+import "./part7.css";
 import { FloatingConnect } from "../components/connect/floating-connect";
 import { I18nProvider } from "../components/i18n/i18n-provider";
 import { SiteHeader } from "../components/layout/site-header";

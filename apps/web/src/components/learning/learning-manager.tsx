@@ -1,6 +1,4 @@
 "use client";
-import { CurriculumLearning } from "../curriculum/curriculum-learning";
-import { RecordWorkspace, SchoolHierarchy } from "../school/record-workspace";
-import { learningSpecs } from "../school/resource-specs";
-import { QuestionWorkspace } from "../school/question-workspace";
-export function LearningManager() { return <><SchoolHierarchy/><CurriculumLearning/><RecordWorkspace specs={learningSpecs}/><QuestionWorkspace/></>; }
+import { Suspense } from "react";
+import { ClassStudio } from "../part7/class-studio";
+export function LearningManager() { return <Suspense><ClassStudio/></Suspense>; }
