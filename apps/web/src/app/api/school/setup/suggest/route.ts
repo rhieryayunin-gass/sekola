@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateText, Output } from "ai";
+import { generateText, Output, NoObjectGeneratedError } from "ai";
 import { gateway } from "@ai-sdk/gateway";
 import { z } from "zod";
 import { createClient } from "../../../../../lib/supabase/server";
@@ -61,10 +61,12 @@ export async function POST(request: Request) {
     );
   let inputTokens = 0,
     outputTokens = 0;
+  let stage = "provider", finishReason: string | null = null;
   try {
     const result = await generateText({
       model: gateway(model),
-      maxOutputTokens: 3500,
+      maxOutputTokens: 6000,
+      reasoning: "low",
       maxRetries: 0,
       abortSignal: AbortSignal.timeout(50000),
       output: Output.object({ schema }),
@@ -77,11 +79,15 @@ export async function POST(request: Request) {
     });
     inputTokens = result.totalUsage.inputTokens ?? 0;
     outputTokens = result.totalUsage.outputTokens ?? 0;
+    stage = "validation";
+    finishReason = result.finishReason;
+    const suggestion = schema.parse(result.output);
+    stage = "persistence";
     const saved = await db.rpc("school_setup_suggestion", {
       action: "finish",
       request_id: input.request_id,
       payload: {
-        result: result.output,
+        result: suggestion,
         model,
         input_tokens: inputTokens,
         output_tokens: outputTokens,
@@ -93,11 +99,18 @@ export async function POST(request: Request) {
       {
         id: input.request_id,
         url: `/dashboard/core?suggestion=${input.request_id}`,
-        result: result.output,
+        result: suggestion,
       },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
+    if (NoObjectGeneratedError.isInstance(error)) {
+      inputTokens = error.usage?.inputTokens ?? inputTokens;
+      outputTokens = error.usage?.outputTokens ?? outputTokens;
+      finishReason = error.finishReason ?? finishReason;
+    }
+    const failure = schoolAIError(error);
+    console.error("school_setup_suggestion_failed", { generation_id: input.request_id, stage, code: failure.code, provider_status: failure.status, provider_type: failure.type, error_type: error instanceof Error ? error.name : "unknown", finish_reason: finishReason, input_tokens: inputTokens, output_tokens: outputTokens });
     await db.rpc("school_setup_suggestion", {
       action: "finish",
       request_id: input.request_id,
@@ -109,9 +122,8 @@ export async function POST(request: Request) {
         estimated_cost_usd: inputTokens * 0.0000002 + outputTokens * 0.0000012,
       },
     });
-    const failure = schoolAIError(error);
     return NextResponse.json(
-      { error: failure.code === "AI_GENERATION_FAILED" ? (input.locale === "en-US" ? "Setup suggestions are unavailable. Please retry; you can continue school setup manually." : "Saran penyiapan belum tersedia. Coba kembali; Anda dapat melanjutkan penyiapan sekolah secara manual.") : failure.message },
+      { code: failure.code, generation_id: input.request_id, error: failure.code === "AI_GENERATION_FAILED" ? (input.locale === "en-US" ? "Setup suggestions are unavailable. Please retry; you can continue school setup manually." : "Saran penyiapan belum tersedia. Coba kembali; Anda dapat melanjutkan penyiapan sekolah secara manual.") : failure.message },
       { status: 502 },
     );
   }

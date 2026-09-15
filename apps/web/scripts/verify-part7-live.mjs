@@ -12,7 +12,7 @@ for (const name of ['SUPABASE_SERVICE_ROLE_KEY', 'EXPECTED_WEB_RELEASE', 'BROWSE
 const output = process.env.VERIFY_OUTPUT_DIR; await mkdir(output, { recursive: true });
 const admin = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const ok = (r, label = 'Request') => { if (r.error) throw new Error(`${label}: ${r.error.code ?? r.error.status ?? ''} ${r.error.message ?? ''}`); return r.data; };
-const run = randomUUID(), tenants = [randomUUID(), randomUUID()], users = [], checks = [], pages = [];
+const run = randomUUID(), tenants = [randomUUID(), randomUUID()], users = [], checks = [], pages = [], failedChecks = [];
 const ids = Object.fromEntries(['year', 'semester', 'classroom', 'subject', 'teacher', 'student', 'peer', 'course'].map(k => [k, randomUUID()]));
 let browser, success = false;
 const record = label => { checks.push(label); console.log('PASS: ' + label); };
@@ -95,11 +95,17 @@ try {
   await picture(staffPage, 'setup-desktop'); await picture(staffPage, 'setup-mobile', true);
   const suggestionId = randomUUID();
   const ai = await staffPage.request.post('https://osekola.com/api/school/setup/suggest', { headers: { Origin: 'https://osekola.com' }, data: { request_id: suggestionId, locale: 'en-US' }, timeout: 70000 });
-  assert.equal(ai.status(), 200, 'Olla suggestion request');
-  const suggestion = await ai.json(); assert.equal(suggestion.id, suggestionId); assert.ok(suggestion.result.summary);
-  const savedSuggestion = await rpc(staff, 'school_setup_suggestion', { action: 'read', request_id: suggestionId }); assert.equal(savedSuggestion.result.summary, suggestion.result.summary);
-  await staffPage.goto('https://osekola.com' + suggestion.url); await staffPage.getByText(suggestion.result.summary, { exact: true }).waitFor();
-  record('Core responsive page and one real Olla suggestion persisted at its addressable URL');
+  const suggestion = await ai.json();
+  if (ai.ok()) {
+    assert.equal(suggestion.id, suggestionId); assert.ok(suggestion.result.summary);
+    const savedSuggestion = await rpc(staff, 'school_setup_suggestion', { action: 'read', request_id: suggestionId }); assert.equal(savedSuggestion.result.summary, suggestion.result.summary);
+    await staffPage.goto('https://osekola.com' + suggestion.url); await staffPage.getByText(suggestion.result.summary, { exact: true }).waitFor();
+    record('Core responsive page and one real Olla suggestion persisted at its addressable URL');
+  } else {
+    const failure = { status: ai.status(), code: suggestion.code, generation_id: suggestion.generation_id, message: suggestion.error };
+    await writeFile(output + '/olla-failure.json', JSON.stringify(failure, null, 2));
+    failedChecks.push('Olla suggestion: ' + JSON.stringify(failure)); console.error(failedChecks.at(-1));
+  }
 
   const unit = await studio(teacher, 'unit', { title: 'Reasoning with numbers', description: 'A focused learning journey', published: true, outcome_ids: [goal.id], student_ids: [ids.student] });
   const lesson = await studio(teacher, 'lesson', { unit_id: unit.id, title: 'Read, reason and reflect', material: 'Explain why two pairs make four.', blocks: [{ type: 'REFLECTION', text: 'How can you show your thinking?' }], scheduled_at: new Date(Date.now() + 86400000).toISOString(), is_published: true });
@@ -190,6 +196,7 @@ try {
   const retake = await assessment(teacher, 'retake', { exam_id: exam.id }); assert.notEqual(retake.id, exam.id);
   const parentPage = await open(parent, '/dashboard/exams'); await parentPage.getByText('Part7 focused assessment', { exact: true }).waitFor(); await picture(parentPage, 'parent-released-report', true);
   record('Blueprint and bank gates, private accommodation, browser ready/start/autosave/resume/receipt, review then release, delayed discussion, remedial/retake and own-child report');
+  assert.deepEqual(failedChecks, [], "All production checks must pass");
   success = true;
 } catch (error) {
   for (const [i, page] of pages.entries()) { try { await page.screenshot({ path: `${output}/failure-${i}.png`, fullPage: true }); } catch {} }
@@ -204,7 +211,7 @@ try {
   for (const [i, tenant] of tenants.entries()) { try { ok(await admin.from('tenants').delete().eq('id', tenant).eq('code', `P7-VERIFY-${run}-${i}`)); } catch (e) { failures.push(e.message); } }
   const remainingUsers = ok(await admin.from('users').select('id').in('tenant_id', tenants)).length;
   const remainingTenants = ok(await admin.from('tenants').select('id').in('id', tenants)).length;
-  await writeFile(output + '/verification.json', JSON.stringify({ release: process.env.EXPECTED_WEB_RELEASE, success, checks, cleanup: { remainingUsers, remainingTenants, failures } }, null, 2));
+  await writeFile(output + '/verification.json', JSON.stringify({ release: process.env.EXPECTED_WEB_RELEASE, success, checks, failedChecks, cleanup: { remainingUsers, remainingTenants, failures } }, null, 2));
   assert.deepEqual(failures, []); assert.equal(remainingUsers, 0); assert.equal(remainingTenants, 0);
   record('Disposable fixture users, schools and associated records removed');
 }

@@ -277,5 +277,7 @@
   "gallery": "Gallery",
   "approval": "Approval",
   "chat": "Chat",
-  "ownerProduct": "Product"
+  "ownerProduct": "Product",
+  "coreSetup": "Build your digital school",
+  "coreSetupDesc": "Connect school identity, people, spaces and academic readiness."
 }
