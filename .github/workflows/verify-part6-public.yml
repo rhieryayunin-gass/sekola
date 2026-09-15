@@ -1,0 +1,88 @@
+name: Part 6 public experience verification
+on:
+  pull_request:
+    paths:
+      - apps/web/**
+      - .github/workflows/verify-part6-public.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/web/**
+      - .github/workflows/verify-part6-public.yml
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Public deployment URL to verify (empty runs a local production build)
+        required: false
+        default: ""
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install browser
+        run: |
+          npm install --prefix "$RUNNER_TEMP/part6-browser" playwright@1.62.1
+          "$RUNNER_TEMP/part6-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify production rendering and public interactions
+        env:
+          VERIFY_BASE_URL: ${{ github.event_name == 'push' && 'https://osekola.com' || inputs.base_url }}
+          BROWSER_MODULE: ${{ runner.temp }}/part6-browser/node_modules/playwright/index.mjs
+          VERIFY_OUTPUT_DIR: ${{ runner.temp }}/part6-evidence
+          RELEASE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          VERIFY_RELEASE: ${{ github.event_name == 'push' && github.sha || '' }}
+        run: |
+          if [ -z "$VERIFY_BASE_URL" ]; then
+            node --input-type=module <<'NODE'
+          import { readFileSync, openSync } from 'node:fs';
+          import { spawn, spawnSync } from 'node:child_process';
+          const env = { ...process.env, ...JSON.parse(readFileSync('deploy/osekola/public-web-config.json', 'utf8')), VERCEL: '1' };
+          const build = spawnSync('pnpm', ['--filter', '@sekola/web', 'build'], { env, stdio: 'inherit' });
+          if (build.status !== 0) process.exit(build.status ?? 1);
+          const log = openSync(process.env.VERIFY_OUTPUT_DIR + '-server.log', 'w');
+          const server = spawn('pnpm', ['--filter', '@sekola/web', 'start', '--hostname', '127.0.0.1', '--port', '3106'], { env, detached: true, stdio: ['ignore', log, log] });
+          server.unref();
+          NODE
+            export VERIFY_BASE_URL=http://127.0.0.1:3106
+            for attempt in $(seq 1 30); do
+              if curl --silent --fail "$VERIFY_BASE_URL/healthz" > /dev/null; then break; fi
+              sleep 1
+            done
+          fi
+          if [ -n "$VERIFY_RELEASE" ]; then
+            node --input-type=module <<'NODE'
+          const base = process.env.VERIFY_BASE_URL, release = process.env.VERIFY_RELEASE;
+          let ready = false;
+          for (let i = 0; i < 72; i++) {
+            try {
+              const r = await fetch(`${base}/healthz?verify=${release}`, { signal: AbortSignal.timeout(10000), cache: 'no-store' });
+              if (r.ok && (await r.json()).release === release) { ready = true; break; }
+            } catch {}
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+          if (!ready) throw new Error('Production did not reach the expected release');
+          NODE
+          fi
+          node apps/web/scripts/verify-part6-public.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: part6-public-evidence
+          path: |
+            ${{ runner.temp }}/part6-evidence
+            ${{ runner.temp }}/part6-evidence-server.log
+          if-no-files-found: ignore
+          retention-days: 14
