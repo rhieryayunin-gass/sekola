@@ -14,9 +14,9 @@ export function useSchoolContext() {
   const userId = usePermissionStore(s => s.context?.userId);
   return useQuery({ queryKey: ["school-context", userId], enabled: !!userId, queryFn: () => schoolRpc<SchoolContext>("school_context"), staleTime: 30_000 });
 }
-export function useCatalog(resource: string) {
+export function useCatalog(resource: string, enabled = true) {
   const userId = usePermissionStore(s => s.context?.userId);
-  return useQuery({ queryKey: ["school-catalog", userId, resource], enabled: !!userId, queryFn: async () => {
+  return useQuery({ queryKey: ["school-catalog", userId, resource], enabled: !!userId && enabled, queryFn: async () => {
     if (resource.startsWith("finance:")) return schoolRpc<SchoolRow[]>("school_finance_options", { resource: resource.slice(8) });
     const rows: SchoolRow[] = [];
     // Each request is bounded; include large school rosters without silently losing options.

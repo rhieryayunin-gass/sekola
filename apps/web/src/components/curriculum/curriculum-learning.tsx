@@ -7,14 +7,14 @@ import { curriculumCsv, evidenceValue, type CurriculumOption, type CurriculumLea
 import { usePermissionStore } from "../../stores/permission-store";
 import { useTranslations } from "../i18n/i18n-provider";
 import { Button, Input, Select } from "../ui";
-export function CurriculumLearning({ examMode = false }: { examMode?: boolean }) {
+export function CurriculumLearning({ examMode = false,courseId }: { examMode?: boolean;courseId?:string }) {
  const { locale } = useTranslations(); const id = locale === "id-ID"; const userId = usePermissionStore(s => s.context?.userId);
- const [selected, setSelected] = useState("");
+ const [selected, setSelected] = useState(courseId??"");
  const courses = useQuery({ queryKey: ["curriculum-courses", userId, examMode], enabled: !!userId, queryFn: () => schoolRpc<CurriculumOption[]>("school_curriculum_courses", { exam_mode: examMode }) });
  const course = courses.data?.find(c => c.id === selected) ?? courses.data?.[0];
  return <section className="curriculum-workspace"><header className="school-section-title"><div><p className="ose-eyebrow">{examMode ? "CURRICULUM & ASSESSMENT" : "CURRICULUM & LEARNING"}</p><h2>{id ? "Capaian belajar setiap program" : "Learning outcomes for every programme"}</h2><p>{id ? "Lihat tujuan pembelajaran dan perkembangan sesuai kurikulum yang Anda ikuti." : "Explore learning goals and progress in your curriculum programmes."}</p></div><GraduationCap size={32}/></header>
  {courses.isError && <p role="alert" className="school-error">{courses.error.message}</p>}
- <label className="school-field"><span>Course</span><Select value={course?.id ?? ""} onChange={e => setSelected(e.target.value)} disabled={courses.isLoading}><option value="">{id ? "Pilih course" : "Choose course"}</option>{courses.data?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></label>
+ <label className="school-field"><span>Course</span><Select value={course?.id ?? ""} onChange={e => setSelected(e.target.value)} disabled={!!courseId||courses.isLoading}><option value="">{id ? "Pilih course" : "Choose course"}</option>{courses.data?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></label>
  {course ? <CourseCurriculum key={`${course.id}-${examMode}`} course={course} examMode={examMode}/> : <p className="school-empty">{courses.isLoading ? (id ? "Memuat…" : "Loading…") : (id ? "Course akan tampil sesuai kelas atau penugasan mengajar Anda." : "Courses appear for your class or teaching assignments.")}</p>}
  </section>;
 }

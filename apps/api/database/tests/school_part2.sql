@@ -64,11 +64,13 @@ do $$ declare state jsonb; item uuid; result jsonb; begin
  perform public.school_exam_save(current_setting('test.part2.attempt')::uuid,0,jsonb_build_object(item::text,'4'));
  begin perform public.school_exam_save(current_setting('test.part2.attempt')::uuid,0,jsonb_build_object(item::text,'3')); raise exception 'Stale revision overwritten'; exception when serialization_failure then null; end;
  result:=public.school_exam_save(current_setting('test.part2.attempt')::uuid,1,jsonb_build_object(item::text,'4'),true);
- if result->>'score'<>'100.00' then raise exception 'Server grading incorrect: %',result; end if;
+ if result->>'score' is not null or result->>'status'<>'GRADED' then raise exception 'Automatic score must remain private until review and release: %',result;end if;
  result:=public.school_exam_save(current_setting('test.part2.attempt')::uuid,1,jsonb_build_object(item::text,'3'),true);
- if (result->>'score')::numeric<>100 then raise exception 'Submit retry changed grade'; end if;
+ if result->>'score' is not null or result->>'status'<>'GRADED' then raise exception 'Retry must preserve submitted status and privacy';end if;
  begin insert into public.school_exam_attempts(tenant_id,exam_id,session_id,student_id,user_id) values('d1000000-0000-4000-8000-000000000001','d3000000-0000-4000-8000-000000000008',gen_random_uuid(),'d3000000-0000-4000-8000-000000000004',auth.uid()); raise exception 'Direct attempt insert accepted'; exception when insufficient_privilege then null; end;
 end $$;
+select set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000002',true);
+do $$ begin if (public.school_exam_state(current_setting('test.part2.attempt')::uuid)->'attempt'->>'score')::numeric<>100 then raise exception 'Server grading incorrect after idempotent retry';end if;end $$;
 select set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000004',true);
 do $$ declare result jsonb; begin
  if jsonb_array_length(public.school_context()->'children')<>1 then raise exception 'Guardian link missing'; end if;

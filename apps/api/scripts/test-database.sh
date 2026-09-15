@@ -31,4 +31,5 @@ psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/owner_part3.s
 psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/role_connect_part4.sql"
 psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/curriculum_part4.sql"
 psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/workspace_part5.sql"
+psql "$DATABASE_TEST_URL" -X -v ON_ERROR_STOP=1 -f "$db_root/tests/school_part7.sql"
 bash "$repo_root/apps/api/scripts/test-database-concurrency.sh"
