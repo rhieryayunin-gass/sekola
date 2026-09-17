@@ -74,6 +74,15 @@ do $$ declare p jsonb; a uuid; b uuid; sa uuid; sb uuid; suba uuid; subb uuid; c
  perform set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000007',true);
  begin perform public.school_curriculum_save('enrollments',jsonb_build_object('subject_ids',jsonb_build_array(subb)),(p->>'id')::uuid);raise exception 'Cross-program elective accepted';exception when check_violation then null;end;
 
+
+ -- Future programmes can be prepared without granting learners early access.
+ perform public.school_curriculum_save('programs',jsonb_build_object('valid_from',current_date+30),b);
+ perform public.school_curriculum_save('course_links',jsonb_build_object('is_active',false), (public.school_curriculum_list('course_links',0,b)->0->>'id')::uuid);
+ perform public.school_curriculum_save('course_links',jsonb_build_object('is_active',true), (public.school_curriculum_list('course_links',0,b)->0->>'id')::uuid);
+ perform set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000003',true);
+ if exists(select 1 from jsonb_array_elements(public.school_curriculum_learning(course)->'programs')v where v->>'id'=b::text) then raise exception 'Future programme visible to student before effective date';end if;
+ perform set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000007',true);
+ perform public.school_curriculum_save('programs','{"valid_from":null}',b);
  -- Official qualifications preserve source values and isolate drafts/other children.
  p:=public.school_qualifications('save',jsonb_build_object('program_id',b,'student_id','d3000000-0000-4000-8000-000000000004','specification','Fixture specification','pathway','MODULAR','session_name','June 2026','ums',80,'raw_score',63,'qualification_grade','A','official_reference','Synthetic source'));
  perform set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000003',true);
