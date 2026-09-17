@@ -4,6 +4,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "../../lib/supabase/client";
 import { useAuthStore } from "../../stores/auth-store";
+import { useCenter } from "../../stores/center-store";
 import { usePermissionStore } from "../../stores/permission-store";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -27,6 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         void queryClient.cancelQueries();
         queryClient.clear();
         resetPermissions();
+        useCenter.getState().close();
+        useCenter.getState().select(null);
       }
       previousUser.current = identity;
       setSession(session);

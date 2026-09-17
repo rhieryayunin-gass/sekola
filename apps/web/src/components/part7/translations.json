@@ -218,7 +218,6 @@
   "Periods feed the shared Calendar Center and every class.": "Periode terhubung ke Calendar Center dan seluruh kelas.",
   "Place selected learners": "Tempatkan siswa terpilih",
   "Plan the number of questions and percentage weight for each mapped goal. Leave empty for an assessment without a curriculum blueprint.": "Rencanakan jumlah soal dan persentase bobot untuk setiap tujuan. Kosongkan untuk asesmen tanpa kisi-kisi kurikulum.",
-  "Plan with Olla": "Rencanakan bersama Olla",
   "Planned weight": "Bobot direncanakan",
   "Position": "Urutan",
   "Practice quiz": "Kuis latihan",
@@ -396,5 +395,6 @@
   "Your account administrator can update the school identity.": "Administrator akun dapat memperbarui identitas sekolah.",
   "Account creation is handled by your account administrator. Import school profiles below after the accounts are ready.": "Pembuatan akun ditangani administrator akun. Impor profil sekolah di bawah setelah akun siap.",
   "Choose an unambiguous name or use the record ID.": "Pilih nama yang unik atau gunakan ID data.",
-  "Up to 500 rows. Link records by a unique name or ID. Dates: YYYY-MM-DD. Accounts must be prepared by your account administrator.": "Maksimal 500 baris. Hubungkan data memakai nama unik atau ID. Tanggal: YYYY-MM-DD. Akun disiapkan oleh administrator akun."
+  "Up to 500 rows. Link records by a unique name or ID. Dates: YYYY-MM-DD. Accounts must be prepared by your account administrator.": "Maksimal 500 baris. Hubungkan data memakai nama unik atau ID. Tanggal: YYYY-MM-DD. Akun disiapkan oleh administrator akun.",
+  "Published questions are copied into an immutable paper. Questions require teacher approval.": "Soal terbit disalin ke naskah tetap. Soal memerlukan persetujuan guru."
 }

@@ -56,8 +56,7 @@ do $$ declare r jsonb; n integer; program uuid; stage uuid; subj uuid; goal uuid
  r:=public.school_setup_state();if (r->>'blockers')::int>0 then raise exception 'Readiness blockers: %',r->'checks';end if;
  r:=public.school_setup_action('launch');if (r->>'score')::int<>100 or r->'setup'->>'launched_at' is null then raise exception 'Ready school could not launch: %',r;end if;
  r:=public.school_setup_profile('students','b2000000-0000-4000-8000-000000000003','P7-S1');if not (r->>'reused')::boolean then raise exception 'Resumed profile duplicated';end if;
- r:=public.school_setup_suggestion('reserve','b7000000-0000-4000-8000-000000000001');if r->'context' ?| array['school','activity','users'] then raise exception 'AI setup included personal data';end if;
- perform public.school_setup_suggestion('finish','b7000000-0000-4000-8000-000000000001','{"result":{"summary":"Fixture suggestion","steps":[]},"model":"fixture","input_tokens":10,"output_tokens":20,"estimated_cost_usd":0.000026}');
+ begin perform public.school_setup_suggestion('reserve','b7000000-0000-4000-8000-000000000001');raise exception 'Removed setup assistant callable';exception when insufficient_privilege then null;end;
 
 end $$;
 select set_config('request.jwt.claim.sub','b2000000-0000-4000-8000-000000000002',true);

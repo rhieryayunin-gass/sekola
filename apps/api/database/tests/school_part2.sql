@@ -30,9 +30,8 @@ do $$ declare result jsonb; bank uuid; question uuid; begin
  perform public.school_exam_manage('publish','d3000000-0000-4000-8000-000000000008');
  result:=public.school_attendance_open('d3000000-0000-4000-8000-000000000003','QR',15,5);
  perform set_config('test.part2.session',result->>'id',true); perform set_config('test.part2.code',result->>'code',true);
- perform public.school_ai_reserve('d4000000-0000-4000-8000-000000000001',bank,1);
- perform public.school_ai_finish('d4000000-0000-4000-8000-000000000001','[{"question_type":"ESSAY","prompt":"Explain how addition works.","options":[],"answer":"Assess the explanation.","difficulty":"EASY"}]','{"model":"fixture","input_tokens":10,"output_tokens":10}');
- if jsonb_array_length(public.school_question_bank(bank)->'items')<>2 then raise exception 'AI draft not saved'; end if;
+ begin perform public.school_ai_reserve('d4000000-0000-4000-8000-000000000001',bank,1); raise exception 'Removed generation callable'; exception when insufficient_privilege then null; end;
+ if jsonb_array_length(public.school_question_bank(bank)->'items')<>1 then raise exception 'Manual question was not preserved'; end if;
 end $$;
 select set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000001',true);
 do $$ declare report jsonb; project uuid; begin

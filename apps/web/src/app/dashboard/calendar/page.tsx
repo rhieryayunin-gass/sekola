@@ -1,6 +1,3 @@
-import { CalendarManager } from "../../../components/calendar/calendar-manager";
-import { ModulePage } from "../../../components/layout/module-page";
-export const metadata = { title: "Calendar" };
-export default function Page() {
-  return <ModulePage permission="calendar.read" title="calendarCenter" description="calendarDesc"><CalendarManager/></ModulePage>;
-}
+import { Suspense } from "react";
+import { CenterRedirect } from "../../../components/part8/centers";
+export default function Page(){return <Suspense><CenterRedirect center="calendar"/></Suspense>;}

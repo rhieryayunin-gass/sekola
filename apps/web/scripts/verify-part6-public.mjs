@@ -74,7 +74,8 @@ try {
 
     await page.locator("#curricula").scrollIntoViewIfNeeded();
     await loadedImages(page, "#curricula img");
-    assert.deepEqual(await page.locator(".p5-curriculum-wordmark").allTextContents(), ["Kurikulum Merdeka", "Cambridge", "Pearson Edexcel", "IB"]);
+    assert.deepEqual(await page.locator(".p5-curriculum-wordmark").allTextContents(), ["Kurikulum Merdeka", "Cambridge", "Pearson", "IB", "Madrasah"]);
+    assert.equal(await page.locator(".ose-floating-connect").count(), 0);
     await page.screenshot({ path: path.join(output, `curricula-${width}.png`) });
     await page.locator("#faq").scrollIntoViewIfNeeded();
     assert.equal(await page.locator("#faq h3 button").count(), 8);
@@ -123,8 +124,17 @@ try {
         assert.match(await page.getByRole("link", { name: "Bicarakan kemitraan", exact: true }).getAttribute("href"), /^https:\/\/wa\.me\/\d+\?text=/);
         assert.equal(await page.getByRole("link", { name: "Login partner →", exact: true }).getAttribute("href"), "/dashboard/partners");
       }
+      assert.equal(await page.locator(".ose-floating-connect").count(), 0);
       await page.screenshot({ path: path.join(output, `${route.slice(1)}-${width}.png`) });
     }
+    await page.getByRole("link", {name:"Daftar sebagai mitra",exact:true}).click();
+    await page.getByRole("dialog", {name:"Daftar sebagai mitra"}).waitFor();
+    await page.getByLabel("Nama lengkap", {exact:true}).fill("Uji tampilan tanpa pengiriman");
+    assert.ok(await page.getByLabel("NIK", {exact:true}).isVisible());
+    assert.equal(await page.locator("input[type=file]").getAttribute("accept"), "application/pdf,.pdf");
+    await page.screenshot({path:path.join(output,`partner-registration-${width}.png`)});
+    await page.keyboard.press("Escape");
+    await page.getByRole("heading", {name:"Hubungkan sekolah. Bangun dampak bersama.",exact:true}).waitFor();
     assert.deepEqual(errors, [], "No browser runtime errors");
     evidence.push({ width, locales: ["en-US", "id-ID"], themes: ["light", "dark"], modules: 8, faq: 8, routes: ["/", "/assessment", "/login", "/partners"], errors });
     await context.close();

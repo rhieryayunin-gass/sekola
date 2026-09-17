@@ -206,6 +206,7 @@ describe("Part 7 user workflows", () => {
     mount(<SchoolSetup />);
     await screen.findByText("Sekolah Cakrawala");
     await capture("setup");
+    fireEvent.click(screen.getByRole("button", { name: /Learning programmes/ }));
     fireEvent.click(
       screen.getByRole("button", { name: /Curriculum pathways/ }),
     );

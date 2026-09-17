@@ -6,6 +6,9 @@ import "./school.css";
 import "./part5.css";
 import "./part6.css";
 import "./part7.css";
+import "./part8.css";
+import "./dashboard/connect/connect.css";
+import { Centers } from "../components/part8/centers";
 import { FloatingConnect } from "../components/connect/floating-connect";
 import { I18nProvider } from "../components/i18n/i18n-provider";
 import { SiteHeader } from "../components/layout/site-header";
@@ -31,7 +34,7 @@ export default async function RootLayout({
         <AppProviders>
           <I18nProvider locale={locale}>
             <SiteHeader theme={theme}/>
-            {children}<FloatingConnect/>
+            {children}<FloatingConnect/><Centers/>
           </I18nProvider>
         </AppProviders>
       </body>

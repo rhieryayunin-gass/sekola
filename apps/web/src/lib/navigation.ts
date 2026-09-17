@@ -25,5 +25,5 @@ export function roleNavigation(context: PermissionContext | null, flags: Record<
  const role = primaryRole(context);
  const keys = role === "STAFF" && context?.roles.some(r=>r.code==="TEACHER")
   ? ["dashboard","academic","attendance","learning","exams","gallery","team","finance","connect"] : menus[role] ?? [];
- return keys.map(key=>items[key]).filter(item=>!item.module || flags[item.module] !== false);
+ return keys.filter(key=>key!=="connect").map(key=>items[key]).filter(item=>!item.module || flags[item.module] !== false);
 }

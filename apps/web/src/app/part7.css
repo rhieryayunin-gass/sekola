@@ -840,17 +840,6 @@
   grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   gap: 16px;
 }
-.p7-olla {
-  border-top: 1px solid var(--border);
-  padding-top: 15px;
-}
-.p7-olla details {
-  margin-block: 12px;
-}
-.p7-olla small {
-  display: block;
-  margin-top: 10px;
-}
 @media (max-width: 700px) {
   .p7-blueprint > div {
     grid-template-columns: 1fr 1fr;
