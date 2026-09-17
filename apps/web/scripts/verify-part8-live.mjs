@@ -31,7 +31,7 @@ export async function verifyPart8({browser,staffPage,owner,staff,parent,peer,ids
  for(const [name,selector] of [['Calendar','.school-calendar'],['Notifications','.school-notice-list'],['O-Connect','.oc-workspace']]) {
   await staffPage.getByRole('button',{name,exact:true}).click();
   const dialog=staffPage.locator('dialog.p8-dialog');await dialog.waitFor();
-  if(name==='O-Connect')await dialog.locator(selector).waitFor();
+  if(name==='O-Connect'){await dialog.locator(selector).waitFor();await dialog.locator('.oc-welcome').getByRole('button',{name:'Start a conversation',exact:true}).click();await staffPage.getByRole('dialog',{name:'Start a conversation',exact:true}).waitFor();await staffPage.keyboard.press('Escape');assert.equal(await dialog.isVisible(),true,'Closing a nested conversation dialog must preserve the workspace');}
   if(name==='Calendar')await dialog.getByLabel(/Search events/).waitFor();
   if(name==='Notifications')await dialog.locator('input').first().waitFor();
   assert.equal(await staffPage.locator('nav a[href="/dashboard/connect"]').count(),0);

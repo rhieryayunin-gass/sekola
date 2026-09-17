@@ -34,6 +34,7 @@ export function LargeDialog({
       className={`p8-dialog p8-dialog-${kind}`}
       aria-labelledby={label}
       onCancel={(e) => {
+        if(e.target!==e.currentTarget)return;
         e.preventDefault();
         close();
       }}

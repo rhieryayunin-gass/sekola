@@ -12,11 +12,13 @@
   border: 1px solid transparent !important;
 }
 .ose-preferences button,
-.ose-preferences .school-icon-link {
+.ose-preferences .school-icon-link,
+.ose-preferences .ose-language-pill {
   border-color: transparent !important;
 }
 .ose-preferences button:hover,
-.ose-preferences .school-icon-link:hover {
+.ose-preferences .school-icon-link:hover,
+.ose-preferences .ose-language-pill:hover {
   background: var(--secondary-soft) !important;
   color: var(--secondary-strong) !important;
 }
