@@ -1,4 +1,5 @@
 "use client";
+import { PartnerApplications } from "../part8/partner-applications";
 import { useState } from "react";
 import { ExternalLink, Plus } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -32,7 +33,7 @@ function PartnerDetails({ row, close }: { row: OwnerRow; close: () => void }) {
 }
 export function OwnerPartners() {
   const { t } = useTranslations(); const [query, setQuery] = useState(""); const [status, setStatus] = useState(""); const [page, setPage] = useState(1); const [selected, setSelected] = useState<OwnerRow>(); const [adding, setAdding] = useState(false); const q = useOwnerList("partners", { query, status }, page); const save = useOwnerSave();
-  return <OwnerShell><OwnerHeading title="ownerPartner" description="ownerPartnerDesc"><Button onClick={() => setAdding(true)}><Plus size={17}/>{t("ownerAddPartner")}</Button></OwnerHeading><OwnerSearch query={query} setQuery={v => { setQuery(v); setPage(1); }}><StatusFilter status={status} change={v => { setStatus(v); setPage(1); }}/></OwnerSearch>{save.isError && <p role="alert" className="school-error">{save.error.message}</p>}
+  return <OwnerShell><PartnerApplications/><OwnerHeading title="ownerPartner" description="ownerPartnerDesc"><Button onClick={() => setAdding(true)}><Plus size={17}/>{t("ownerAddPartner")}</Button></OwnerHeading><OwnerSearch query={query} setQuery={v => { setQuery(v); setPage(1); }}><StatusFilter status={status} change={v => { setStatus(v); setPage(1); }}/></OwnerSearch>{save.isError && <p role="alert" className="school-error">{save.error.message}</p>}
     <OwnerTable headers={[t("ownerName"), t("ownerDomicile"), t("ownerLeads"), t("ownerClosings"), t("ownerSuccessRate"), t("ownerStatus"), t("ownerActions")]} list={q.data} loading={q.isPending} error={q.isError} retry={() => void q.refetch()} page={page} setPage={setPage}>{q.data?.items.map(row => <tr key={row.id}><td><button className="owner-name" onClick={() => setSelected(row)}>{value(row, "name")}</button><small>{value(row, "referral_code")}</small></td><td>{value(row, "domicile") || "—"}</td><td>{value(row, "leads")}</td><td>{value(row, "closings")}</td><td>{value(row, "success_rate")}%</td><td><OwnerStatus status={row.status}/></td><td><Button size="sm" variant="ghost" disabled={save.isPending} onClick={() => save.mutate({ kind: "partner", id: row.id, payload: { is_active: !row.is_active } })}>{t(row.is_active ? "ownerDeactivate" : "ownerActivate")}</Button></td></tr>)}</OwnerTable>
     {selected && <PartnerDetails row={selected} close={() => setSelected(undefined)}/>} {adding && <PartnerEditor close={() => setAdding(false)}/>}
   </OwnerShell>;

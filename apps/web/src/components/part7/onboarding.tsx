@@ -1,12 +1,10 @@
 "use client";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useTranslations } from "../i18n/i18n-provider";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
-  Check,
   ChevronRight,
   GraduationCap,
   Layers3,
@@ -90,6 +88,7 @@ const steps = [
   ["classes", "Class architecture", "Struktur kelas"],
   ["people", "People & migration", "Komunitas & migrasi"],
   ["placement", "Allocation board", "Penempatan"],
+  ["assessment", "Learning & assessment", "Pembelajaran & penilaian"],
   ["readiness", "Readiness & launch", "Kesiapan & peluncuran"],
 ] as const;
 const dependencies: Record<string, string[]> = {
@@ -199,38 +198,18 @@ function SetupContent({ academic }: { academic: boolean }) {
           </div>
         </div>
       </header>
-      <nav className="p7-journey" aria-label={tr("School setup journey")}>
-        {steps
-          .filter(
-            ([key]) =>
-              data.can_academic ||
-              [
-                "home",
-                "identity",
-                "facilities",
-                "people",
-                "readiness",
-              ].includes(key),
-          )
-          .map(([key, en, id], i) => (
-            <button
-              key={key}
-              aria-current={step === key ? "step" : undefined}
-              onClick={() => {
-                setStep(key);
-                setPreview("");
-              }}
-            >
-              <span>{i + 1}</span>
-              {tr(en, id)}
-              {blocked(key).length > 0 ? (
-                <LockKeyhole size={14} />
-              ) : complete(key) ? (
-                <Check size={14} />
-              ) : null}
-            </button>
-          ))}
+      <nav className="p7-journey p8-journey" aria-label={tr("School setup journey")}>
+        {[
+          {keys:["home","identity","facilities","people"],en:"Profile & operations",id:"Profil & operasional"},
+          {keys:["year","curriculum"],en:"Learning programmes",id:"Program pembelajaran"},
+          {keys:["classes","placement"],en:"Classes & participants",id:"Kelas & peserta"},
+          {keys:["assessment"],en:"Learning & assessment",id:"Pembelajaran & penilaian"},
+          {keys:["readiness"],en:"Review & activate",id:"Tinjau & aktifkan"},
+        ].filter((g,i)=>data.can_academic||i===0||i===4).map((g,i)=><button key={g.en} aria-current={g.keys.includes(step)?"step":undefined} onClick={()=>{setStep(g.keys[0]);setPreview("");}}><span>{i+1}</span>{tr(g.en,g.id)}</button>)}
       </nav>
+      <div className="p8-substeps">{steps.filter(([key])=>{
+       const groups=[["home","identity","facilities","people"],["year","curriculum"],["classes","placement"],["assessment"],["readiness"]];return groups.find(g=>g.includes(step))?.includes(key);
+      }).map(([key,en,id])=><Button key={key} variant={step===key?"secondary":"ghost"} onClick={()=>setStep(key)}>{tr(en,id)}</Button>)}</div>
       <ErrorNotice error={mutate.error} />
       <div className="p7-layout">
         <main className="p7-canvas">
@@ -458,6 +437,7 @@ function SetupContent({ academic }: { academic: boolean }) {
                 </>
               )}
               {step === "curriculum" && <CurriculumManager />}
+              {step === "assessment" && <CurriculumManager assessment />}
               {step === "classes" && (
                 <SetupRecords
                   spec={{
@@ -634,7 +614,6 @@ function SetupContent({ academic }: { academic: boolean }) {
           <Button variant="ghost" onClick={() => setStep("readiness")}>
             {data.blockers} {tr("checks to resolve")}
           </Button>
-          <OllaSetup canEdit={data.can_edit} onStep={setStep} />
           <div className="p7-divider" />
           <h4>{tr("Connected sources")}</h4>
           <p>
@@ -1292,102 +1271,6 @@ function MigrationCenter() {
             </p>
           ))}
         </>
-      )}
-    </div>
-  );
-}
-
-function OllaSetup({
-  canEdit,
-  onStep,
-}: {
-  canEdit: boolean;
-  onStep: (s: string) => void;
-}) {
-  const tr = useP7(),
-    actor = useActor(),
-    params = useSearchParams(),
-    { locale } = useTranslations();
-  const [id, setId] = useState(params.get("suggestion") ?? "");
-  type Suggestion = {
-    id: string;
-    status: string;
-    result: {
-      summary: string;
-      steps: {
-        section: string;
-        title: string;
-        reason: string;
-        action: string;
-      }[];
-    } | null;
-  };
-  const q = useQuery({
-    queryKey: ["p7", "setup-suggestion", actor, id],
-    enabled: !!id,
-    queryFn: () =>
-      schoolRpc<Suggestion>("school_setup_suggestion", {
-        action: "read",
-        request_id: id,
-      }),
-  });
-  const generate = useMutation({
-    mutationFn: async () => {
-      const request_id = crypto.randomUUID();
-      const r = await fetch("/api/school/setup/suggest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ request_id, locale }),
-      });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
-      return data as { id: string };
-    },
-    onSuccess: (r) => setId(r.id),
-  });
-  return (
-    <div className="p7-olla">
-      <h4>{tr("Plan with Olla")}</h4>
-      <p>
-        {tr(
-          "Review suggested next steps, then apply them in the school canvas.",
-        )}
-      </p>
-      {canEdit && (
-        <Button
-          variant="ghost"
-          disabled={generate.isPending}
-          onClick={() => generate.mutate()}
-        >
-          {generate.isPending
-            ? tr("Preparing suggestions…")
-            : tr("Suggest a setup plan")}
-        </Button>
-      )}
-      <ErrorNotice error={generate.error ?? q.error} />
-      {q.data?.result && (
-        <>
-          <p>{q.data.result.summary}</p>
-          {q.data.result.steps.map((s, i) => (
-            <details key={i}>
-              <summary>{s.title}</summary>
-              <p>{s.reason}</p>
-              <p>{s.action}</p>
-              <Button variant="ghost" onClick={() => onStep(s.section)}>
-                {tr("Review this step")}
-              </Button>
-            </details>
-          ))}
-          <Link href={`/dashboard/core?suggestion=${id}`}>
-            {tr("Saved suggestion")} ↗
-          </Link>
-          <small>{tr("AI proposal · verify before applying")}</small>
-        </>
-      )}
-      {q.data?.status === "FAILED" && (
-        <p>
-          {tr("Assistance is unavailable. You can continue the guided steps.")}
-        </p>
       )}
     </div>
   );

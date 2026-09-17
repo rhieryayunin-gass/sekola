@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 import { useToast } from "../ui/toast";
 import { useTranslations } from "../i18n/i18n-provider";
 
-export function LogoutButton({ danger = false }: { danger?: boolean }) {
+export function LogoutButton({ danger = true }: { danger?: boolean }) {
   const { t } = useTranslations();
   const router = useRouter();
   const signOut = useAuthStore((state) => state.signOut);

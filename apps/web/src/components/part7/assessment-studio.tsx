@@ -60,7 +60,7 @@ type Design = {
     id: string;
     question_id: string;
     position: number;
-    content: QuestionContent & { outcome_id?: string; weight?: number };
+    content: QuestionContent & { outcome_id?: string; outcome_ids?: string[]; weight?: number };
   }[];
 };
 type AssessmentCourse = {
@@ -468,13 +468,15 @@ function Builder({
     mutationFn: ({
       item_id,
       outcome_id,
+      outcome_ids,
     }: {
       item_id: string;
       outcome_id: string;
+      outcome_ids?: string[];
     }) =>
       schoolRpc("school_assessment", {
         action: "map_question",
-        payload: { exam_id: eid, item_id, outcome_id },
+        payload: { exam_id: eid, item_id, outcome_id, outcome_ids },
       }),
     onSuccess: refresh,
   });
@@ -756,7 +758,7 @@ function Builder({
                     value={i.content.outcome_id ?? ""}
                     disabled={!editable || map.isPending}
                     onChange={(e) =>
-                      map.mutate({ item_id: i.id, outcome_id: e.target.value })
+                      map.mutate({ item_id: i.id, outcome_id: e.target.value, outcome_ids:i.content.outcome_ids??[] })
                     }
                   >
                     <option value="">{tr("Map to a blueprint goal")}</option>
@@ -770,12 +772,13 @@ function Builder({
                     ))}
                   </Select>
                 )}
+                {i.content.outcome_id&&<fieldset className="p8-electives"><legend>{tr("Additional learning goals (score counted once)","Tujuan tambahan (skor dihitung sekali)")}</legend>{ctx.data?.outcomes.filter(o=>o.id!==i.content.outcome_id).map(o=><label key={o.id}><input type="checkbox" disabled={!editable||map.isPending} checked={(i.content.outcome_ids??[]).includes(o.id)} onChange={e=>map.mutate({item_id:i.id,outcome_id:i.content.outcome_id!,outcome_ids:e.target.checked?[...(i.content.outcome_ids??[]),o.id]:(i.content.outcome_ids??[]).filter(v=>v!==o.id)})}/>{o.code} · {o.name}</label>)}</fieldset>}
               </article>
             ))}
           </div>
           <p>
             {tr(
-              "Published questions are copied into an immutable paper. AI drafts require teacher approval.",
+              "Published questions are copied into an immutable paper. Questions require teacher approval.",
             )}
           </p>
         </>
