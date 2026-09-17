@@ -48,7 +48,7 @@ Implements the supplied **Osekola Enhancement Part 8.pdf** and the saved
 
 ## Data and access
 
-Apply `20260917000236_enhancement_part8.sql` to the existing Supabase project before
+Apply `20260917003412_enhancement_part8.sql` to the existing Supabase project before
 releasing the web application. Existing API endpoints are reused; no API binary or
 VPS service replacement is required. No existing learning, question, payment or
 published result records are deleted by the migration.

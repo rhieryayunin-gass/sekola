@@ -41,6 +41,7 @@ export function Qualifications({
       await cache.invalidateQueries({ queryKey: ["qualifications"] });
     },
   });
+  if(studentId&&q.isSuccess&&!q.data.length&&!page)return null;
   return (
     <section className="p8-section">
       <header>

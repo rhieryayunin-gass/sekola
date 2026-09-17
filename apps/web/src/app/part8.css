@@ -269,3 +269,5 @@
 }
 
 .p8-program-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px;margin:20px 0}.p8-program-grid h3{font-weight:600;font-size:1.1rem;margin-top:12px}
+
+.p8-form .school-consent{display:flex;align-items:flex-start;gap:10px}.p8-form .school-consent input{flex-shrink:0;margin-top:4px}.p8-form .school-consent{font-size:.85rem;line-height:1.5}
