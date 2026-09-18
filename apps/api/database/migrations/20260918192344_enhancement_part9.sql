@@ -126,7 +126,7 @@ create trigger p9_leave_tenant before insert or update on public.leave_requests 
 alter table public.oconnect_messages add column leave_request_id uuid references public.leave_requests(id);
 
 create function school_private.p9_approver(tenant uuid,role_code text,requester uuid) returns uuid language plpgsql stable security definer set search_path='' as $$declare chosen uuid;begin
- select u.id into chosen from public.users u join public.tenants t on t.id=u.tenant_id where u.is_active and u.deleted_at is null and t.is_active and u.id<>requester and (role_code='OWNER' or u.tenant_id=tenant) and public.app_role_in(u.id,array[role_code]) order by u.created_at,u.id limit 1;
+ select u.id into chosen from public.users u join public.tenants t on t.id=u.tenant_id where u.is_active and u.deleted_at is null and t.is_active and u.id<>requester and (role_code='OWNER' or u.tenant_id=tenant) and public.app_role_in(u.id,array[role_code]) order by (u.tenant_id=tenant) desc,u.created_at,u.id limit 1;
  if chosen is null then raise exception 'No active approver is assigned. Ask the school administrator to appoint one.' using errcode='22023';end if;return chosen;
 end $$;
 
@@ -255,9 +255,14 @@ declare tenant uuid:=school_private.tenant();actor uuid:=auth.uid();change_id uu
  if target_id=actor then raise exception 'Use your profile to edit your own account' using errcode='42501';end if;
  select to_jsonb(u) into before_row from public.users u where u.id=target_id and u.tenant_id=tenant for update;
  if before_row is null or not school_private.p9_has_role(target_id,array[role_code]) or school_private.p9_has_role(target_id,array['OWNER']) then raise exception 'User not in selected school and role' using errcode='42501';end if;
+ if role_code<>'PRINCIPAL' and school_private.p9_has_role(target_id,array['PRINCIPAL']) then raise exception 'Manage this account as Principal for Owner approval' using errcode='42501';end if;
  if role_code in('STUDENT','PARENT') and school_private.p9_has_role(target_id,array['PRINCIPAL','STAFF','TEACHER']) then raise exception 'Manage this employee through their employee role' using errcode='42501';end if;
  if exists(select 1 from public.school_user_changes c join public.approval_requests a on a.id=c.approval_request_id where c.target_id=people_request.target_id and c.execution_status<>'DONE' and a.status in('PENDING','APPROVED')) then raise exception 'A change is already awaiting a decision or execution';end if;
  elsif target_id is not null then raise exception 'New accounts cannot specify an existing identity';end if;
+ if operation='CREATE' then
+ perform pg_advisory_xact_lock(hashtextextended(lower(trim(payload->>'email')),9003));
+ if exists(select 1 from public.school_user_changes c join public.approval_requests a on a.id=c.approval_request_id where c.tenant_id=tenant and c.operation='CREATE' and lower(trim(c.payload->>'email'))=lower(trim(payload->>'email')) and a.status in('PENDING','APPROVED') and c.execution_status<>'DONE') then raise exception 'An account change for this email is already pending';end if;
+ end if;
  if operation in('CREATE','UPDATE') then
  if length(trim(coalesce(payload->>'full_name',''))) not between 2 and 160 or coalesce(payload->>'email','') !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' or length(payload->>'email')>254 or length(coalesce(payload->>'phone',''))>40 then raise exception 'Check name, email and phone';end if;
  if role_code='STUDENT' and length(trim(coalesce(payload->>'student_number',''))) not between 1 and 60 then raise exception 'Student number required';end if;
@@ -288,13 +293,14 @@ declare c public.school_user_changes;a public.approval_requests;u public.users;r
  select * into c from public.school_user_changes where id=change_id for update;
  select * into a from public.approval_requests where id=c.approval_request_id;
  if c.id is null or a.status<>'APPROVED' or not (c.requester_id=actor_id or exists(select 1 from public.approval_steps s where s.approval_request_id=a.id and s.approver_user_id=actor_id and s.status='APPROVED')) then raise exception 'Approved change and authorized actor required' using errcode='42501';end if;
+ if not ((c.requester_id=actor_id and public.app_role_in(actor_id,array['STAFF']) and public.app_tenant(actor_id)=c.tenant_id) or (exists(select 1 from public.approval_steps where approval_request_id=a.id and approver_user_id=actor_id and status='APPROVED') and public.app_role_in(actor_id,case when c.role_code='PRINCIPAL' then array['OWNER'] else array['PRINCIPAL'] end))) then raise exception 'Current authorized role required' using errcode='42501';end if;
  if c.execution_status='DONE' then return jsonb_build_object('done',true,'id',c.target_id);end if;
  if action='CLAIM' then
- if c.execution_status='DB_APPLIED' then return to_jsonb(c);end if;
- if c.execution_status='PROCESSING' and c.execution_started_at>now()-interval '2 minutes' then raise exception 'Change is being applied. Retry shortly.' using errcode='40001';end if;
+ if c.execution_status in('PROCESSING','DB_APPLIED') and c.execution_started_at>now()-interval '2 minutes' then raise exception 'Change is being applied. Retry shortly.' using errcode='40001';end if;
+ if c.execution_status='DB_APPLIED' then update public.school_user_changes set execution_token=gen_random_uuid(),execution_started_at=now() where id=c.id returning * into c;return to_jsonb(c);end if;
  if c.target_id is not null then
  select * into u from public.users where id=c.target_id and tenant_id=c.tenant_id;
- if u.id is null or u.updated_at is distinct from (c.snapshot->>'updated_at')::timestamptz or public.app_role_in(u.id,array['OWNER']) then raise exception 'User changed since submission; submit a new request' using errcode='40001';end if;
+ if u.id is null or u.updated_at is distinct from (c.snapshot->>'updated_at')::timestamptz or school_private.p9_has_role(u.id,array['OWNER']) or not school_private.p9_has_role(u.id,array[c.role_code]) or (c.role_code<>'PRINCIPAL' and school_private.p9_has_role(u.id,array['PRINCIPAL'])) then raise exception 'User changed since submission; submit a new request' using errcode='40001';end if;
  end if;
  update public.school_user_changes set execution_status='PROCESSING',execution_token=gen_random_uuid(),execution_started_at=now() where id=c.id returning * into c;
  return to_jsonb(c)||jsonb_build_object('provisioned_id',(select id from auth.users where raw_app_meta_data->>'school_change_id'=c.id::text limit 1));
@@ -306,7 +312,7 @@ declare c public.school_user_changes;a public.approval_requests;u public.users;r
  if action<>'COMPLETE' then raise exception 'Unknown execution action';end if;
  person:=coalesce(c.target_id,auth_user_id);
  select * into u from public.users where id=person and tenant_id=c.tenant_id for update;
- if u.id is null or (c.target_id is not null and u.updated_at is distinct from (c.snapshot->>'updated_at')::timestamptz) then raise exception 'User changed since submission' using errcode='40001';end if;
+ if u.id is null or (c.target_id is not null and (u.updated_at is distinct from (c.snapshot->>'updated_at')::timestamptz or school_private.p9_has_role(u.id,array['OWNER']) or not school_private.p9_has_role(u.id,array[c.role_code]) or (c.role_code<>'PRINCIPAL' and school_private.p9_has_role(u.id,array['PRINCIPAL'])))) then raise exception 'User changed since submission' using errcode='40001';end if;
  if c.operation='CREATE' then
  if not exists(select 1 from auth.users where id=person and raw_app_meta_data->>'school_change_id'=c.id::text) then raise exception 'Provisioned identity does not match this request' using errcode='42501';end if;
  update public.users set user_level_id=null where id=person;
@@ -413,7 +419,7 @@ declare tenant uuid:=school_private.tenant();today date;tz text;month_start date
  if not school_private.role(array['PRINCIPAL']) then raise exception 'Principal access required' using errcode='42501';end if;
  select coalesce(timezone,'Asia/Jakarta') into tz from public.tenants where id=tenant;
  today:=(now() at time zone tz)::date;month_start:=date_trunc('month',today)::date;previous_month:=(month_start-interval '1 month')::date;
- with dates as(select d::date as month,least(today,(d+interval '1 month-1 day')::date) as cutoff from generate_series(month_start-interval '5 months',month_start,interval '1 month')d)
+ with dates as(select d::date as month,least(today,(d+interval '1 month'-interval '1 day')::date) as cutoff from generate_series(month_start-interval '5 months',month_start,interval '1 month')d)
  select jsonb_build_object('today',today,'history',coalesce((select jsonb_agg(jsonb_build_object('month',month,
  'students',(select count(*) from public.students s join public.users u on u.id=s.user_id where s.tenant_id=tenant and coalesce(s.admission_date,(s.created_at at time zone tz)::date)<=cutoff and (u.deleted_at is null or (u.deleted_at at time zone tz)::date>cutoff)),
  'employees',(select count(*) from public.users u where u.tenant_id=tenant and (u.created_at at time zone tz)::date<=cutoff and (u.deleted_at is null or (u.deleted_at at time zone tz)::date>cutoff) and school_private.p9_has_role(u.id,array['STAFF','TEACHER'])),

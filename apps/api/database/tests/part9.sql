@@ -92,7 +92,8 @@ do $$declare r jsonb;begin
  perform set_config('test.p9.lease',r->>'execution_token',true);
  begin perform public.school_people_execution('f9200000-0000-4000-8000-000000000002',current_setting('test.p9.change')::uuid,'CLAIM');raise exception 'Double lease accepted';exception when serialization_failure then null;end;
  perform public.school_people_execution('f9200000-0000-4000-8000-000000000002',current_setting('test.p9.change')::uuid,'COMPLETE',(r->>'execution_token')::uuid,'f9200000-0000-4000-8000-000000000011');
- r:=public.school_people_execution('f9200000-0000-4000-8000-000000000002',current_setting('test.p9.change')::uuid,'CLAIM');perform pg_temp.p9_assert(r->>'execution_status'='DB_APPLIED','auth synchronization resumable');
+ update public.school_user_changes set execution_started_at=now()-interval '3 minutes' where id=current_setting('test.p9.change')::uuid;
+ r:=public.school_people_execution('f9200000-0000-4000-8000-000000000002',current_setting('test.p9.change')::uuid,'CLAIM');perform set_config('test.p9.lease',r->>'execution_token',true);perform pg_temp.p9_assert(r->>'execution_status'='DB_APPLIED','auth synchronization resumable');
  perform public.school_people_execution('f9200000-0000-4000-8000-000000000002',current_setting('test.p9.change')::uuid,'AUTH_COMPLETE',current_setting('test.p9.lease')::uuid);
  perform pg_temp.p9_assert(public.app_role_in('f9200000-0000-4000-8000-000000000011',array['TEACHER']),'approved role provisioned');
 end$$;
