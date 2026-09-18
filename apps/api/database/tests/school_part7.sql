@@ -38,7 +38,7 @@ do $$ declare r jsonb; n integer; program uuid; stage uuid; subj uuid; goal uuid
  if not (r->>'committed')::boolean then raise exception 'Valid import failed: %',r;end if;
  begin perform public.school_setup_action('identity','{}');raise exception 'Staff gained tenant identity permission';exception when insufficient_privilege then null;end;
  perform set_config('request.jwt.claim.sub','b2000000-0000-4000-8000-000000000001',true);
- r:=public.school_setup_action('identity','{"name":"Part7 ready school","address":"School test address","contact_email":"office@school.invalid","timezone":"Asia/Jakarta","locale":"id-ID"}');
+ r:=public.school_owner_save('tenant','{"name":"Part7 ready school","address":"School test address","contact_email":"office@school.invalid","timezone":"Asia/Jakarta","locale":"id-ID"}','b1000000-0000-4000-8000-000000000001');
  perform set_config('request.jwt.claim.sub','b2000000-0000-4000-8000-000000000008',true);
  r:=public.school_setup_records('school_assets','[{"name":"Learning studio","category":"CLASSROOM","capacity":30}]',false);
  if not (r->>'valid')::boolean then raise exception 'Facility setup failed: %',r;end if;

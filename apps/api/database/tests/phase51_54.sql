@@ -46,14 +46,18 @@ begin
     raise exception 'Reserved resource type accepted';
   exception when check_violation then null; end;
   perform pg_temp.assert_true(jsonb_array_length(public.list_my_approvals(b))=0,'Other tenant cannot read approvals');
-  result:=public.submit_operational_request(a,'LEAVE_REQUEST','{"leave_type":"SICK","starts_on":"2027-01-04","ends_on":"2027-01-05","reason":"Private reason"}',array[approver]);
+  -- Part9 routes employee leave to Principal and requires a substitute for Teachers.
+  insert into public.user_roles(user_id,role_id) select approver,id from public.roles where code in('PRINCIPAL','TEACHER') on conflict do nothing;
+  insert into public.teachers(id,tenant_id,user_id) values('f9510000-0000-4000-8000-000000000001',tenant,approver);
+  result:=public.submit_operational_request(a,'LEAVE_REQUEST','{"leave_type":"SICK","starts_on":"2027-01-04","ends_on":"2027-01-05","reason":"Private reason","substitute_teacher_id":"f9510000-0000-4000-8000-000000000001","substitute_kind":"SUBJECT"}',array[approver]);
   request:=(result->>'approval_request_id')::uuid; target:=(result->>'id')::uuid;
   perform public.decide_operational_request(approver,request,'REJECTED');
   perform pg_temp.assert_true((select calendar_event_id is null and status='REJECTED' from public.leave_requests where id=target),'Rejected leave has no calendar event');
   perform pg_temp.assert_true(not exists(select 1 from public.notifications where body like '%Private reason%'),'Medical reason not in notification previews');
-  result:=public.submit_operational_request(a,'LEAVE_REQUEST','{"leave_type":"ANNUAL","starts_on":"2027-01-07","ends_on":"2027-01-08","reason":"Holiday"}',array[approver]);
+  result:=public.submit_operational_request(a,'LEAVE_REQUEST','{"leave_type":"ANNUAL","starts_on":"2027-01-07","ends_on":"2027-01-08","reason":"Holiday","substitute_teacher_id":"f9510000-0000-4000-8000-000000000001","substitute_kind":"SUBJECT"}',array[approver]);
   perform public.decide_operational_request(a,(result->>'approval_request_id')::uuid,'CANCELLED');
   perform pg_temp.assert_true((select status='CANCELLED' from public.leave_requests where id=(result->>'id')::uuid),'Cancellation updates linked request');
+  delete from public.user_roles where user_id=approver and role_id in(select id from public.roles where code in('PRINCIPAL','TEACHER'));
   begin
     insert into public.room_bookings(tenant_id,room_id,requester_user_id,title,starts_at,ends_at) values(tenant,'30000000-0000-4000-8000-000000000002',a,'Wrong tenant','2027-03-01','2027-03-02');
     raise exception 'Cross tenant foreign key accepted';

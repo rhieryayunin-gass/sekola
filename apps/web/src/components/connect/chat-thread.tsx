@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import {LeaveMessage} from "../part9/approvals";
 import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, CheckCheck, Download, Link2, MoreVertical, Reply, Search, Trash2, Users, X } from "lucide-react";
@@ -61,6 +62,7 @@ export function ChatThread({ conversation, context, fontSize, onBack }: { conver
             {!own && <strong className="oc-sender">{message.sender_name}</strong>}
             {message.deleted_at ? <p className="oc-deleted">{id ? "Pesan ini dihapus." : "This message was deleted."}</p> : <>
               {message.reply_to && <blockquote className="oc-reply-preview">{message.reply_body || (id ? "Lampiran atau pesan yang dihapus" : "Attachment or deleted message")}</blockquote>}
+              {message.leave_request_id && <LeaveMessage messageId={message.id}/>}
               {message.body && <p className="oc-message-body">{message.body}</p>}
               {message.attachment_path && message.attachment_type?.startsWith("image/") && <Image className="oc-message-image" unoptimized src={`/api/connect/attachment?message=${message.id}&view=1`} alt={message.attachment_name ?? (id ? "Gambar terlampir" : "Attached image")} width={360} height={240}/>}
               {message.attachment_path && <a className="oc-file" href={`/api/connect/attachment?message=${message.id}`} target="_blank" rel="noreferrer"><Download size={22}/><span>{message.attachment_name}<small>{Math.ceil((message.attachment_size ?? 0) / 1024)} KB · {id ? "Unduh lampiran" : "Download attachment"}</small></span></a>}

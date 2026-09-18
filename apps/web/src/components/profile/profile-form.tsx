@@ -6,6 +6,7 @@ import { createClient } from "../../lib/supabase/client";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { useToast } from "../ui/toast";
+import {PasswordChange} from "../part9/password-change";
 import { FixedMedia } from "../media/media-uploader";
 
 export interface Profile { full_name: string | null; avatar_url: string | null; phone: string | null; emergency_contact_name: string | null; emergency_contact_phone: string | null; }
@@ -23,5 +24,5 @@ export function ProfileForm({ initial }: { initial: Profile }) {const copy=useUi
     <Input label={copy("Emergency contact name")} value={form.emergency_contact_name ?? ""} onChange={(e)=>set("emergency_contact_name",e.target.value)} />
     <Input label={copy("Emergency contact phone")} value={form.emergency_contact_phone ?? ""} onChange={(e)=>set("emergency_contact_phone",e.target.value)} />
     <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save account settings"}</Button>
-  </form></>;
+  </form><PasswordChange/></>;
 }

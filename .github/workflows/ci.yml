@@ -106,7 +106,7 @@ jobs:
         with:
           deno-version: v2.x
       - name: Check payment Edge Function
-        run: deno check apps/api/edge/payment-gateway/index.ts
+        run: deno check apps/api/edge/payment-gateway/index.ts apps/api/edge/school-people/index.ts
 
       - name: Run quality gate
         run: pnpm check

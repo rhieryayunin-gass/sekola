@@ -1,4 +1,4 @@
-name: Part 8 production verification
+name: Part 9 production verification
 on:
   push:
     branches: [main]
@@ -6,6 +6,7 @@ on:
       - .github/workflows/verify-part7-live.yml
       - apps/web/scripts/verify-part7-live.mjs
       - apps/web/scripts/verify-part8-live.mjs
+      - apps/web/scripts/verify-part9-live.mjs
   workflow_dispatch:
 permissions:
   contents: read
@@ -45,7 +46,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: part8-production-verification
+          name: part9-production-verification
           path: ${{ runner.temp }}/part7-evidence
           if-no-files-found: ignore
           retention-days: 14

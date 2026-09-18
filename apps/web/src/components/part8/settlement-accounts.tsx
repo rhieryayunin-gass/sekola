@@ -22,14 +22,10 @@ export function SettlementAccounts({ tenantId }: { tenantId: string }) {
           <h3>
             {id ? "Rekening penerimaan sekolah" : "School settlement accounts"}
           </h3>
-          <p>
-            {id
-              ? "Dikelola Owner. Maksimal satu rekening aktif."
-              : "Managed by Owner. Only one account can be active."}
-          </p>
+
         </div>
         <Button type="button" onClick={() => setEdit(null)}>
-          {id ? "Tambah rekening" : "Add account"}
+          {id ? "+ Tambah" : "+ Add"}
         </Button>
       </header>
       {q.isError && <p role="alert">{q.error.message}</p>}
@@ -116,7 +112,7 @@ export function SettlementAccounts({ tenantId }: { tenantId: string }) {
               : "Activate (deactivates the previous active account)"}
           </label>
           <div className="owner-actions p8-full">
-            <Button type="submit" disabled={save.isPending}>
+            <Button type="submit" variant="secondary" disabled={save.isPending}>
               {id ? "Simpan" : "Save"}
             </Button>
             <Button

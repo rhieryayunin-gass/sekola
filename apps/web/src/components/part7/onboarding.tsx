@@ -99,7 +99,7 @@ const dependencies: Record<string, string[]> = {
 export function SchoolSetup({ academic = false }: { academic?: boolean }) {
   const roles = usePermissionStore((s) => s.context?.roles ?? []);
   const available = roles.some((r) =>
-    ["OWNER", "STAFF", "TEACHER", "PRINCIPAL"].includes(r.code),
+    ["STAFF"].includes(r.code),
   );
   return available ? (
     <Suspense>

@@ -15,7 +15,7 @@ const items: Record<string, NavItem> = {
  connect:{key:"connect",label:"chat",href:"/dashboard/connect",module:"connect"},
 };
 const menus: Record<string,string[]> = {
- PRINCIPAL:["dashboard","gallery","approval","connect"],
+ PRINCIPAL:["dashboard","team","approval","gallery"],
  STAFF:["dashboard","academic","gallery","team","finance","connect"],
  TEACHER:["dashboard","academic","attendance","learning","exams","gallery","team","connect"],
  STUDENT:["dashboard","academic","learning","exams","team","connect"],
@@ -25,5 +25,6 @@ export function roleNavigation(context: PermissionContext | null, flags: Record<
  const role = primaryRole(context);
  const keys = role === "STAFF" && context?.roles.some(r=>r.code==="TEACHER")
   ? ["dashboard","academic","attendance","learning","exams","gallery","team","finance","connect"] : menus[role] ?? [];
- return keys.filter(key=>key!=="connect").map(key=>items[key]).filter(item=>!item.module || flags[item.module] !== false);
+ if(!keys.length)return [];
+ return [...keys.filter(key=>key!=="connect" && key!=="gallery"),"gallery"].map(key=>items[key]).filter(item=>!item.module || flags[item.module] !== false);
 }

@@ -9,6 +9,7 @@ export const ownerNavigation: { label: MessageKey; href: string }[] = [
   { label: "ownerFinance", href: "/dashboard/finance" }, { label: "ownerPartner", href: "/dashboard/partners" },
   { label: "ownerUser", href: "/dashboard/users" },
   { label: "ownerProduct", href: "/dashboard/products" }, { label: "ownerLeads", href: "/dashboard/leads" },
+  {label:"team",href:"/dashboard/team"},{label:"approval",href:"/dashboard/approval"},
 ];
 export type OwnerRow = { id: string; [key: string]: unknown };
 export type OwnerList = { items: OwnerRow[]; total: number; page: number; page_size: number };

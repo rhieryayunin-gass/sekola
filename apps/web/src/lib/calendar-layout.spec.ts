@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { timedLayout } from "./calendar-layout";
 import type { Occurrence } from "./calendar-occurrences";
-const day = new Date("2026-09-17T00:00:00Z");
+const day = new Date(2026, 8, 17);
 const event = (id: string, start: number, end: number) =>
   ({
     id,

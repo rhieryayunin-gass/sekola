@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import {useApprovalCount} from "../part9/shared";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Brand } from "./brand";
@@ -21,7 +22,7 @@ import { openCenter } from "../../stores/center-store";
 import { BrandIcon } from "./brand-icon";
 
 function AccountMenu({ owner, role }: { owner: boolean; role: string }) {
-  const { t } = useTranslations(); const context = usePermissionStore(s=>s.context); const school=useSchoolContext(); const navigation=owner?ownerNavigation:roleNavigation(context,school.data?.settings.modules); const [open, setOpen] = useState(false); const ref = useRef<HTMLDivElement>(null); const trigger = useRef<HTMLButtonElement>(null);
+  const { t } = useTranslations(); const approvalCount=useApprovalCount(); const context = usePermissionStore(s=>s.context); const school=useSchoolContext(); const navigation=owner?ownerNavigation:roleNavigation(context,school.data?.settings.modules); const [open, setOpen] = useState(false); const ref = useRef<HTMLDivElement>(null); const trigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!open) return;
     const outside = (event: PointerEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(false); };
@@ -29,11 +30,12 @@ function AccountMenu({ owner, role }: { owner: boolean; role: string }) {
     document.addEventListener("pointerdown", outside); document.addEventListener("keydown", escape);
     return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
   }, [open]);
-  return <div ref={ref} className="owner-account"><button ref={trigger} type="button" className="owner-avatar-trigger" aria-label={t("account")} aria-expanded={open} aria-controls="account-popover" onClick={() => setOpen(!open)}><AccountAvatar fallback={role.slice(0, 1) || "•"}/></button>{open && <nav id="account-popover" className="owner-account-popover" aria-label={t("account")}><span className="ose-eyebrow account-role"><BrandIcon name={role} size={20}/>{role || t("account")}</span><Link href="/dashboard/profile" onClick={() => setOpen(false)}>{t("profile")}</Link>{navigation.map(item => <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>{t(item.label)}</Link>)}<LogoutButton danger/></nav>}</div>;
+  return <div ref={ref} className="owner-account"><button ref={trigger} type="button" className="owner-avatar-trigger" aria-label={t("account")} aria-expanded={open} aria-controls="account-popover" onClick={() => setOpen(!open)}><AccountAvatar fallback={role.slice(0, 1) || "•"}/></button>{open && <nav id="account-popover" className="owner-account-popover" aria-label={t("account")}><span className="ose-eyebrow account-role"><BrandIcon name={role} size={20}/>{role || t("account")}</span><Link href="/dashboard/profile" onClick={() => setOpen(false)}>{t("profile")}</Link>{navigation.map(item => <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>{t(item.label)}{item.href==="/dashboard/approval"&&(approvalCount.data??0)>0&&<span className="p9-approval-dot" aria-label={t("approval")}/>}</Link>)}<LogoutButton danger/></nav>}</div>;
 }
 
 export function SiteHeader({ theme }: { theme: "light" | "dark" }) {
   const path = usePathname();
+  const approvalCount=useApprovalCount();
   const { t, locale } = useTranslations();
   const context = usePermissionStore(s => s.context);
   const school = useSchoolContext();
@@ -51,6 +53,6 @@ export function SiteHeader({ theme }: { theme: "light" | "dark" }) {
       {!app && <div className="ose-main-nav p6-public-actions"><Link className="ose-sign-in" href="/login">{t("signIn")}</Link><a className="ose-demo-link" href={demoUrl} target="_blank" rel="noreferrer">{marketingCopy[locale].demo}</a></div>}
       {app && <div className="ose-preferences"><LanguageSwitcher /><ThemeSwitcher initial={theme}/>{has("calendar.read") && <button type="button" className="school-icon-link" onClick={() => openCenter("calendar")} aria-label={t("calendar")} title={t("calendar")}><CalendarDays size={20}/></button>}{has("notifications.read") && <button type="button" className="school-icon-link" onClick={() => openCenter("notifications")} aria-label={t("notifications")} title={t("notifications")}><Bell size={20}/><UnreadIndicator/></button>}<AccountMenu key={path} owner={owner} role={role}/></div>}
     </div>
-    {app && <nav className="ose-module-nav school-module-nav" aria-label={t("modules")}>{(owner ? ownerNavigation : navigation).map(item => <Link key={item.href} href={item.href} aria-current={path === item.href ? "page" : undefined}>{t(item.label)}{item.href === "/dashboard/connect" && <UnreadIndicator connect/>}</Link>)}</nav>}
+    {app && <nav className="ose-module-nav school-module-nav" aria-label={t("modules")}>{(owner ? ownerNavigation : navigation).map(item => <Link key={item.href} href={item.href} aria-current={path === item.href ? "page" : undefined}>{t(item.label)}{item.href==="/dashboard/approval"&&(approvalCount.data??0)>0&&<span className="p9-approval-dot" aria-label={t("approval")}/ >}{item.href === "/dashboard/connect" && <UnreadIndicator connect/>}</Link>)}</nav>}
   </header>{!app && <div className="p6-floating-nav-wrap"><nav className="p6-floating-nav" aria-label={t("navigation")}><Link href="/#ecosystem">{t("ecosystem")}</Link><Link href="/#pricing">{locale === "id-ID" ? "Paket" : "Plans"}</Link><Link href="/partners" aria-current={path === "/partners" ? "page" : undefined}>{locale === "id-ID" ? "Mitra" : "Partners"}</Link></nav></div>}</>;
 }
