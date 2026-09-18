@@ -12,7 +12,7 @@
 select[data-follow-up=NOT_STARTED]{color:var(--danger);border-color:var(--danger)}
 select[data-follow-up=IN_PROGRESS]{color:var(--warning);border-color:var(--warning)}
 select[data-follow-up=DONE]{color:var(--success);border-color:var(--success)}
-.p9-curriculum-window{overflow:hidden;margin-top:36px}.p5-curriculum-badges.p9-curriculum-track{display:flex;flex-wrap:nowrap;width:max-content;gap:18px;animation:p9-marquee 30s linear infinite;margin:0;padding:6px 0}
+.p9-curriculum-window{overflow:hidden;margin-top:36px}.p5-curriculum-badges.p9-curriculum-track{display:flex;flex-wrap:nowrap;width:max-content;gap:18px;animation:p9-marquee 30s linear infinite;margin:0;padding:6px 18px 6px 0}
 .p9-curriculum-track>a{flex:0 0 200px;width:200px}.p9-curriculum-window:hover .p9-curriculum-track,.p9-curriculum-window:focus-within .p9-curriculum-track{animation-play-state:paused}
 @keyframes p9-marquee{to{transform:translateX(-50%)}}
 .school-growth-public .school-public-hero{text-align:center}.school-public-hero .school-hero-actions{justify-content:center}

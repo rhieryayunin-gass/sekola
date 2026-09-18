@@ -73,8 +73,8 @@ try {
     }
 
     await page.locator("#curricula").scrollIntoViewIfNeeded();
-    await loadedImages(page, "#curricula img");
-    assert.deepEqual(await page.locator(".p5-curriculum-wordmark").allTextContents(), ["Kurikulum Merdeka", "Cambridge", "Pearson", "IB", "Madrasah"]);
+    await loadedImages(page, '#curricula a:not([aria-hidden="true"]) img');
+    assert.deepEqual(await page.locator('#curricula a:not([aria-hidden="true"]) .p5-curriculum-wordmark').allTextContents(), ["Kurikulum Merdeka", "Cambridge", "Pearson", "IB", "Madrasah"]);
     assert.equal(await page.locator(".ose-floating-connect").count(), 0);
     await page.screenshot({ path: path.join(output, `curricula-${width}.png`) });
     await page.locator("#faq").scrollIntoViewIfNeeded();

@@ -261,7 +261,7 @@ declare tenant uuid:=school_private.tenant();actor uuid:=auth.uid();change_id uu
  elsif target_id is not null then raise exception 'New accounts cannot specify an existing identity';end if;
  if operation='CREATE' then
  perform pg_advisory_xact_lock(hashtextextended(lower(trim(payload->>'email')),9003));
- if exists(select 1 from public.school_user_changes c join public.approval_requests a on a.id=c.approval_request_id where c.tenant_id=tenant and c.operation='CREATE' and lower(trim(c.payload->>'email'))=lower(trim(payload->>'email')) and a.status in('PENDING','APPROVED') and c.execution_status<>'DONE') then raise exception 'An account change for this email is already pending';end if;
+ if exists(select 1 from public.school_user_changes c join public.approval_requests a on a.id=c.approval_request_id where c.tenant_id=tenant and c.operation='CREATE' and lower(trim(c.payload->>'email'))=lower(trim(people_request.payload->>'email')) and a.status in('PENDING','APPROVED') and c.execution_status<>'DONE') then raise exception 'An account change for this email is already pending';end if;
  end if;
  if operation in('CREATE','UPDATE') then
  if length(trim(coalesce(payload->>'full_name',''))) not between 2 and 160 or coalesce(payload->>'email','') !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' or length(payload->>'email')>254 or length(coalesce(payload->>'phone',''))>40 then raise exception 'Check name, email and phone';end if;
@@ -514,7 +514,7 @@ create function public.school_identity_save(target uuid,kind text,token text def
 create function school_private.identity_checkin(kind text,token text) returns jsonb language plpgsql security definer set search_path='' as $$declare tenant uuid:=school_private.tenant();who uuid;student uuid;class_id uuid;day date;begin
  perform school_private.require_module('attendance');
  if not school_private.role(array['STAFF','TEACHER']) or kind not in('QR','RFID') or length(token)>128 then raise exception 'Supervised school check-in required' using errcode='42501';end if;
- select c.user_id into who from public.school_user_credentials c where c.tenant_id=tenant and c.kind=identity_checkin.kind and c.token_hash=encode(sha256(convert_to(case when kind='RFID' then upper(trim(token)) else trim(token) end,'UTF8')),'hex');
+ select c.user_id into who from public.school_user_credentials c where c.tenant_id=tenant and c.kind=identity_checkin.kind and c.token_hash=encode(sha256(convert_to(case when identity_checkin.kind='RFID' then upper(trim(token)) else trim(token) end,'UTF8')),'hex');
  if who is null or not school_private.face_target(who) then raise exception 'Credential is not active in this school' using errcode='42501';end if;
  select (now() at time zone timezone)::date into day from public.tenants where id=tenant;
  perform pg_advisory_xact_lock(hashtextextended(who::text,9002));
