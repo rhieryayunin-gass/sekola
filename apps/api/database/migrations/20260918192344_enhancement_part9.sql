@@ -528,6 +528,7 @@ create function public.school_identity_checkin(kind text,token text) returns jso
 
 -- Existing server routes enforce the same assigned-role rules as the new UI.
 alter function public.decide_operational_request(uuid,uuid,text,text) rename to decide_operational_request_before_part9;
+do $$begin execute replace(pg_get_functiondef('public.decide_operational_request_before_part9(uuid,uuid,text,text)'::regprocedure),'decide_operational_request.note','decide_operational_request_before_part9.note');end$$;
 create function public.decide_operational_request(actor_id uuid,request_id uuid,decision text,note text default null) returns jsonb language plpgsql set search_path='' as $$declare a public.approval_requests;l public.leave_requests;begin
  select * into a from public.approval_requests where id=request_id;
  if a.resource_type='USER_CHANGE' then raise exception 'Use the personnel approval workflow' using errcode='42501';end if;

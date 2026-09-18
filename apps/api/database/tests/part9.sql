@@ -1,6 +1,8 @@
 -- Disposable regression fixtures. No production identities or records.
 begin;
 create function pg_temp.p9_assert(ok boolean,msg text) returns void language plpgsql as $$begin if ok is distinct from true then raise exception 'Part9: %',msg;end if;end$$;
+-- Keep routing deterministic within this rolled-back fixture transaction.
+update public.users set is_active=false where public.app_role_in(id,array['OWNER']);
 insert into public.tenants(id,name,code) values('f9100000-0000-4000-8000-000000000001','Part9 A','P9-A'),('f9100000-0000-4000-8000-000000000002','Part9 B','P9-B');
 insert into auth.users(id,email,raw_app_meta_data,raw_user_meta_data) select ('f9200000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,'p9-'||n||'@school.invalid',jsonb_build_object('tenant_id',case when n in(1,8,9,10) then 'f9100000-0000-4000-8000-000000000002' else 'f9100000-0000-4000-8000-000000000001' end),jsonb_build_object('full_name','Part9 Person '||n) from generate_series(1,11)n;
 insert into public.user_roles(user_id,role_id) select ('f9200000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,r.id from generate_series(1,10)n join public.roles r on r.code=case n when 1 then 'OWNER' when 2 then 'STAFF' when 3 then 'PRINCIPAL' when 4 then 'TEACHER' when 5 then 'TEACHER' when 6 then 'STUDENT' when 7 then 'PARENT' when 8 then 'STAFF' when 9 then 'STUDENT' when 10 then 'PRINCIPAL' end;

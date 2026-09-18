@@ -17,7 +17,7 @@ describe("Owner workspace interactions", () => {
     wrap(<OwnerDashboard/>);
     await screen.findByRole("link", { name: /Tenant/ });
     expect(screen.getAllByRole("link").filter(a => a.classList.contains("owner-metric")).map(a => a.getAttribute("href"))).toEqual(["/dashboard/tenant", "/dashboard/finance", "/dashboard/partners", "/dashboard/users"]);
-    expect(screen.getByRole("link", { name: "Bangun sekolah digital Anda" })).toHaveAttribute("href", "/dashboard/core");
+    expect(screen.queryByRole("link", { name: /Build.*Digital School|Bangun.*Sekolah Digital/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Your school, its operations and the decisions ahead.")).not.toBeInTheDocument();
   });
   it("saves a single module flag without replacing other tenant settings", async () => {
