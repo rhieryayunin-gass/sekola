@@ -7,6 +7,9 @@ on:
       - apps/web/scripts/verify-part7-live.mjs
       - apps/web/scripts/verify-part8-live.mjs
       - apps/web/scripts/verify-part9-live.mjs
+      - apps/web/src/app/part9.css
+      - apps/web/src/components/part9/**
+      - apps/web/src/components/school/role-overview.tsx
   workflow_dispatch:
 permissions:
   contents: read
