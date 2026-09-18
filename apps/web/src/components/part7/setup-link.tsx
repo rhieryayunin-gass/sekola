@@ -9,6 +9,6 @@ export function SchoolSetupLink() {
   const { t } = useTranslations();
   const roles = usePermissionStore(s => s.context?.roles);
   const school = useSchoolContext();
-  if (!roles?.some(r => ["OWNER", "PRINCIPAL", "STAFF", "TEACHER"].includes(r.code)) || school.data?.settings.modules.core === false) return null;
-  return <Link href="/dashboard/core" className="p7-setup-link" aria-label={t("coreSetup")}><span><small>O-Core · O-Academic</small><strong>{t("coreSetup")}</strong></span><ArrowRight aria-hidden="true"/></Link>;
+  if (!roles?.some(r => r.code === "STAFF") || school.data?.settings.modules.core === false) return null;
+  return <Link href="/dashboard/core" className="p7-setup-link" aria-label={t("coreSetup")}><span><strong>{t("coreSetup")}</strong></span><ArrowRight aria-hidden="true"/></Link>;
 }

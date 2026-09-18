@@ -46,7 +46,7 @@ export function Button({
   className,
   size,
   type = "button",
-  variant,
+  variant = type === "submit" ? "secondary" : "primary",
   ...props
 }: ButtonProps) {
   return (

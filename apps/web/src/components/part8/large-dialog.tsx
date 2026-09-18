@@ -33,6 +33,7 @@ export function LargeDialog({
       ref={ref}
       className={`p8-dialog p8-dialog-${kind}`}
       aria-labelledby={label}
+      onClick={e => { if (e.target !== e.currentTarget) return; const r=e.currentTarget.getBoundingClientRect(); if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) close(); }}
       onCancel={(e) => {
         if(e.target!==e.currentTarget)return;
         e.preventDefault();

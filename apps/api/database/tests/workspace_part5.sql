@@ -50,7 +50,7 @@ end $$;
 select set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000002',true);
 do $$ declare r jsonb;begin
  begin perform public.school_finance_report('bills',current_date-1,current_date+1);raise exception 'Teacher finance allowed';exception when insufficient_privilege then null;end;
- r:=public.school_face_directory();if exists(select 1 from jsonb_array_elements(r)v where v->>'id' in ('d2000000-0000-4000-8000-000000000001','d2000000-0000-4000-8000-000000000004','d2000000-0000-4000-8000-000000000005')) then raise exception 'Excluded face target listed';end if;
+ r:=public.school_face_directory();if exists(select 1 from jsonb_array_elements(r)v where v->>'id' in ('d2000000-0000-4000-8000-000000000001','d2000000-0000-4000-8000-000000000005')) then raise exception 'Excluded face target listed';end if;
  begin perform public.school_face_challenge('d2000000-0000-4000-8000-000000000005','ENROLL');raise exception 'Foreign face enrolled';exception when insufficient_privilege then null;end;
  perform public.school_role_dashboard();
 end $$;

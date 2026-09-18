@@ -32,7 +32,7 @@ export function LogoutButton({ danger = true }: { danger?: boolean }) {
   }
 
   return (
-    <Button disabled={isPending} onClick={handleLogout} variant={danger ? "danger" : "ghost"}>
+    <Button className={danger ? "p9-signout" : undefined} disabled={isPending} onClick={handleLogout} variant={danger ? "danger" : "ghost"}>
       {isPending ? t("signingOut") : t("signOut")}
     </Button>
   );

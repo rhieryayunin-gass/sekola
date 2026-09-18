@@ -247,7 +247,7 @@ export function CalendarManager() {
         )}
       </header>
       <div className="school-calendar-layout">
-        <aside className="school-calendar-sidebar">
+        <div className="school-calendar-sidebar p9-calendar-tools">
           <Input
             type="search"
             label={id ? "Cari acara" : "Search events"}
@@ -297,7 +297,7 @@ export function CalendarManager() {
               ? "Waktu mengikuti zona perangkat Anda."
               : "Times use your device timezone."}
           </small>
-        </aside>
+        </div>
         <div className="school-calendar-main">
           {q.isError ? (
             <p role="alert" className="school-error">
@@ -444,7 +444,7 @@ export function CalendarManager() {
         title={detail?.title ?? (id ? "Acara" : "Event")}
       >
         {detail && (
-          <div className="grid gap-4">
+          <div className="p9-event-detail">
             <p>
               <Clock size={16} />
               {detail.start.toLocaleString(locale)} —{" "}

@@ -17,9 +17,9 @@ export function CurriculumSupport() {
     <p className="ose-eyebrow">{id ? "SATU SEKOLAH, BERAGAM JALUR BELAJAR" : "ONE SCHOOL, MANY LEARNING PATHS"}</p>
     <h2 id="curricula-title">{id ? "Beragam kurikulum. Satu sekolah yang terhubung." : "Multiple curricula. One connected school."}</h2>
     <p>{id ? "Jalankan Kurikulum Merdeka, Cambridge, Pearson, dan IB berdampingan. Atur program per tahun ajaran, kelas, atau siswa, lengkap dengan capaian belajar dan skala penilaian masing-masing." : "Run Kurikulum Merdeka, Cambridge, Pearson, and IB alongside each other. Organize programmes by academic year, class, or student, each with its own learning outcomes and grading scales."}</p>
-    <div className="p5-curriculum-badges">{curricula.map(curriculum => <a key={curriculum.name} href={curriculum.href} target="_blank" rel="noreferrer">
+    <div className="p9-curriculum-window"><div className="p5-curriculum-badges p9-curriculum-track">{[...curricula,...curricula].map((curriculum,index) => <a key={`${curriculum.name}-${index}`} tabIndex={index>=curricula.length?-1:undefined} aria-hidden={index>=curricula.length||undefined} href={curriculum.href} target="_blank" rel="noreferrer">
       <Image className="p5-curriculum-logo" src={`/curricula/${curriculum.logo}`} alt={curriculum.name} width={440} height={140}/>
       <span className="p5-curriculum-wordmark">{curriculum.name}</span>
-    </a>)}</div>
+    </a>)}</div></div>
   </section>;
 }
