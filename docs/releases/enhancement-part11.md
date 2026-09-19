@@ -24,5 +24,13 @@ This release does not provision merchant accounts. Payment methods shown at chec
 - Local TypeScript, ESLint and existing 94 frontend tests passed.
 - Additive migration replay and Part 11 permission/data regressions passed, followed by existing Part 10 and legacy regression suites.
 - Native PostgreSQL CI, production container gates, exact-release deployment and authenticated browser verification must pass before reporting completion.
-- Migration created using Supabase CLI: `20260919154718_enhancement_part11.sql`.
+- Migration created using Supabase CLI: `20260919161648_enhancement_part11.sql`.
 - Production verification extends the existing disposable-school fixture harness. It checks drag/drop persistence, multiple PIC/subtasks, audience restrictions, calendar/notifications, private evidence and report download, idempotent billing, child financial isolation, mobile overflow and gallery spacing. Cleanup includes the new billing records and private evidence.
+
+## Published rollout
+
+PR #89 head 75ab876ba0071a1b3474029f2735260307faa9b6 passed GitHub CI 35454253918 (all three jobs) and public experience verification 35454253912. Vercel preview dpl_2X6mhowqpCkJnz5m2jHmR3nU3LZ5 is READY.
+
+Production migration was applied as 20260919161648; the repository filename now matches the applied version, with SQL unchanged. Verification retained 5 tenants and 227 users; both new tables have RLS enabled and the project evidence bucket is private. Security advisors show no new WARN/ERROR findings; the two new INFO entries are the deliberately RPC-only tables with all direct client grants revoked.
+
+Final production merge, exact deployment SHA, authenticated Part11 browser verification and fixture cleanup are pending the final CI gate.
