@@ -37,7 +37,7 @@ top of the deployed Parts 8 and 9.
 
 1. Pass repository CI, including native PostgreSQL 17 regression, concurrency,
    exam load, backup/restore, production containers and frontend quality gates.
-2. Apply `20260919075405_enhancement_part10.sql` to the existing Supabase project,
+2. Apply `20260919131543_enhancement_part10.sql` to the existing Supabase project,
    preserving its applied version in the repository.
 3. Merge the release PR and deploy the existing Vercel `osekola` project.
 4. The trusted production verification imports 91,599 reference rows idempotently,
@@ -65,3 +65,24 @@ fixed count, up to 366 occurrences; other event recurrence remains unchanged.
 Avatar upload failure retains the saved tenant ID and offers retry without
 creating another school. Foundation membership assignment rejects Principals
 with pending decisions until those decisions are resolved.
+
+## Rollout checkpoint — 19 September 2026
+
+- PR #84 publishes exactly the reviewed local `1bc9a5b` content tree as
+  `fd95fe13696f82e15f5ce3ae4b6b988031b96ea3`.
+- GitHub CI run `35445126852` passed all three jobs: PostgreSQL regression,
+  2,000 concurrent exam attempts and backup/restore; production containers;
+  frontend/API lint, tests, build, packaging and upgrade/rollback checks.
+- Public experience verification run `35445126839` passed.
+- Supabase production migration applied successfully as `20260919131543`.
+  The local migration filename now matches that applied version; SQL is unchanged.
+- Existing 5 tenants, 227 users and 0 partner applications were preserved.
+  All new Part 10 tables have RLS enabled and restrict direct client grants.
+- Security advisors reported no ERROR-level issues. Existing WARN notices cover
+  legacy public definer functions, an existing mutable-search-path trigger,
+  btree_gist in public, and disabled leaked-password protection. RLS-without-policy
+  INFO notices reflect the existing RPC-only access design. See the
+  [Supabase linter guidance](https://supabase.com/docs/guides/database/database-linter).
+- Production promotion and Parts 7–10 live verification are pending this PR's
+  final checks and merge. Region reference import runs in the trusted verification
+  workflow before the authenticated browser checks.
