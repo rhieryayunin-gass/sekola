@@ -28,7 +28,7 @@ type Calendar = {
   can_edit: boolean;
   integration_managed: boolean;
 };
-type Context = { calendars: Calendar[]; events: SchoolEvent[] };
+type Context = { assets?:{id:string;name:string;category:string}[]; calendars: Calendar[]; events: SchoolEvent[] };
 type View = "month" | "week" | "day" | "agenda";
 
 export function CalendarManager() {
@@ -117,7 +117,7 @@ export function CalendarManager() {
       body?: object;
       method?: string;
     }) =>
-      browserApi(path, {
+      path.includes("/events") && method !== "DELETE" ? schoolRpc("school_calendar_save", {calendar_uuid:path.split("/")[2],event_id:path.split("/")[4]||null,payload:body}) : browserApi(path, {
         method,
         ...(body ? { body: JSON.stringify(body) } : {}),
       }),
@@ -160,6 +160,7 @@ export function CalendarManager() {
       path: `/calendars/${existing?.calendar_id ?? f.get("calendar_id")}/events${existing ? `/${existing.id}` : ""}`,
       method: existing ? "PATCH" : "POST",
       body: {
+        asset_id: f.get("asset_id")||null,
         title: f.get("title"),
         description: f.get("description"),
         starts_at: start.toISOString(),
@@ -199,7 +200,7 @@ export function CalendarManager() {
     );
   }
   return (
-    <section className="school-calendar">
+    <section className="school-calendar p10-calendar">
       <header className="school-calendar-toolbar">
         <CalendarDays size={25} />
         <h2>
@@ -247,7 +248,7 @@ export function CalendarManager() {
         )}
       </header>
       <div className="school-calendar-layout">
-        <div className="school-calendar-sidebar p9-calendar-tools">
+        <div className="school-calendar-sidebar p10-calendar-tools">
           <Input
             type="search"
             label={id ? "Cari acara" : "Search events"}
@@ -265,7 +266,7 @@ export function CalendarManager() {
           />
           <h3>{id ? "Kalender saya" : "My calendars"}</h3>
           {q.data?.calendars.map((c) => (
-            <label key={c.id}>
+            <label className="p10-calendar-toggle" key={c.id}>
               <input
                 type="checkbox"
                 checked={!hidden.includes(c.id)}
@@ -450,7 +451,7 @@ export function CalendarManager() {
               {detail.start.toLocaleString(locale)} —{" "}
               {detail.end.toLocaleString(locale)}
             </p>
-            <p>{detail.description}</p>
+            <p>{detail.description}</p>{detail.asset_name&&<p><strong>{id?"Aset / Ruangan":"Asset / Room"}:</strong> {detail.asset_name}</p>}
             <p>
               {q.data?.calendars.find((c) => c.id === detail.calendar_id)?.name}
             </p>
@@ -568,6 +569,7 @@ export function CalendarManager() {
                     </option>
                   ))}
               </Select>
+              <Select name="asset_id" label={id?"Pesan Aset / Ruangan (Opsional)":"Book Asset / Room (Optional)"} defaultValue={typeof editor==="object"?editor.asset_id??"":""}><option value="">{id?"Tanpa pemesanan aset":"No asset booking"}</option>{q.data?.assets?.map(a=><option key={a.id} value={a.id}>{a.name} · {a.category}</option>)}</Select>
               <Input
                 name="starts_at"
                 label={id ? "Mulai" : "Starts"}

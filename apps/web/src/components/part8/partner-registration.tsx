@@ -1,4 +1,5 @@
 "use client";
+import { CheckCircle2, Upload } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "../i18n/i18n-provider";
@@ -8,6 +9,7 @@ export function PartnerRegistration() {
   const { locale } = useTranslations();
   const id = locale === "id-ID";
   const router = useRouter();
+  const [fileName, setFileName] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [received, setReceived] = useState("");
@@ -81,18 +83,18 @@ export function PartnerRegistration() {
                       "Partnership terms are explained during the interview and onboarding.",
                     ]
                 ).map((s) => (
-                  <li key={s}>{s}</li>
+                  <li key={s}><CheckCircle2 size={18} aria-hidden="true"/>{s}</li>
                 ))}
               </ul>
             </div>
             <form
-              className="p8-form"
+              className="p8-form p10-partner-form"
               onSubmit={submit}
               style={{ marginTop: 24 }}
             >
               <Input
                 name="name"
-                label={id ? "Nama lengkap" : "Full name"}
+                label={id ? "Nama Lengkap" : "Full Name"}
                 required
                 minLength={2}
                 maxLength={160}
@@ -108,7 +110,7 @@ export function PartnerRegistration() {
               />
               <Input
                 name="phone"
-                label={id ? "Nomor WhatsApp" : "WhatsApp number"}
+                label={id ? "Nomor WhatsApp" : "WhatsApp Number"}
                 type="tel"
                 placeholder="62812…"
                 required
@@ -116,7 +118,7 @@ export function PartnerRegistration() {
               />
               <Input
                 name="domicile"
-                label={id ? "Domisili (kota/kabupaten)" : "City of residence"}
+                label={id ? "Kota / Kabupaten Domisili" : "City of Residence"}
                 required
                 minLength={2}
                 maxLength={300}
@@ -125,8 +127,8 @@ export function PartnerRegistration() {
                 name="occupation"
                 label={
                   id
-                    ? "Kegiatan atau pekerjaan saat ini"
-                    : "Current occupation or activity"
+                    ? "Pekerjaan / Kegiatan Saat Ini"
+                    : "Current Occupation / Activity"
                 }
                 required
                 minLength={2}
@@ -136,18 +138,19 @@ export function PartnerRegistration() {
                 name="school_count"
                 label={
                   id
-                    ? "Jumlah sekolah yang Anda kenal (TK–SMA/sederajat)"
-                    : "Schools you know (kindergarten–high school)"
+                    ? "Jumlah Sekolah yang Anda Kenal (TK–SMA/Sederajat)"
+                    : "Number of Schools You Know (Kindergarten–High School)"
                 }
                 type="number"
                 min={0}
                 max={100000}
                 required
               />
+              <Input name="estimated_students" type="number" min={0} max={10000000} required label={id ? "Perkiraan Total Siswa di Semua Sekolah yang Direferensikan" : "Estimated Total Students at Potential Referral Schools"}/>
               <label className="p8-full">
                 {id
-                  ? "Pengurus sekolah yang Anda kenal — nama, sekolah, dan perannya"
-                  : "School contacts — name, school, and role"}
+                  ? "Kontak Pengurus Sekolah — Nama, Sekolah, dan Jabatan"
+                  : "School Contacts — Name, School, and Role"}
                 <textarea
                   name="contacts"
                   required
@@ -156,18 +159,7 @@ export function PartnerRegistration() {
                   rows={3}
                 />
               </label>
-              <Input
-                className="p8-full"
-                type="file"
-                name="cv"
-                accept="application/pdf,.pdf"
-                label={
-                  id
-                    ? "CV dengan foto — PDF maksimal 1 MB"
-                    : "CV with photo — PDF up to 1 MB"
-                }
-                required
-              />
+              <div className="p8-full p10-upload"><span>{id ? "CV dengan Foto" : "CV with Photo"}</span><label className="ose-file-label"><Upload size={18}/>{fileName ? (id ? "Ganti Berkas" : "Replace File") : (id ? "Unggah Berkas" : "Upload File")}<input className="p10-file-input" type="file" name="cv" accept="application/pdf,.pdf" required aria-label={id ? "CV dengan foto" : "CV with photo"} onChange={e=>setFileName(e.target.files?.[0]?.name ?? "")}/></label><small>{fileName || "PDF · max 1 MB"}</small></div>
               <label className="p8-full school-consent">
                 <input type="checkbox" name="photo_confirmed" required />
                 {id
@@ -188,14 +180,14 @@ export function PartnerRegistration() {
                   {error}
                 </p>
               )}
-              <Button type="submit" disabled={pending}>
+              <Button className="p10-centered-submit" type="submit" disabled={pending}>
                 {pending
                   ? id
                     ? "Mengirim…"
                     : "Submitting…"
                   : id
-                    ? "Kirim pendaftaran"
-                    : "Submit application"}
+                    ? "Kirim Pendaftaran"
+                    : "Submit Application"}
               </Button>
             </form>
           </>

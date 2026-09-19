@@ -19,7 +19,7 @@ do $$ declare a integer;b integer; actor uuid; other uuid; cid uuid; expected_ac
  for a in 1..6 loop
  actor:=('b2000000-0000-4000-8000-'||lpad(a::text,12,'0'))::uuid;
  perform set_config('request.jwt.claim.sub',actor::text,true);
- if school_private.module_enabled('academic') is distinct from (a in (3,4)) or school_private.module_enabled('learning') is distinct from (a in(4,5)) or school_private.module_enabled('exams') is distinct from (a in(4,5)) then raise exception 'Module role matrix mismatch for %',a; end if;
+ if school_private.module_enabled('academic') is distinct from (a=3) or school_private.module_enabled('learning') is distinct from (a in(4,5)) or school_private.module_enabled('exams') is distinct from (a in(4,5)) then raise exception 'Module role matrix mismatch for %',a; end if;
  if a not in(3,4) then begin perform public.school_catalog('subjects'); raise exception 'Forbidden Academic catalog'; exception when insufficient_privilege then null; end; end if;
  if a not in(4,5) then
  begin perform public.school_exam_list(); raise exception 'Forbidden Exam RPC'; exception when insufficient_privilege then null; end;

@@ -1,6 +1,6 @@
 import type { PermissionContext } from "../stores/permission-store";
 import type { MessageKey } from "./i18n";
-import { primaryRole } from "./modules";
+import { primaryRole, moduleRoleAllowed } from "./modules";
 export type NavItem = { key: string; label: MessageKey; href: string; module?: string };
 const items: Record<string, NavItem> = {
  dashboard:{key:"dashboard",label:"dashboard",href:"/dashboard"},
@@ -26,5 +26,5 @@ export function roleNavigation(context: PermissionContext | null, flags: Record<
  const keys = role === "STAFF" && context?.roles.some(r=>r.code==="TEACHER")
   ? ["dashboard","academic","attendance","learning","exams","gallery","team","finance","connect"] : menus[role] ?? [];
  if(!keys.length)return [];
- return [...keys.filter(key=>key!=="connect" && key!=="gallery"),"gallery"].map(key=>items[key]).filter(item=>!item.module || flags[item.module] !== false);
+ return [...keys.filter(key=>key!=="connect" && key!=="gallery"),"gallery"].map(key=>items[key]).filter(item=>(!item.module || flags[item.module] !== false) && moduleRoleAllowed(item.key,context));
 }

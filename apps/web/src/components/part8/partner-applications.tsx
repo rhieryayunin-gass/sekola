@@ -20,6 +20,7 @@ export function PartnerApplications() {
   const id = locale === "id-ID";
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [cv, setCv] = useState<OwnerRow>();
   const [selected, setSelected] = useState<OwnerRow>();
   const [nik, setNik] = useState("");
   const [error, setError] = useState("");
@@ -44,7 +45,7 @@ export function PartnerApplications() {
                 "Nama",
                 "Domisili",
                 "WhatsApp",
-                "Sekolah dikenal",
+                "Sekolah dikenal", "Estimasi Siswa", "CV",
                 "Seleksi",
                 "Aktif",
                 "Action",
@@ -53,7 +54,7 @@ export function PartnerApplications() {
                 "Name",
                 "City",
                 "WhatsApp",
-                "Schools known",
+                "Schools known", "Estimated Students", "CV",
                 "Selection",
                 "Active",
                 "Action",
@@ -71,7 +72,7 @@ export function PartnerApplications() {
             <td>{value(r, "name")}</td>
             <td>{value(r, "domicile")}</td>
             <td>{value(r, "phone")}</td>
-            <td>{value(r, "school_count")}</td>
+            <td>{value(r, "school_count")}</td><td>{value(r, "estimated_students") || "—"}</td><td><Button variant="ghost" onClick={()=>setCv(r)}>{id ? "Lihat CV" : "View CV"}</Button></td>
             <td>{value(r, "status")}</td>
             <td>
               <OwnerSwitch
@@ -102,6 +103,7 @@ export function PartnerApplications() {
           </tr>
         ))}
       </OwnerTable>
+      {cv && <OwnerDialog wide title={`CV · ${value(cv,"name")}`} close={()=>setCv(undefined)}><iframe className="p10-pdf-viewer" title={`CV ${value(cv,"name")}`} src={`/api/partners/cv?id=${cv.id}&view=inline`}/><a className="ose-link" href={`/api/partners/cv?id=${cv.id}`}>{id ? "Unduh CV" : "Download CV"}</a></OwnerDialog>}
       {save.isError && <p role="alert">{save.error.message}</p>}
       {selected && (
         <OwnerDialog
@@ -110,9 +112,9 @@ export function PartnerApplications() {
           close={() => setSelected(undefined)}
         >
           <div className="owner-actions">
-            <a className="ose-link" href={`/api/partners/cv?id=${selected.id}`}>
-              {id ? "Unduh CV" : "Download CV"}
-            </a>
+            <button type="button" className="ose-link" onClick={()=>setCv(selected)}>
+              {id ? "Lihat CV" : "View CV"}
+            </button>
             <Button
               variant="ghost"
               onClick={async () => {
@@ -175,6 +177,7 @@ export function PartnerApplications() {
               label={id ? "Sekolah dikenal" : "Schools known"}
               defaultValue={value(selected, "school_count")}
             />
+            <Input type="number" name="estimated_students" min={0} max={10000000} label={id ? "Estimasi Total Siswa" : "Estimated Total Students"} defaultValue={value(selected,"estimated_students")}/>
             <Select
               name="status"
               label={id ? "Tahap seleksi" : "Selection stage"}

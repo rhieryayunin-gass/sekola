@@ -1,4 +1,5 @@
 "use client";
+import { BrandIcon } from "./brand-icon";
 import type { ReactNode } from "react";
 import { useTranslations } from "../i18n/i18n-provider";
 import { usePermissionStore } from "../../stores/permission-store";
@@ -13,7 +14,7 @@ export function AccessState() {
   const load = usePermissionStore(s => s.load);
   return <div className="ose-status glass-panel" role={failed ? "alert" : "status"}><h2>{t(failed ? "accessError" : "loadingAccess")}</h2>{failed && <><p>{t("accessErrorDesc")}</p><Button onClick={() => void load()}>{t("retry")}</Button></>}</div>;
 }
-export function ModulePage({ name, title, description, permission, children }: { name?: string; title: MessageKey; description: MessageKey; permission?: string; children: ReactNode }) {
+export function ModulePage({ name, title, description, permission, children, hideHeading = false }: { hideHeading?: boolean; name?: string; title: MessageKey; description: MessageKey; permission?: string; children: ReactNode }) {
   const { t } = useTranslations();
   const context = usePermissionStore(s => s.context);
   const school = useSchoolContext();
@@ -21,5 +22,5 @@ export function ModulePage({ name, title, description, permission, children }: {
   const moduleKey = name && ["people", "operations", "users", "tenant"].includes(name) ? "core" : name;
   const enabled = !moduleKey || school.data?.settings.modules[moduleKey] !== false;
   const allowed = enabled && (!name || moduleRoleAllowed(name, context)) && (permission ? context.permissions.some(p => p.code === permission) : name ? (name === "core" || availableModules(context).some(m => m.key === name)) : true);
-  return <div className="ose-module-page"><div className="ose-page-heading"><div><p className="ose-eyebrow">osekola workspace</p><h1>{t(title)}</h1><p>{t(description)}</p></div></div>{allowed ? children : <div className="ose-status glass-panel"><h2>{t("accessLimited")}</h2><p>{t("accessLimitedDesc")}</p></div>}</div>;
+  return <div className="ose-module-page">{!hideHeading && <div className="ose-page-heading p10-workspace-hero">{name && <BrandIcon name={name} size={32}/>}<div><p className="ose-eyebrow">osekola workspace</p><h1>{t(title)}</h1><p>{t(description)}</p></div></div>}{allowed ? children : <div className="ose-status glass-panel"><h2>{t("accessLimited")}</h2><p>{t("accessLimitedDesc")}</p></div>}</div>;
 }

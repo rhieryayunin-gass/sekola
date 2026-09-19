@@ -1,5 +1,5 @@
 import { RRule } from "rrule";
-export type SchoolEvent = {id:string;calendar_id:string;title:string;description:string|null;starts_at:string;ends_at:string|null;is_all_day:boolean;event_type:string;recurrence_rule:string|null};
+export type SchoolEvent = {asset_id?:string|null;asset_name?:string|null;id:string;calendar_id:string;title:string;description:string|null;starts_at:string;ends_at:string|null;is_all_day:boolean;event_type:string;recurrence_rule:string|null};
 export type Occurrence = SchoolEvent & {instance:string;start:Date;end:Date;recurrence_error?:boolean};
 export function occurrences(events:SchoolEvent[],start:Date,end:Date):Occurrence[]{
  const out:Occurrence[]=[];

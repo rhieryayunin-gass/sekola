@@ -22,7 +22,7 @@ import { openCenter } from "../../stores/center-store";
 import { BrandIcon } from "./brand-icon";
 
 function AccountMenu({ owner, role }: { owner: boolean; role: string }) {
-  const { t } = useTranslations(); const approvalCount=useApprovalCount(); const context = usePermissionStore(s=>s.context); const school=useSchoolContext(); const navigation=owner?ownerNavigation:roleNavigation(context,school.data?.settings.modules); const [open, setOpen] = useState(false); const ref = useRef<HTMLDivElement>(null); const trigger = useRef<HTMLButtonElement>(null);
+  const { t } = useTranslations(); const approvalCount=useApprovalCount(); const context = usePermissionStore(s=>s.context); const school=useSchoolContext(); const navigation=owner?ownerNavigation:roleNavigation(context,school.data?.settings.modules).filter(item=>item.href!=="/dashboard/approval"||!school.data?.foundation_principal); const [open, setOpen] = useState(false); const ref = useRef<HTMLDivElement>(null); const trigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!open) return;
     const outside = (event: PointerEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(false); };
@@ -40,7 +40,7 @@ export function SiteHeader({ theme }: { theme: "light" | "dark" }) {
   const context = usePermissionStore(s => s.context);
   const school = useSchoolContext();
   const app = path.startsWith("/dashboard");
-  const navigation = roleNavigation(context, school.data?.settings.modules);
+  const navigation = roleNavigation(context, school.data?.settings.modules).filter(item=>item.href!=="/dashboard/approval"||!school.data?.foundation_principal);
   const role = primaryRole(context);
   const owner = useIsOwner();
   const has = (permission: string) => context?.permissions.some(p => p.code === permission);

@@ -32,7 +32,7 @@ insert into public.student_bills(id,tenant_id,student_id,category_id,invoice_num
 set local role authenticated;
 select set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000003',true);
 do $$ declare r jsonb;begin
- r:=public.school_family_report('academic','d3000000-0000-4000-8000-000000000004');if jsonb_array_length(r->'rows')<>1 then raise exception 'Student Academic missing';end if;
+ begin perform public.school_family_report('academic','d3000000-0000-4000-8000-000000000004');raise exception 'Student Academic still available after Part10';exception when insufficient_privilege then null;end;
  begin perform public.school_family_report('academic','d3000000-0000-4000-8000-000000000014');raise exception 'Other student data leaked';exception when insufficient_privilege then null;end;
  begin perform public.school_finance_report('bills',current_date-1,current_date+1);raise exception 'Student finance allowed';exception when insufficient_privilege then null;end;
  begin perform public.school_face_directory();raise exception 'Student face management allowed';exception when insufficient_privilege then null;end;

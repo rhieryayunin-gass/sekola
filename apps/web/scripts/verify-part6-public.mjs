@@ -129,8 +129,11 @@ try {
     }
     await page.getByRole("link", {name:"Daftar sebagai mitra",exact:true}).click();
     await page.getByRole("dialog", {name:"Daftar sebagai mitra"}).waitFor();
-    await page.getByLabel("Nama lengkap", {exact:true}).fill("Uji tampilan tanpa pengiriman");
+    await page.getByLabel("Nama Lengkap", {exact:true}).fill("Uji tampilan tanpa pengiriman");
     assert.ok(await page.getByLabel("NIK", {exact:true}).isVisible());
+    await page.getByLabel("Perkiraan Total Siswa di Semua Sekolah yang Direferensikan", {exact:true}).fill("850");
+    assert.equal(await page.locator(".p8-register-intro li svg").count(), 4);
+    assert.equal(await page.locator(".p10-centered-submit").count(), 1);
     assert.equal(await page.locator("input[type=file]").getAttribute("accept"), "application/pdf,.pdf");
     await page.screenshot({path:path.join(output,`partner-registration-${width}.png`)});
     await page.keyboard.press("Escape");

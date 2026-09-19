@@ -16,7 +16,7 @@ export const modules: { key: string; title: MessageKey; detail: MessageKey; href
   {key:"tenant",title:"tenantSettings",detail:"tenantDesc",href:"/dashboard/tenant",permissions:["tenants.update_own"],mark:"Co"},
 ];
 export function moduleRoleAllowed(key: string, context: PermissionContext | null) {
-  const roles = key === "academic" ? ["STAFF", "TEACHER", "STUDENT"] : ["learning", "exams"].includes(key) ? ["TEACHER", "STUDENT", "PARENT"] : key === "finance" ? ["STAFF", "PARENT"] : key === "attendance" ? ["STAFF", "TEACHER"] : null;
+  const roles = key === "academic" ? ["STAFF"] : ["learning", "exams"].includes(key) ? ["TEACHER", "STUDENT", "PARENT"] : key === "finance" ? ["STAFF", "PARENT"] : key === "attendance" ? ["STAFF", "TEACHER"] : null;
   return !!context && (!roles || context.roles.some(role => roles.includes(role.code)));
 }
 export function availableModules(context: PermissionContext | null) {

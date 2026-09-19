@@ -4,7 +4,7 @@ import { createClient } from "./supabase/client";
 import { usePermissionStore } from "../stores/permission-store";
 
 export type SchoolRow = { id: string; name?: string; title?: string; full_name?: string; [key: string]: unknown };
-export type SchoolContext = { tenant: { id: string; name: string }; settings: { plan_code: string; modules: Record<string, boolean> }; staff: boolean; educator: boolean; platform_owner: boolean; children: { id: string; name: string; user_id: string }[] };
+export type SchoolContext = { foundation_principal?:boolean; foundation_schools?:{id:string;name:string;group:string}[]; tenant: { id: string; name: string }; settings: { plan_code: string; modules: Record<string, boolean> }; staff: boolean; educator: boolean; platform_owner: boolean; children: { id: string; name: string; user_id: string }[] };
 export async function schoolRpc<T>(name: string, args: Record<string, unknown> = {}): Promise<T> {
   const { data, error } = await createClient().rpc(name, args);
   if (error) throw new Error(error.message);

@@ -1,0 +1,103 @@
+-- Disposable regression fixtures. No production identities or records.
+begin;
+create function pg_temp.p10_assert(ok boolean,msg text) returns void language plpgsql as $$begin if ok is distinct from true then raise exception 'Part10: %',msg;end if;end$$;
+-- Keep routing deterministic within this rolled-back fixture transaction.
+update public.users set is_active=false where public.app_role_in(id,array['OWNER']);
+insert into public.tenants(id,name,code) values('f9100000-0000-4000-8000-000000000001','Part9 A','P9-A'),('f9100000-0000-4000-8000-000000000002','Part9 B','P9-B');
+insert into auth.users(id,email,raw_app_meta_data,raw_user_meta_data) select ('f9200000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,'p9-'||n||'@school.invalid',jsonb_build_object('tenant_id',case when n in(1,8,9,10) then 'f9100000-0000-4000-8000-000000000002' else 'f9100000-0000-4000-8000-000000000001' end),jsonb_build_object('full_name','Part9 Person '||n) from generate_series(1,11)n;
+insert into public.user_roles(user_id,role_id) select ('f9200000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,r.id from generate_series(1,10)n join public.roles r on r.code=case n when 1 then 'OWNER' when 2 then 'STAFF' when 3 then 'PRINCIPAL' when 4 then 'TEACHER' when 5 then 'TEACHER' when 6 then 'STUDENT' when 7 then 'PARENT' when 8 then 'STAFF' when 9 then 'STUDENT' when 10 then 'PRINCIPAL' end;
+insert into public.academic_years(id,tenant_id,name,starts_on,ends_on,is_active) values('f9300000-0000-4000-8000-000000000001','f9100000-0000-4000-8000-000000000001','Year',current_date-100,current_date+265,true);
+insert into public.semesters(id,tenant_id,academic_year_id,name,starts_on,ends_on,is_active) values('f9300000-0000-4000-8000-000000000002','f9100000-0000-4000-8000-000000000001','f9300000-0000-4000-8000-000000000001','Term',current_date-50,current_date+130,true);
+insert into public.classrooms(id,tenant_id,academic_year_id,name,homeroom_teacher_user_id,is_active) values('f9300000-0000-4000-8000-000000000003','f9100000-0000-4000-8000-000000000001','f9300000-0000-4000-8000-000000000001','Class','f9200000-0000-4000-8000-000000000004',true);
+insert into public.teachers(id,tenant_id,user_id) values('f9300000-0000-4000-8000-000000000004','f9100000-0000-4000-8000-000000000001','f9200000-0000-4000-8000-000000000004'),('f9300000-0000-4000-8000-000000000005','f9100000-0000-4000-8000-000000000001','f9200000-0000-4000-8000-000000000005');
+insert into public.students(id,tenant_id,user_id,student_number) values('f9300000-0000-4000-8000-000000000006','f9100000-0000-4000-8000-000000000001','f9200000-0000-4000-8000-000000000006','P9-S1'),('f9300000-0000-4000-8000-000000000009','f9100000-0000-4000-8000-000000000002','f9200000-0000-4000-8000-000000000009','P9-S2');
+insert into public.student_assignments(tenant_id,academic_year_id,semester_id,classroom_id,student_id) values('f9100000-0000-4000-8000-000000000001','f9300000-0000-4000-8000-000000000001','f9300000-0000-4000-8000-000000000002','f9300000-0000-4000-8000-000000000003','f9300000-0000-4000-8000-000000000006');
+insert into public.school_guardians(tenant_id,parent_user_id,student_id) values('f9100000-0000-4000-8000-000000000001','f9200000-0000-4000-8000-000000000007','f9300000-0000-4000-8000-000000000006');
+
+insert into public.tenants(id,name,code) values('f9100000-0000-4000-8000-000000000003','Outside Foundation','P10-C');
+insert into public.school_regions(code,name,parent_code,level,postal_code) values('31','Test Province',null,1,null),('31.01','Test City','31',2,null),('31.01.01','Test District','31.01',3,null),('31.01.01.1001','Test Village','31.01.01',4,'12345');
+insert into public.school_npsn_reference(npsn,name) values('12345678','Reference School');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','f9200000-0000-4000-8000-000000000001',true);
+do $$declare g uuid;t uuid;r jsonb;begin
+ g:=(public.school_group_save('{"name":"Part 10 Foundation","principals":["f9200000-0000-4000-8000-000000000003"]}')->>'id')::uuid;perform set_config('test.p10.group',g::text,true);
+ perform public.school_owner_save('tenant',jsonb_build_object('group_id',g),'f9100000-0000-4000-8000-000000000001');
+ perform public.school_owner_save('tenant',jsonb_build_object('group_id',g),'f9100000-0000-4000-8000-000000000002');
+ r:=public.school_owner_save('tenant',jsonb_build_object('name','Part10 New School','timezone','Asia/Makassar','locale','id-ID','week_starts_on',0,'npsn','12345678','group_id',g,'province_code','31','city_code','31.01','district_code','31.01.01','village_code','31.01.01.1001','postal_code','12345'));
+ perform pg_temp.p10_assert(r->>'code' like 'SCH-%','tenant code generated');perform set_config('test.p10.tenant',r->>'id',true);
+ begin perform public.school_owner_save('tenant','{"postal_code":"99999"}',(r->>'id')::uuid);raise exception 'Mismatched postcode allowed';exception when raise_exception then if sqlerrm='Mismatched postcode allowed' then raise;end if;end;
+ begin perform public.school_owner_save('tenant','{"province_code":null}',(r->>'id')::uuid);raise exception 'Mismatched region hierarchy allowed';exception when raise_exception then if sqlerrm='Mismatched region hierarchy allowed' then raise;end if;end;
+ perform pg_temp.p10_assert(jsonb_array_length(public.school_owner_reference('regions','31'))=1,'cascading city reference');
+ perform pg_temp.p10_assert(public.school_owner_reference('npsn',null,'12345678')->0->>'name'='Reference School','NPSN reference lookup');
+end $$;
+select set_config('request.jwt.claim.sub','f9200000-0000-4000-8000-000000000003',true);
+do $$begin
+ perform pg_temp.p10_assert((public.school_context()->>'foundation_principal')::boolean,'foundation flag');
+ perform pg_temp.p10_assert(jsonb_array_length(public.school_context()->'foundation_schools')=3,'assigned school selector');
+ perform pg_temp.p10_assert((public.school_principal_overview('f9100000-0000-4000-8000-000000000002')->>'students_total')::int=1,'assigned foreign school dashboard');
+ perform pg_temp.p10_assert(public.current_tenant_id()='f9100000-0000-4000-8000-000000000001','home tenant is never switched');
+ begin perform public.school_principal_overview('f9100000-0000-4000-8000-000000000003');raise exception 'Outside foundation data leaked';exception when insufficient_privilege then null;end;
+ begin perform public.school_approval_queue();raise exception 'Foundation approval queue allowed';exception when insufficient_privilege then null;end;
+ begin perform public.school_approval_decide(gen_random_uuid(),'APPROVED');raise exception 'Foundation decision allowed';exception when insufficient_privilege then null;end;
+ perform pg_temp.p10_assert(public.school_approval_count()=0,'foundation approval count');
+ begin perform public.school_owner_reference('groups');raise exception 'Principal can edit foundation reference';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+select pg_temp.p10_assert(not public.app_has_permission('f9200000-0000-4000-8000-000000000003','approvals.read'),'foundation API approval gate');
+insert into public.notifications(tenant_id,user_id,type,title,body) values('f9100000-0000-4000-8000-000000000001','f9200000-0000-4000-8000-000000000003','APPROVAL','Part10 forbidden','Do not deliver');
+select pg_temp.p10_assert(not exists(select 1 from public.notifications where title='Part10 forbidden'),'foundation approval notification suppressed');
+select pg_temp.p10_assert(not public.app_module_enabled('f9200000-0000-4000-8000-000000000004','academic') and public.app_module_enabled('f9200000-0000-4000-8000-000000000002','academic'),'Staff-only Academic');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','f9200000-0000-4000-8000-000000000010',true);
+do $$begin
+ begin perform public.school_principal_overview('f9100000-0000-4000-8000-000000000001');raise exception 'Regular principal crosses tenant';exception when insufficient_privilege then null;end;
+ perform public.school_approval_queue();
+end $$;
+reset role;
+insert into public.rooms(id,tenant_id,code,name) values('f9400000-0000-4000-8000-000000000001','f9100000-0000-4000-8000-000000000001','P10-LAB','Part10 Laboratory');
+insert into public.school_assets(id,tenant_id,name,category,room_id) values('f9400000-0000-4000-8000-000000000002','f9100000-0000-4000-8000-000000000001','Laboratory','LAB','f9400000-0000-4000-8000-000000000001');
+insert into public.school_assets(id,tenant_id,name,category) values('f9400000-0000-4000-8000-000000000003','f9100000-0000-4000-8000-000000000002','Foreign asset','FIELD');
+insert into public.calendars(id,tenant_id,owner_user_id,name) values('f9400000-0000-4000-8000-000000000004','f9100000-0000-4000-8000-000000000001','f9200000-0000-4000-8000-000000000002','Part10 Calendar'),('f9400000-0000-4000-8000-000000000005','f9100000-0000-4000-8000-000000000001','f9200000-0000-4000-8000-000000000004','Other Calendar');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','f9200000-0000-4000-8000-000000000002',true);
+do $$declare e uuid;payload jsonb:='{"title":"Weekly science club","starts_at":"2026-10-07T01:00:00Z","ends_at":"2026-10-07T02:00:00Z","asset_id":"f9400000-0000-4000-8000-000000000002","recurrence_rule":"FREQ=WEEKLY;COUNT=3"}';begin
+ e:=(public.school_calendar_save('f9400000-0000-4000-8000-000000000004',payload)->>'id')::uuid;perform set_config('test.p10.event',e::text,true);
+ begin perform public.school_calendar_save('f9400000-0000-4000-8000-000000000004',payload||'{"starts_at":"2026-10-14T01:30:00Z","ends_at":"2026-10-14T02:30:00Z","recurrence_rule":null}');raise exception 'Recurring occurrence conflict accepted';exception when exclusion_violation then null;end;
+ begin perform public.school_calendar_save('f9400000-0000-4000-8000-000000000005',payload);raise exception 'Foreign calendar edit accepted';exception when insufficient_privilege then null;end;
+ begin perform public.school_calendar_save('f9400000-0000-4000-8000-000000000004',payload||'{"asset_id":"f9400000-0000-4000-8000-000000000003"}');raise exception 'Foreign asset accepted';exception when foreign_key_violation then null;end;
+ perform public.school_calendar_save('f9400000-0000-4000-8000-000000000004',payload||'{"starts_at":"2026-10-07T02:00:00Z","ends_at":"2026-10-07T03:00:00Z","recurrence_rule":null}');
+end $$;
+reset role;
+select pg_temp.p10_assert((select count(*)=3 from public.school_asset_reservations where event_id=current_setting('test.p10.event')::uuid),'all repeated slots persisted');
+insert into public.subjects(id,tenant_id,code,name) values('f9400000-0000-4000-8000-000000000006','f9100000-0000-4000-8000-000000000001','P10SCI','Science');
+update public.semesters set starts_on='2026-07-01',ends_on='2027-01-01' where id='f9300000-0000-4000-8000-000000000002';
+do $$begin
+ begin insert into public.school_timetable(tenant_id,classroom_id,subject_id,teacher_id,semester_id,weekday,starts_at,ends_at,room_id) values('f9100000-0000-4000-8000-000000000001','f9300000-0000-4000-8000-000000000003','f9400000-0000-4000-8000-000000000006','f9300000-0000-4000-8000-000000000004','f9300000-0000-4000-8000-000000000002',3,'08:15','08:45','f9400000-0000-4000-8000-000000000001');raise exception 'Timetable overlaps calendar booking';exception when exclusion_violation then null;end;
+end $$;
+insert into public.school_timetable(tenant_id,classroom_id,subject_id,teacher_id,semester_id,weekday,starts_at,ends_at,room_id) values('f9100000-0000-4000-8000-000000000001','f9300000-0000-4000-8000-000000000003','f9400000-0000-4000-8000-000000000006','f9300000-0000-4000-8000-000000000004','f9300000-0000-4000-8000-000000000002',3,'10:00','11:00','f9400000-0000-4000-8000-000000000001');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','f9200000-0000-4000-8000-000000000002',true);
+do $$declare p uuid;t uuid;c uuid;r jsonb;begin
+ begin perform public.school_calendar_save('f9400000-0000-4000-8000-000000000004','{"title":"Timetable collision","starts_at":"2026-10-07T03:00:00Z","ends_at":"2026-10-07T04:00:00Z","asset_id":"f9400000-0000-4000-8000-000000000002"}');raise exception 'Booking overlaps timetable';exception when exclusion_violation then null;end;
+ r:=public.school_calendar_context('2026-10-01','2026-11-01');perform pg_temp.p10_assert(exists(select 1 from jsonb_array_elements(r->'events')e where e->>'source_table'='school_timetable' and e->>'asset_name'='Laboratory'),'teaching calendar includes asset');
+ p:=(public.school_project_template('{"code":"P10-EVENT","name":"Part10 Event","template":"CUSTOM","starts_on":"2026-10-01","due_on":"2026-10-31","committee":{"CHAIR":"f9200000-0000-4000-8000-000000000002","SECRETARY":"f9200000-0000-4000-8000-000000000004","TREASURER":"f9200000-0000-4000-8000-000000000005"}}')->>'id')::uuid;perform set_config('test.p10.project',p::text,true);
+ t:=(public.school_project_work(p,'activity','{"title":"Main activity","starts_on":"2026-10-05","due_date":"2026-10-07","assignee_user_id":"f9200000-0000-4000-8000-000000000004"}')->>'id')::uuid;perform set_config('test.p10.activity',t::text,true);
+ c:=(public.school_project_work(p,'activity',jsonb_build_object('title','Subactivity','starts_on','2026-10-06','due_date','2026-10-06','parent_task_id',t,'assignee_user_id','f9200000-0000-4000-8000-000000000005'))->>'id')::uuid;perform set_config('test.p10.subactivity',c::text,true);
+ perform public.school_project_work(p,'member','{"user_id":"f9200000-0000-4000-8000-000000000007","position":"MEMBER"}');
+ begin perform public.school_project_work(p,'member','{"user_id":"f9200000-0000-4000-8000-000000000008","position":"MEMBER"}');raise exception 'Foreign committee member accepted';exception when raise_exception then if sqlerrm='Foreign committee member accepted' then raise;end if;end;
+ begin perform public.school_project_work(p,'activity',jsonb_build_object('title','Circular parent','parent_task_id',c),t);raise exception 'Activity cycle accepted';exception when raise_exception then if sqlerrm='Activity cycle accepted' then raise;end if;end;
+end $$;
+reset role;
+select pg_temp.p10_assert((select count(*)=4 from public.calendar_events where source_table='team_projects' and source_id=current_setting('test.p10.project')::uuid),'project timeline for every committee member');
+select pg_temp.p10_assert((select count(*)=4 from public.calendar_events where source_table='team_tasks' and source_id=current_setting('test.p10.activity')::uuid),'activity timeline for every committee member');
+select pg_temp.p10_assert((select count(*)=4 from public.calendar_events where source_table='team_tasks' and source_id=current_setting('test.p10.subactivity')::uuid),'subactivity timeline for every committee member');
+select pg_temp.p10_assert((select bool_and(is_all_day and starts_at='2026-10-04T17:00:00Z' and ends_at='2026-10-07T17:00:00Z') from public.calendar_events where source_id=current_setting('test.p10.activity')::uuid),'timeline uses school timezone and inclusive dates');
+update public.team_tasks set starts_on='2026-10-08',due_date='2026-10-09' where id=current_setting('test.p10.activity')::uuid;
+select pg_temp.p10_assert((select count(*)=4 and bool_and(starts_at='2026-10-07T17:00:00Z') from public.calendar_events where source_id=current_setting('test.p10.activity')::uuid),'reschedule updates without duplicates');
+delete from public.team_project_members where project_id=current_setting('test.p10.project')::uuid and user_id='f9200000-0000-4000-8000-000000000007';
+select pg_temp.p10_assert((select count(*)=3 from public.calendar_events where source_id=current_setting('test.p10.activity')::uuid),'removed member loses project calendar');
+update public.team_tasks set status='DONE' where id=current_setting('test.p10.activity')::uuid;
+select pg_temp.p10_assert(not exists(select 1 from public.calendar_events where source_id=current_setting('test.p10.activity')::uuid),'completed activity leaves calendar');
+delete from public.calendar_events where id=current_setting('test.p10.event')::uuid;
+select pg_temp.p10_assert(not exists(select 1 from public.school_asset_reservations where event_id=current_setting('test.p10.event')::uuid),'deleting event releases reservations');
+rollback;
