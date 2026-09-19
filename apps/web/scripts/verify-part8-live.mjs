@@ -11,7 +11,7 @@ export async function verifyPart8({browser,staffPage,owner,staff,parent,peer,ids
  }
  await publicPage.getByRole('link',{name:'Become a partner',exact:true}).click();
  await publicPage.getByRole('dialog',{name:'Become a partner'}).waitFor();
- await publicPage.getByLabel('Full name',{exact:true}).fill('Part8 synthetic applicant '+run);
+ await publicPage.getByLabel('Full Name',{exact:true}).fill('Part8 synthetic applicant '+run);
  await picture(publicPage,'part8-partner-registration');await picture(publicPage,'part8-partner-registration-mobile',true);
  const pdf=await PDFDocument.create();pdf.addPage().drawText('OSEKOLA disposable verification CV. Synthetic applicant.');
  const receipt=await publicPage.request.post('https://osekola.com/api/partners/register',{headers:{origin:'https://osekola.com'},multipart:{name:'Part8 fixture '+run,nik:'0000'+String(Date.now()).slice(-12),phone:'628000000008',domicile:'Synthetic city',occupation:'Synthetic teacher',school_count:'2',estimated_students:'850',contacts:'Synthetic contact / Synthetic school / Teacher',photo_confirmed:'on',consent:'on',cv:{name:'fixture.pdf',mimeType:'application/pdf',buffer:Buffer.from(await pdf.save())}}});
