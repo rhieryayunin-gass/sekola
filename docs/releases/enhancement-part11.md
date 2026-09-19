@@ -34,3 +34,9 @@ PR #89 head 75ab876ba0071a1b3474029f2735260307faa9b6 passed GitHub CI 3545425391
 Production migration was applied as 20260919161648; the repository filename now matches the applied version, with SQL unchanged. Verification retained 5 tenants and 227 users; both new tables have RLS enabled and the project evidence bucket is private. Security advisors show no new WARN/ERROR findings; the two new INFO entries are the deliberately RPC-only tables with all direct client grants revoked.
 
 Final production merge, exact deployment SHA, authenticated Part11 browser verification and fixture cleanup are pending the final CI gate.
+
+## Production verification follow-up
+
+PR89 deployed as 05a20fe5f5f0c4764185d6b9833aac9976444646, Vercel dpl_98snGJnsV1dnpBt4ZY5cUJmBt5i4 READY. Main CI35454735741 and public verification35454735764 passed. Authenticated run35454735744 passed Parts7–10, then exposed a Kanban drag failure; fixture cleanup left zero users/schools and no errors.
+
+The follow-up retains the dragged task synchronously in a ref and reads the native drop payload, avoiding React render timing during a native drag. The browser regression uses the task search and the card's noninteractive grab area, then verifies the persisted database status.
