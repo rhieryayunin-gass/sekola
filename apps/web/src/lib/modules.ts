@@ -16,11 +16,11 @@ export const modules: { key: string; title: MessageKey; detail: MessageKey; href
   {key:"tenant",title:"tenantSettings",detail:"tenantDesc",href:"/dashboard/tenant",permissions:["tenants.update_own"],mark:"Co"},
 ];
 export function moduleRoleAllowed(key: string, context: PermissionContext | null) {
-  const roles = key === "academic" ? ["STAFF"] : ["learning", "exams"].includes(key) ? ["TEACHER", "STUDENT", "PARENT"] : key === "finance" ? ["STAFF", "PARENT"] : key === "attendance" ? ["STAFF", "TEACHER"] : null;
+  const roles = key === "academic" ? ["STAFF"] : ["learning", "exams"].includes(key) ? ["TEACHER", "STUDENT", "PARENT"] : key === "finance" ? ["STAFF", "PRINCIPAL", "PARENT", "STUDENT"] : key === "attendance" ? ["STAFF", "TEACHER"] : null;
   return !!context && (!roles || context.roles.some(role => roles.includes(role.code)));
 }
 export function availableModules(context: PermissionContext | null) {
-  return modules.filter(module => moduleRoleAllowed(module.key, context) && (module.key !== "tenant" || context?.roles.some(role => role.code === "OWNER")) && (module.permissions.some(code => context?.permissions.some(p => p.code === code)) || (["finance","learning","exams"].includes(module.key) && context?.roles.some(r => r.code === "PARENT")) || (module.key === "academic" && context?.roles.some(r => r.code === "STUDENT"))));
+  return modules.filter(module => moduleRoleAllowed(module.key, context) && (module.key !== "tenant" || context?.roles.some(role => role.code === "OWNER")) && (module.permissions.some(code => context?.permissions.some(p => p.code === code)) || (["finance","learning","exams","team"].includes(module.key) && context?.roles.some(r => r.code === "PARENT")) || (["team","finance"].includes(module.key) && context?.roles.some(r => ["STUDENT","PRINCIPAL"].includes(r.code)))));
 }
 export function primaryRole(context: PermissionContext | null) {
   return ["OWNER","PRINCIPAL","STAFF","TEACHER","STUDENT","PARENT"].find(role => context?.roles.some(r => r.code === role)) ?? "";

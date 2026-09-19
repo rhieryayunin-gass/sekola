@@ -40,17 +40,17 @@ export async function verifyPart10({users,owner,staff,teacher,student,parent,for
  await staffPage.getByRole('button',{name:'Calendar',exact:true}).click();await staffPage.locator('.p10-calendar').waitFor();await staffPage.getByLabel('Date',{exact:true}).fill('2026-10-07');await staffPage.getByText('Part10 science club',{exact:false}).first().waitFor();await picture(staffPage,'part10-calendar');await picture(staffPage,'part10-calendar-mobile',true);
  await staffPage.getByRole('button',{name:'Event',exact:true}).click();await staffPage.getByLabel('Book Asset / Room (Optional)',{exact:true}).selectOption(asset);await picture(staffPage,'part10-event-booking');await staffPage.getByRole('dialog',{name:'New event'}).getByRole('button',{name:'Close modal'}).click();
  record('Part10 calendar renders desktop/mobile, repeated asset conflicts are rejected and teaching events include rooms');
- await staffPage.goto('https://osekola.com/dashboard/team');await staffPage.getByRole('button',{name:'+ Project',exact:true}).click();const projectDialog=staffPage.getByRole('dialog',{name:'New Project'});
- await projectDialog.getByLabel('Project key',{exact:true}).fill('P10-LIVE');await projectDialog.getByLabel('Project name',{exact:true}).fill('Part10 science festival');
+ await staffPage.goto('https://osekola.com/dashboard/team');await staffPage.getByRole('button',{name:'Project',exact:true}).click();const projectDialog=staffPage.getByRole('dialog',{name:'New Project'});
+ await projectDialog.getByLabel('Project Code',{exact:true}).fill('P10-LIVE');await projectDialog.getByLabel('Project Name',{exact:true}).fill('Part10 science festival');
  for(const [label,u] of [['Chair / PIC',staff],['Secretary',teacher],['Treasurer',principal]]){await projectDialog.getByLabel(label,{exact:true}).fill(ok(await admin.from('users').select('full_name').eq('id',u.id).single(),'person').full_name);}
- await projectDialog.getByLabel('Starts',{exact:true}).fill('2026-10-01');await projectDialog.getByLabel('Ends',{exact:true}).fill('2026-10-31');await picture(staffPage,'part10-project-create');
- await projectDialog.getByRole('button',{name:'Create project',exact:true}).click();await projectDialog.waitFor({state:'hidden'});
+ await projectDialog.getByLabel('Start Date',{exact:true}).fill('2026-10-01');await projectDialog.getByLabel('Due Date',{exact:true}).fill('2026-10-31');await picture(staffPage,'part10-project-create');
+ await projectDialog.getByRole('button',{name:'Save',exact:true}).click();await projectDialog.waitFor({state:'hidden'});
  const project=ok(await admin.from('team_projects').select('id').eq('tenant_id',tenants[0]).eq('code','P10-LIVE').single(),'project');
  const activity=await rpc(staff,'school_project_work',{project_uuid:project.id,action:'activity',payload:{title:'Part10 main activity',starts_on:'2026-10-05',due_date:'2026-10-07',assignee_user_id:teacher.id}});
  const sub=await rpc(staff,'school_project_work',{project_uuid:project.id,action:'activity',payload:{title:'Part10 subactivity',parent_task_id:activity.id,starts_on:'2026-10-06',due_date:'2026-10-06',assignee_user_id:staff.id}});
  await rpc(staff,'school_project_work',{project_uuid:project.id,action:'member',payload:{user_id:parent.id,position:'MEMBER'}});
  const calendarParent=await rpc(parent,'school_calendar_context',{starts:'2026-10-01',ends:'2026-11-01'});for(const id of [project.id,activity.id,sub.id])assert.ok(calendarParent.events.some(e=>e.source_id===id));
- await denied(foreign.client.rpc('school_project_work',{project_uuid:project.id}));await staffPage.reload();await staffPage.getByRole('button',{name:'Part10 main activity',exact:true}).waitFor();assert.equal(await staffPage.getByRole('button',{name:'+ Project',exact:true}).count(),1);await picture(staffPage,'part10-project-table');await picture(staffPage,'part10-project-table-mobile',true);
+ await denied(foreign.client.rpc('school_project_work',{project_uuid:project.id}));await staffPage.reload();await staffPage.getByRole('button',{name:'Part10 main activity',exact:true}).waitFor();assert.equal(await staffPage.getByRole('button',{name:'Project',exact:true}).count(),1);await picture(staffPage,'part10-project-table');await picture(staffPage,'part10-project-table-mobile',true);
  record('Part10 searchable committee creation, one project entrypoint, nested activities, member actions and recipient calendar timelines');
  let group;
  try{
