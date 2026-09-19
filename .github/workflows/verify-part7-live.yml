@@ -9,6 +9,7 @@ on:
       - apps/web/scripts/verify-part9-live.mjs
       - apps/web/scripts/verify-part10-live.mjs
       - apps/web/src/components/part10/**
+      - apps/web/src/components/ui/select.tsx
       - apps/web/src/app/part10.css
       - apps/web/src/app/part9.css
       - apps/web/src/components/part9/**

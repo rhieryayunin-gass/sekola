@@ -21,6 +21,7 @@ export function Select({
     <label className="grid gap-1.5 text-sm font-medium" htmlFor={selectId}>
       {label && <span>{label}</span>}
       <select
+        aria-label={label}
         aria-describedby={errorId}
         aria-invalid={Boolean(error)}
         className={classNames(
