@@ -131,7 +131,7 @@ export function TeamManager() {const copy=useUiText();const {locale}=useTranslat
   const availableUsers = users.data?.map(u=>({id:u.id,full_name:String(u.name ?? u.full_name ?? "Pengguna")})) ?? (me.data ? [me.data] : []);
 
   return (
-    <section className="mt-6 grid gap-5">
+    <section className="p10-project-workspace mt-6 grid gap-5">
       <Card className="p10-project-list">
        <header className="school-section-title"><div><h2>{tr("Projects","Proyek")}</h2><p>{tr("Committees, activities and shared timelines.","Panitia, kegiatan, dan jadwal bersama.")}</p></div><Button onClick={()=>{setError(undefined);setProjectModal(true);}}>+ Project</Button></header>
        <div className="owner-table-scroll"><table className="owner-table"><thead><tr>{[tr("Project","Proyek"),"Status",tr("Timeline","Jadwal"),tr("Actions","Tindakan")].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{projects.data?.map(project=><tr key={project.id} data-selected={project.id===projectId}><td><button className="owner-name" onClick={()=>{setProjectId(project.id);setTaskPage(1);setSelectedTask(undefined);}}>{project.name}</button><small>{project.code}</small></td><td><Badge>{project.status.replaceAll("_"," ")}</Badge></td><td>{project.starts_on||"—"} → {project.due_on||"—"}</td><td><div className="p10-table-actions"><Button size="sm" variant="ghost" onClick={()=>setProjectAction({project,mode:"member"})}>{tr("Add Committee","Tambah Panitia")}</Button><Button size="sm" variant="ghost" onClick={()=>setProjectAction({project,mode:"project"})}>{tr("Edit Timeline","Edit Jadwal")}</Button></div></td></tr>)}</tbody></table></div>
