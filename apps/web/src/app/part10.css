@@ -1,4 +1,8 @@
 /* Part 10: consistent workspaces, readable forms and shared timelines. */
+.p10-project-workspace{min-width:0;max-width:100%;grid-template-columns:minmax(0,1fr)}
+.p10-project-workspace>*,.p10-project-list,.p10-project-timeline{min-width:0;max-width:100%}
+.p10-project-workspace .owner-table-scroll{min-width:0;max-width:100%}
+.p10-project-list .school-section-title{flex-wrap:wrap}
 .school-partner-public>.ose-eyebrow{justify-content:center;text-align:center;margin-inline:auto}
 .p8-register-intro ul{display:grid;gap:12px;padding:0;list-style:none}.p8-register-intro li{display:flex;align-items:flex-start;gap:10px}.p8-register-intro li svg{flex:none;color:var(--secondary);margin-top:2px}
 .p10-partner-form{gap:22px}.p10-partner-form label{font-size:14px;font-weight:600;line-height:1.6}.p10-partner-form input:not([type=checkbox]):not([type=file]),.p10-partner-form textarea{font-size:14px;font-weight:400}.p10-centered-submit{grid-column:1/-1;justify-self:center;min-width:220px;margin-top:8px}
