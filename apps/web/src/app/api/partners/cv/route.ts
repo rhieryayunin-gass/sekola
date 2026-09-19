@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   return new Response(Buffer.from(data.data, "base64"), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${String(data.name).replace(/[^a-zA-Z0-9._-]/g, "_")}"`,
+      "Content-Disposition": `${new URL(request.url).searchParams.get("view") === "inline" ? "inline" : "attachment"}; filename="${String(data.name).replace(/[^a-zA-Z0-9._-]/g, "_")}"`,
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
     },

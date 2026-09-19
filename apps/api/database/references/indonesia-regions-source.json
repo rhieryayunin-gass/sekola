@@ -1,0 +1,19 @@
+{
+  "sources": [
+    "https://github.com/cahyadsn/wilayah",
+    "https://github.com/cahyadsn/wilayah_kodepos"
+  ],
+  "downloaded_utc": "2026-09-19",
+  "upstream_sha256": {
+    "wilayah.sql": "c4c3396d9380d4edee072af1d9dff83573b574d7cd00a6562cf82e200e954031",
+    "wilayah_kodepos.sql": "7ddc564b45582ffeaa469eddc756b9c0f09c77371e4756577c4b70e346ab8b2c"
+  },
+  "regions": 91599,
+  "postal_codes_matched": 83762,
+  "levels": {
+    "1": 38,
+    "2": 514,
+    "3": 7285,
+    "4": 83762
+  }
+}

@@ -40,6 +40,7 @@ export async function POST(request: Request) {
         "domicile",
         "occupation",
         "school_count",
+      "estimated_students",
         "contacts",
         "website",
       ].map((k) => [k, String(f.get(k) ?? "").trim()]),

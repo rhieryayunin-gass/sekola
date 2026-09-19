@@ -1,4 +1,4 @@
-name: Part 9 production verification
+name: Part 10 production verification
 on:
   push:
     branches: [main]
@@ -7,6 +7,9 @@ on:
       - apps/web/scripts/verify-part7-live.mjs
       - apps/web/scripts/verify-part8-live.mjs
       - apps/web/scripts/verify-part9-live.mjs
+      - apps/web/scripts/verify-part10-live.mjs
+      - apps/web/src/components/part10/**
+      - apps/web/src/app/part10.css
       - apps/web/src/app/part9.css
       - apps/web/src/components/part9/**
       - apps/web/src/components/school/role-overview.tsx
@@ -38,6 +41,11 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/part7-browser" playwright@1.62.1
           "$RUNNER_TEMP/part7-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Import verified Indonesian address references
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node apps/web/scripts/seed-part10-regions.mjs
       - name: Verify setup, learning, assessment and role isolation on the deployed release
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
@@ -49,7 +57,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: part9-production-verification
+          name: part10-production-verification
           path: ${{ runner.temp }}/part7-evidence
           if-no-files-found: ignore
           retention-days: 14

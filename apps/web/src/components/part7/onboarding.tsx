@@ -160,12 +160,6 @@ function SetupContent({ academic }: { academic: boolean }) {
   if (q.isPending)
     return <p role="status">{tr("Preparing your school journey…")}</p>;
   if (!data) return <ErrorNotice error={q.error} />;
-  const phaseScore = (phase: string) => {
-    const rows = data.checks.filter((c) => c.phase === phase);
-    return Math.round(
-      (rows.filter((c) => c.complete).length / rows.length) * 100,
-    );
-  };
   return (
     <section className="p7" data-testid="school-setup">
       <header className="p7-hero">
@@ -178,8 +172,6 @@ function SetupContent({ academic }: { academic: boolean }) {
             )}
           </p>
           <div className="p7-pills">
-            <span>O-Core {phaseScore("core")}%</span>
-            <span>O-Academic {phaseScore("academic")}%</span>
             {data.setup.launched_at && (
               <span>
                 <CheckCircle2 size={14} />
@@ -189,9 +181,10 @@ function SetupContent({ academic }: { academic: boolean }) {
           </div>
         </div>
         <div
-          className="p7-ring"
-          style={{ "--progress": `${data.score}%` } as React.CSSProperties}
+          className="p10-speedometer" role="meter" aria-label={tr("Readiness")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={data.score}
+          style={{ "--angle": `${data.score * 1.8 - 90}deg`, "--progress": `${data.score / 2}%` } as React.CSSProperties}
         >
+          <span className="p10-speedometer-needle"/>
           <div>
             <strong>{data.score}%</strong>
             <small>{tr("Readiness")}</small>
@@ -211,7 +204,7 @@ function SetupContent({ academic }: { academic: boolean }) {
        const groups=[["home","identity","facilities","people"],["year","curriculum"],["classes","placement"],["assessment"],["readiness"]];return groups.find(g=>g.includes(step))?.includes(key);
       }).map(([key,en,id])=><Button key={key} variant={step===key?"secondary":"ghost"} onClick={()=>setStep(key)}>{tr(en,id)}</Button>)}</div>
       <ErrorNotice error={mutate.error} />
-      <div className="p7-layout">
+      <div className="p7-layout p10-setup-layout">
         <main className="p7-canvas">
           {step === "home" && (
             <>
@@ -599,42 +592,7 @@ function SetupContent({ academic }: { academic: boolean }) {
             </>
           )}
         </main>
-        <aside className="p7-insights">
-          <span className="p7-orb">O</span>
-          <h3>{tr("Your next step")}</h3>
-          <p>
-            {data.blockers
-              ? tr(
-                  "Resolve the missing foundations. Each change updates the connected modules.",
-                )
-              : tr(
-                  "All readiness checks pass. Preview the journey, then launch.",
-                )}
-          </p>
-          <Button variant="ghost" onClick={() => setStep("readiness")}>
-            {data.blockers} {tr("checks to resolve")}
-          </Button>
-          <div className="p7-divider" />
-          <h4>{tr("Connected sources")}</h4>
-          <p>
-            O-Core → O-Academic
-            <br />
-            O-Learning → O-Exam
-          </p>
-          <Link href="/dashboard/calendar">{tr("Open calendar")} ↗</Link>
-          <Link href="/dashboard/operations">
-            {tr("Bookings & approvals")} ↗
-          </Link>
-          <Link href="/dashboard/connect">
-            {tr("Contact your school team")} ↗
-          </Link>
-          <h4>{tr("Recent changes")}</h4>
-          {data.activity.map((a, i) => (
-            <small key={i}>
-              {a.resource_type.replaceAll("_", " ")} · {a.action}
-            </small>
-          ))}
-        </aside>
+
       </div>
     </section>
   );

@@ -52,13 +52,18 @@ do $$ declare p jsonb; a uuid; b uuid; sa uuid; sb uuid; suba uuid; subb uuid; c
  evidence:=(public.school_curriculum_save('evidence',jsonb_build_object('course_id',course,'outcome_id',ao,'student_id','d3000000-0000-4000-8000-000000000004','scale_id',scaleb,'score',6,'feedback','Published rubric evidence','rubric_results',jsonb_build_object('Reasoning',6,'Communication',5),'status','PUBLISHED'))->>'id')::uuid;
  perform set_config('test.curriculum.evidence',evidence::text,true);
  begin perform public.school_curriculum_save('evidence',jsonb_build_object('rubric_results',jsonb_build_object('Reasoning',null,'Communication',5)),evidence);raise exception 'Null published rubric accepted' using errcode='23514';exception when sqlstate 'P0001' then null;end;
+ perform set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000007',true);
  begin perform public.school_curriculum_save('scales','{"rubric_dimensions":["Changed"]}',scaleb);raise exception 'Used rubric dimensions changed' using errcode='23514';exception when sqlstate 'P0001' then null;end;
+ perform set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000002',true);
 
  begin perform public.school_curriculum_save('evidence',jsonb_build_object('course_id',course,'outcome_id',ao,'student_id','d3000000-0000-4000-8000-000000000014','scale_id',scaleb,'score',5,'feedback','Wrong individual programme')); raise exception 'Individual enrolment bypass'; exception when check_violation then null; end;
  begin perform public.school_curriculum_save('evidence',jsonb_build_object('course_id',course,'outcome_id',tp,'student_id','d3000000-0000-4000-8000-000000000004','scale_id',scaleb,'score',5,'feedback','Wrong programme scale')); raise exception 'Cross-programme scale accepted'; exception when check_violation then null; end;
  begin perform public.school_curriculum_save('evidence',jsonb_build_object('course_id',course,'outcome_id',ao,'student_id','d3000000-0000-4000-8000-000000000004','scale_id',scaleb,'score',99,'feedback','Out of range')); raise exception 'Scale range not enforced'; exception when check_violation then null; end;
+ perform set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000007',true);
  begin perform public.school_curriculum_save('scales','{"maximum":100}',scaleb); raise exception 'Used scale changed historical meaning'; exception when check_violation then null; end;
  perform public.school_curriculum_save('programs','{"version":"Next school revision"}',b);
+ perform set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000002',true);
+
  result:=public.school_curriculum_learning(course);
  if not exists(select 1 from jsonb_array_elements(result->'evidence') e where e->>'id'=evidence::text and e->'assessment_context'->'program'->>'version'='2025–2027' and e->'assessment_context'->'scale'->>'maximum'='8.00') then raise exception 'Assessment version snapshot missing'; end if;-- Part 8 elective overrides and historical evidence.
  perform set_config('request.jwt.claim.sub','d2000000-0000-4000-8000-000000000007',true);

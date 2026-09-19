@@ -8,7 +8,7 @@ function context(role: string): PermissionContext {
 describe("Part 5 workspaces and scoped family projections", () => {
  it.each(roles)("limits %s despite stale broad grants", role => {
   const visible = availableModules(context(role)).map(m => m.key);
-  expect(visible.includes("academic")).toBe(["STAFF", "TEACHER", "STUDENT"].includes(role));
+  expect(visible.includes("academic")).toBe(["STAFF"].includes(role));
   expect(visible.includes("learning")).toBe(["TEACHER", "STUDENT", "PARENT"].includes(role));
   expect(visible.includes("exams")).toBe(["TEACHER", "STUDENT", "PARENT"].includes(role));
  });
