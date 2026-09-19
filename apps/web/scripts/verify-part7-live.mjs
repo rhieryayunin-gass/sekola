@@ -33,7 +33,9 @@ async function open(actor, path) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   await context.addCookies([...actor.jar.values()].map(c => ({ name: c.name, value: c.value, domain: 'osekola.com', path: '/', secure: true, sameSite: 'Lax' })).concat([{ name: 'osekola_locale', value: 'en-US', domain: 'osekola.com', path: '/', secure: true, sameSite: 'Lax' }]));
   const page = await context.newPage(); page.setDefaultTimeout(30000); pages.push(page);
-  await page.goto('https://osekola.com' + path); return page;
+  const response = await page.goto('https://osekola.com' + path);
+  assert.ok(response?.ok(), `Production route ${path} returned ${response?.status()}`);
+  return page;
 }
 async function picture(page, name, mobile = false) {
   if (mobile) await page.setViewportSize({ width: 390, height: 844 });

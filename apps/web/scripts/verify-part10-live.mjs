@@ -4,7 +4,7 @@ export async function verifyPart10({users,owner,staff,teacher,student,parent,for
  const ok=(r,label)=>{if(r.error)throw new Error(`${label}: ${r.error.message}`);return r.data;};
  const principal=users.find(u=>u.role==='PRINCIPAL');
  // Owner form and confirmation do not persist until the final confirm action.
- const ownerPage=await open(owner,'/dashboard/tenants');
+ const ownerPage=await open(owner,'/dashboard/tenant');
  const tenantName=`Part 7 verification ${run} 0`;
  await ownerPage.getByRole('button',{name:tenantName,exact:true}).click();
  const tenantDialog=ownerPage.getByRole('dialog');
