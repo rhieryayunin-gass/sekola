@@ -17,6 +17,7 @@ const regions=["province_code","city_code","district_code","village_code"];
 export function TenantForm({initial,close}:{initial:OwnerRow|null;close:()=>void}) {
  const {locale}=useTranslations(),ind=locale==="id-ID",tr=(en:string,id:string)=>ind?id:en;
  const [form,setForm]=useState<Record<string,string>>(()=>Object.fromEntries(["npsn","name","group_id",...regions,"postal_code","address","website_url","contact_email","contact_phone","timezone","locale","week_starts_on"].map(k=>[k,initial?value(initial,k):({timezone:"Asia/Jakarta",locale:"en-US",week_starts_on:"1"} as Record<string,string>)[k]||""])));
+ const [bank,setBank]=useState({bank_name:"",account_name:"",account_number:""});
  const [file,setFile]=useState<File>(),[confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState("");
  const savedId=useRef(initial?.id),save=useOwnerSave(),cache=useQueryClient();
  const groups=useReference("groups"),provinces=useReference("regions"),cities=useReference("regions",form.province_code,"",!!form.province_code),districts=useReference("regions",form.city_code,"",!!form.city_code),villages=useReference("regions",form.district_code,"",!!form.district_code),npsn=useReference("npsn",undefined,form.npsn,form.npsn.length>=3);
@@ -24,12 +25,12 @@ export function TenantForm({initial,close}:{initial:OwnerRow|null;close:()=>void
  const change=(key:string,v:string)=>setForm(old=>({...old,[key]:v}));
  async function persist(){setBusy(true);setError("");try{
   const payload=Object.fromEntries(Object.entries(form).map(([k,v])=>[k,k==="week_starts_on"?Number(v):v.trim()||null]));
-  const row=await save.mutateAsync({kind:"tenant",id:savedId.current,payload});savedId.current=row.id;
+  const row=await save.mutateAsync({kind:"tenant",id:savedId.current,payload:{...payload,...(!initial&&Object.values(bank).some(Boolean)?{settlement_account:bank}:{})}});savedId.current=row.id;
   if(file){const {error}=await createClient().storage.from("tenant-media").upload(`${row.id}/logos/logo`,file,{upsert:true,contentType:file.type,cacheControl:"0"});if(error)throw new Error(tr("School saved. Avatar upload failed; retry Save to finish uploading.","Sekolah tersimpan. Unggah avatar gagal; klik Simpan lagi untuk mengunggah."));}
   await cache.invalidateQueries({queryKey:["media"]});await cache.invalidateQueries({queryKey:["school-context"]});close();
  }catch(e){setError(e instanceof Error?e.message:"Unable to save");setConfirm(false);}finally{setBusy(false);}}
  return <form className="p10-tenant-form" onSubmit={e=>{e.preventDefault();setError("");setConfirm(true);}}>
-  <div className="p10-form-grid">
+  <div className="p10-form-grid p11-tenant-fields">
    <div><Input name="npsn" label="NPSN" pattern="[0-9]{8}" maxLength={8} inputMode="numeric" list="p10-npsn" value={form.npsn} onChange={e=>{const v=e.target.value;setForm(old=>({...old,npsn:v}));if(v.length===8)void schoolRpc<Reference[]>("school_owner_reference",{resource:"npsn",query:v}).then(rows=>{const match=rows.find(r=>r.npsn===v);if(match)setForm(old=>old.npsn===v?{...old,name:match.name}:old);}).catch(()=>{});}}/><datalist id="p10-npsn">{npsn.data?.map(r=><option key={r.npsn} value={r.npsn}>{r.name}</option>)}</datalist><small>{tr("Type 8 digits. A matching reference fills the school name; otherwise enter it below.","Masukkan 8 digit. Referensi yang cocok mengisi nama sekolah; jika belum ada, isi nama di bawah.")}</small></div>
    <Input name="name" label={tr("School Name","Nama Sekolah")} minLength={2} maxLength={160} required value={form.name} onChange={e=>change("name",e.target.value)}/>
    <Select label={tr("School Group / Foundation (Optional)","Grup Sekolah / Yayasan (Opsional)")} value={form.group_id} onChange={e=>change("group_id",e.target.value)}><option value="">{tr("Independent school","Sekolah mandiri")}</option>{groups.data?.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</Select>
@@ -43,6 +44,7 @@ export function TenantForm({initial,close}:{initial:OwnerRow|null;close:()=>void
    <Select label={tr("Language","Bahasa")} value={form.locale} onChange={e=>change("locale",e.target.value)}><option value="en-US">English</option><option value="id-ID">Bahasa Indonesia</option></Select>
    <div className="p10-upload p10-form-full"><span>{tr("School Avatar (Optional)","Avatar Sekolah (Opsional)")}</span><label className="ose-file-label"><Upload size={18}/>{tr("Upload / Replace File","Unggah / Ganti Berkas")}<input className="p10-file-input" type="file" aria-label={tr("School avatar","Avatar sekolah")} accept="image/png,image/jpeg,image/webp" onChange={e=>{const chosen=e.target.files?.[0];if(chosen&&validateMedia(chosen,"tenant-media")){setError(tr("Choose PNG, JPEG or WebP up to 5 MB.","Pilih PNG, JPEG, atau WebP maksimal 5 MB."));e.target.value="";return;}setFile(chosen);setError("");}}/></label><small>{file?.name||"PNG / JPEG / WebP · max 5 MB"}</small></div>
   </div>
+  {!initial&&<fieldset className="p11-bank-fields"><legend>{tr("School Bank Account (Optional)","Rekening Sekolah (Opsional)")}</legend><p>{tr("Leave all fields empty to add an account later.","Kosongkan seluruh kolom jika rekening akan ditambahkan nanti.")}</p>{[["bank_name","Bank Name","Nama Bank"],["account_name","Account Holder","Nama Pemilik Rekening"],["account_number","Account Number","Nomor Rekening"]].map(([k,en,id])=><Input key={k} label={tr(en,id)} required={Object.values(bank).some(Boolean)} maxLength={k==="account_number"?40:100} pattern={k==="account_number"?"[0-9]{5,40}":undefined} inputMode={k==="account_number"?"numeric":undefined} value={bank[k as keyof typeof bank]} onChange={e=>setBank(b=>({...b,[k]:e.target.value}))}/>)}</fieldset>}
   {lists.some(q=>q.isError)&&<p role="alert">{tr("Location data could not be loaded. Please try again.","Data wilayah gagal dimuat. Silakan coba lagi.")}</p>}
   {error&&<p role="alert" className="school-error">{error}</p>}
   <footer className="owner-form-footer"><Button type="submit" disabled={busy}>{tr("Save","Simpan")}</Button></footer>

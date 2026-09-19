@@ -1,4 +1,4 @@
-name: Part 10 production verification
+name: Part 11 production verification
 on:
   push:
     branches: [main]
@@ -8,6 +8,9 @@ on:
       - apps/web/scripts/verify-part8-live.mjs
       - apps/web/scripts/verify-part9-live.mjs
       - apps/web/scripts/verify-part10-live.mjs
+      - apps/web/scripts/verify-part11-live.mjs
+      - apps/web/src/components/part11/**
+      - apps/web/src/app/part11.css
       - apps/web/src/components/part10/**
       - apps/web/src/components/ui/select.tsx
       - apps/web/src/app/part10.css
@@ -58,7 +61,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: part10-production-verification
+          name: part11-production-verification
           path: ${{ runner.temp }}/part7-evidence
           if-no-files-found: ignore
           retention-days: 14

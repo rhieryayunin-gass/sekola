@@ -9,6 +9,7 @@ import "./part7.css";
 import "./part8.css";
 import "./part9.css";
 import "./part10.css";
+import "./part11.css";
 import "./dashboard/connect/connect.css";
 import { Centers } from "../components/part8/centers";
 import { FloatingConnect } from "../components/connect/floating-connect";
